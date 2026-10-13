@@ -1,0 +1,64 @@
+[
+  {
+    "tool_name": "open_screen",
+    "name": "open_screen",
+    "kind": "navigation",
+    "description": "Take the patient to a screen in the app: home, chat, medicines, calls (their check-in calls), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string",
+          "description": "The screen to open.",
+          "enum": [
+            "home",
+            "chat",
+            "medicines",
+            "calls",
+            "memory",
+            "profile"
+          ]
+        }
+      },
+      "required": [
+        "screen"
+      ]
+    }
+  },
+  {
+    "tool_name": "open_item",
+    "name": "open_item",
+    "kind": "navigation",
+    "description": "Open one of the patient's medicines so they can see its dose times and supply. Name the medicine as it appears on the Medicines screen.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The medicine's name or id, e.g. \"Metformin 500 mg\" or \"metformin\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "mark_done",
+    "name": "mark_done",
+    "kind": "action",
+    "description": "Record that the patient has taken today's dose of one of their medicines. Only when the patient says they have taken it; never assume.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The medicine's name or id, e.g. \"Metformin 500 mg\" or \"metformin\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  }
+]

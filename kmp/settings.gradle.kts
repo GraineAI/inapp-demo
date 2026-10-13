@@ -1,0 +1,47 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "graine-demo-kmp"
+include(":composeApp")
+
+/*
+ * THE LOCAL-SDK SWITCH. The app depends on the published ai.graine:inapp-kmp and
+ * ai.graine:inapp-kmp-compose 0.7.0. To build it against the SDK's sources on this machine instead
+ * (a version not published yet), set in local.properties:
+ *
+ *     graine.kmpSdkDir=../../sdk-kmp/sdk/kmp
+ *
+ * (or -Pgraine.kmpSdkDir=… / GRAINE_KMP_SDK_DIR). Gradle then builds the SDK from that checkout as part
+ * of this build — its Android side with the Android SDK beside it — and uses it in place of the
+ * published artifacts. Remove the line to go back.
+ */
+val localProps = java.util.Properties().apply {
+    val f = file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val kmpSdkDir: String? = providers.gradleProperty("graine.kmpSdkDir").orNull
+    ?: localProps.getProperty("graine.kmpSdkDir")
+    ?: System.getenv("GRAINE_KMP_SDK_DIR")
+if (!kmpSdkDir.isNullOrBlank()) {
+    val dir = file(kmpSdkDir)
+    require(dir.resolve("inapp-kmp").isDirectory) { "graine.kmpSdkDir=$kmpSdkDir has no inapp-kmp module" }
+    includeBuild(dir) {
+        dependencySubstitution {
+            substitute(module("ai.graine:inapp-kmp")).using(project(":inapp-kmp"))
+            substitute(module("ai.graine:inapp-kmp-compose")).using(project(":inapp-kmp-compose"))
+        }
+    }
+}

@@ -1,0 +1,79 @@
+# The Xcode project is generated from this file by XcodeGen (`xcodegen generate`).
+# GraineDemo.xcodeproj is committed too, so the app opens without XcodeGen.
+# To build against SDK sources on this machine instead of the published package, see use-local-sdk.sh.
+name: GraineDemo
+options:
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  GraineInApp:
+    url: https://github.com/GraineAI/inapp-ios
+    from: 0.7.0
+targets:
+  GraineDemo:
+    type: application
+    platform: iOS
+    # Team, bundle id, publishable key and base URL: Base.xcconfig, overridden by the git-ignored Config.xcconfig.
+    configFiles:
+      Debug: Base.xcconfig
+      Release: Base.xcconfig
+    sources:
+      - path: GraineDemo
+      # The shared use-case packs, bundled unchanged as the folder "usecases".
+      - path: ../usecases
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: GraineInApp
+        product: GraineInApp
+    info:
+      path: GraineDemo/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Graine Demo
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        GraineBaseURL: $(GRAINE_BASE_URL)
+        GrainePublishableKey: $(GRAINE_PUBLISHABLE_KEY)
+        GraineHelpPublishableKey: $(GRAINE_HELP_PUBLISHABLE_KEY)
+        NSMicrophoneUsageDescription: Graine Demo uses the microphone when you talk to the assistant or take its calls.
+        UIBackgroundModes: [audio, voip]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: GraineDemo/Resources/GraineDemo.entitlements
+      properties:
+        # Push Notifications. Xcode signs it as production in an App Store or TestFlight build.
+        aps-environment: development
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+  GraineDemoTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: GraineDemoTests
+    dependencies:
+      - target: GraineDemo
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.grainedemo.tests
+schemes:
+  GraineDemo:
+    build:
+      targets:
+        GraineDemo: all
+        GraineDemoTests: [test]
+    test:
+      targets:
+        - GraineDemoTests

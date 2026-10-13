@@ -1,0 +1,5 @@
+# Per-developer configuration: copy config.example.js to config.js.
+config.js
+
+# The packs, copied in only to serve web/ on its own (README → Serving web/ alone).
+usecases/

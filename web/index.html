@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Graine Demo: a website with a Graine assistant that knows who is signed in, remembers them, acts on the page and books calls to their phone.">
+  <title>Graine Demo</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%228%22%20fill%3D%22%234f46e5%22%2F%3E%3Cpath%20d%3D%22M10%2013v6M16%209v14M22%2013v6%22%20stroke%3D%22white%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E">
+  <script>
+    // Relative paths need the trailing slash: some static servers answer /web without one.
+    (function () {
+      var p = location.pathname;
+      if (!/\/$/.test(p) && !/\.html?$/.test(p)) location.replace(p + "/" + location.search + location.hash);
+      // The chosen theme before first paint, so a dark page never flashes light.
+      try {
+        var t = localStorage.getItem("graine-demo.theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) { /* no storage: follow the device */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="currentColor"/>
+          <path d="M10 13v6M16 9v14M22 13v6" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <span class="brand-name" id="app-title">Graine Demo</span>
+        <span class="brand-badge">Demo</span>
+      </div>
+      <div class="topbar-tools">
+        <span id="assistant-status" class="chip chip-info status-pill" role="status">Assistant: loading</span>
+        <button id="theme-toggle" type="button" class="icon-btn" aria-label="Theme: Match this device. Change theme">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="8"/>
+            <path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <nav id="nav" class="nav" aria-label="Sections" hidden></nav>
+  </header>
+
+  <div class="notices-wrap">
+    <div id="app-notices" class="notices"></div>
+    <div id="graine-notices" class="notices" aria-live="polite"></div>
+  </div>
+
+  <main id="main" tabindex="-1">
+    <p class="boot-message">Loading…</p>
+    <noscript><p class="boot-message">This demo needs JavaScript.</p></noscript>
+  </main>
+
+  <footer class="footer">
+    <p>Graine Demo. All people and data in it are fictional. The assistant's look is set in the Graine dashboard.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="confirm" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+    <h2 id="confirm-title" class="dialog-title">Are you sure?</h2>
+    <p id="confirm-text" class="dialog-text"></p>
+    <div class="dialog-actions">
+      <button type="button" id="confirm-no" class="btn btn-secondary">Keep</button>
+      <button type="button" id="confirm-yes" class="btn btn-danger-solid">Confirm</button>
+    </div>
+  </dialog>
+</body>
+</html>

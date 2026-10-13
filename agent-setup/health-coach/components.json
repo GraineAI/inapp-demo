@@ -1,0 +1,123 @@
+[
+  {
+    "name": "Daily check-in",
+    "slug": "daily_check_in",
+    "toolName": "show_daily_check_in",
+    "kind": "quick_actions",
+    "data": {
+      "prompt": "How are you feeling today, compared with yesterday?",
+      "actions": [
+        {
+          "id": "better",
+          "label": "Better"
+        },
+        {
+          "id": "same",
+          "label": "About the same"
+        },
+        {
+          "id": "worse",
+          "label": "Worse"
+        },
+        {
+          "id": "new_symptom",
+          "label": "I have a new symptom"
+        }
+      ]
+    },
+    "fallbackText": "How are you feeling today compared with yesterday: better, about the same, or worse?",
+    "style": {
+      "preset": "compact",
+      "button": "outline",
+      "surface": "card"
+    }
+  },
+  {
+    "name": "Doses taken today",
+    "slug": "doses_taken",
+    "toolName": "show_doses_taken",
+    "kind": "product_list",
+    "data": {
+      "title": "Which doses have you taken today?",
+      "prompt": "Tick each one you have taken.",
+      "selectLabel": "Taken",
+      "items": [
+        {
+          "id": "morning",
+          "title": "Morning",
+          "subtitle": "Before 11 am"
+        },
+        {
+          "id": "afternoon",
+          "title": "Afternoon",
+          "subtitle": "11 am to 4 pm"
+        },
+        {
+          "id": "evening",
+          "title": "Evening",
+          "subtitle": "4 pm to 9 pm"
+        },
+        {
+          "id": "bedtime",
+          "title": "Bedtime",
+          "subtitle": "After 9 pm"
+        }
+      ]
+    },
+    "fallbackText": "Which of today's doses have you taken: morning, afternoon, evening or bedtime?",
+    "style": {
+      "preset": "list",
+      "density": "compact",
+      "button": "outline",
+      "facts": false,
+      "select": "many",
+      "maxSelect": 4
+    },
+    "onSelect": {
+      "path": "medicines"
+    }
+  },
+  {
+    "name": "Check-in call times",
+    "slug": "check_in_times",
+    "toolName": "show_check_in_times",
+    "kind": "calendar_slots",
+    "data": {
+      "title": "When should Asha call you?",
+      "note": "Times are in your time zone.",
+      "days": [
+        {
+          "id": "today",
+          "label": "Today",
+          "slots": [
+            "6:00 PM",
+            "7:30 PM"
+          ]
+        },
+        {
+          "id": "tomorrow",
+          "label": "Tomorrow",
+          "slots": [
+            "9:00 AM",
+            "12:30 PM",
+            "6:00 PM",
+            "7:30 PM"
+          ]
+        },
+        {
+          "id": "day_after",
+          "label": "Day after tomorrow",
+          "slots": [
+            "9:00 AM",
+            "12:30 PM",
+            "6:00 PM"
+          ]
+        }
+      ]
+    },
+    "fallbackText": "When would you like me to call: today, tomorrow or the day after? Tell me a time.",
+    "style": {
+      "surface": "card"
+    }
+  }
+]

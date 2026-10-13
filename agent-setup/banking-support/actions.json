@@ -1,0 +1,82 @@
+[
+  {
+    "tool_name": "open_screen",
+    "name": "open_screen",
+    "kind": "navigation",
+    "description": "Take the customer to a screen in the app: home, chat, cards, calls (their booked callbacks), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string",
+          "description": "The screen to open.",
+          "enum": [
+            "home",
+            "chat",
+            "cards",
+            "calls",
+            "memory",
+            "profile"
+          ]
+        }
+      },
+      "required": [
+        "screen"
+      ]
+    }
+  },
+  {
+    "tool_name": "open_item",
+    "name": "open_item",
+    "kind": "navigation",
+    "description": "Open one of the customer's cards so they can see its limit and last use. Name the card as it appears on the Cards screen.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The card's name or its last four digits, e.g. \"Travel credit card ···· 7730\" or \"7730\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "freeze_card",
+    "name": "freeze_card",
+    "kind": "action",
+    "description": "Freeze one of the customer's cards so it cannot be used — when they report it lost or stolen, or ask for it to be frozen. Confirm which card first.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The card's name or its last four digits, e.g. \"Travel credit card ···· 7730\" or \"7730\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "unfreeze_card",
+    "name": "unfreeze_card",
+    "kind": "action",
+    "description": "Unfreeze a card the customer froze earlier, only when they ask for it. Confirm which card first.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The card's name or its last four digits, e.g. \"Travel credit card ···· 7730\" or \"7730\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  }
+]

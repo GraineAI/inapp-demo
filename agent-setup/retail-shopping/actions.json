@@ -1,0 +1,82 @@
+[
+  {
+    "tool_name": "open_screen",
+    "name": "open_screen",
+    "kind": "navigation",
+    "description": "Take the shopper to a screen in the app: home, chat, orders, calls (their booked delivery calls), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string",
+          "description": "The screen to open.",
+          "enum": [
+            "home",
+            "chat",
+            "orders",
+            "calls",
+            "memory",
+            "profile"
+          ]
+        }
+      },
+      "required": [
+        "screen"
+      ]
+    }
+  },
+  {
+    "tool_name": "open_item",
+    "name": "open_item",
+    "kind": "navigation",
+    "description": "Open one of the shopper's orders so they can see its delivery details. Name the order by its product or its order number.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The product or the order number, e.g. \"Running shoes, size 7\" or \"GD-55120\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "request_return",
+    "name": "request_return",
+    "kind": "action",
+    "description": "Start a return for a delivered order, when the shopper asks to return it and it is still within its return date. Confirm which order first.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The product or the order number, e.g. \"Yoga mat, 6 mm\" or \"GD-54702\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "cancel_order",
+    "name": "cancel_order",
+    "kind": "action",
+    "description": "Cancel an order that has not been delivered yet, when the shopper asks to cancel it. Confirm which order first.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The product or the order number, e.g. \"Wireless earbuds\" or \"GD-55302\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  }
+]

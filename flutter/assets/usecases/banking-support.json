@@ -1,0 +1,195 @@
+{
+  "$schema": "./usecase.schema.json",
+  "schemaVersion": 1,
+  "id": "banking-support",
+  "appTitle": "Graine Bank",
+  "agentName": "Kabir",
+  "agentRole": "account assistant",
+  "agents": {
+    "main": { "name": "Kabir", "role": "account assistant", "starters": ["Freeze my card", "Show my cards", "Book a callback", "What do you remember about me?"] },
+    "help": {
+      "name": "Card security desk",
+      "role": "card security desk",
+      "callName": "Graine Bank · Card security",
+      "placeReason": "card_security",
+      "bookLabel": "Book a call with the desk",
+      "reasons": ["Unrecognised payment", "Lost or stolen card", "Suspicious message"],
+      "starters": ["I don't recognise a payment", "My card was stolen", "Is this message from you?", "Book a call with the desk"]
+    }
+  },
+  "tagline": "An account assistant who helps with cards and payments, and calls you back at the time you choose.",
+  "notice": "Kabir never asks for your PIN, one-time password or full card number.",
+  "accent": "#1E3A8A",
+  "identifierField": "customer_id",
+  "identifierLabel": "Customer ID",
+  "userNoun": "customer",
+  "users": [
+    { "id": "CUST-10041", "name": "Priya Nair", "traits": { "segment": "Premier", "home_branch": "Bengaluru, Indiranagar" } },
+    { "id": "CUST-10042", "name": "Rahul Verma", "traits": { "segment": "Salary account", "home_branch": "Mumbai, Andheri East" } },
+    { "id": "CUST-10043", "name": "Sana Qureshi", "traits": { "segment": "Small business", "home_branch": "Hyderabad, Banjara Hills" } }
+  ],
+  "home": {
+    "title": "Accounts",
+    "cards": [
+      { "id": "cards", "title": "Your cards", "body": "Check limits and freeze a card in one tap.", "target": "items" },
+      { "id": "calls", "title": "Callbacks", "body": "Kabir calls you back at the time you book.", "target": "calls" },
+      { "id": "memory", "title": "What Kabir remembers", "body": "See it, switch it off, or erase it.", "target": "memory" }
+    ]
+  },
+  "items": {
+    "title": "Cards",
+    "screenName": "cards",
+    "itemNoun": "card",
+    "emptyText": "No cards on this account.",
+    "rows": [
+      {
+        "id": "debit-4821",
+        "title": "Platinum debit card ···· 4821",
+        "subtitle": "Savings account",
+        "status": "Active",
+        "fields": [
+          { "name": "daily_limit", "label": "Daily limit", "value": "₹2,00,000" },
+          { "name": "last_used", "label": "Last used", "value": "Today, 1:12 pm · Grocery" }
+        ],
+        "actions": ["freeze_card", "unfreeze_card"],
+        "userIds": ["CUST-10041"]
+      },
+      {
+        "id": "credit-7730",
+        "title": "Travel credit card ···· 7730",
+        "subtitle": "Statement due 5 November",
+        "status": "Active",
+        "fields": [
+          { "name": "outstanding", "label": "Outstanding", "value": "₹18,450" },
+          { "name": "last_used", "label": "Last used", "value": "Yesterday · Airline tickets" }
+        ],
+        "actions": ["freeze_card", "unfreeze_card"],
+        "userIds": ["CUST-10041"]
+      },
+      {
+        "id": "debit-1192",
+        "title": "Classic debit card ···· 1192",
+        "subtitle": "Salary account",
+        "status": "Active",
+        "fields": [
+          { "name": "daily_limit", "label": "Daily limit", "value": "₹50,000" },
+          { "name": "last_used", "label": "Last used", "value": "Today, 9:40 am · Fuel" }
+        ],
+        "actions": ["freeze_card", "unfreeze_card"],
+        "userIds": ["CUST-10042"]
+      },
+      {
+        "id": "virtual-5508",
+        "title": "Virtual card ···· 5508",
+        "subtitle": "Online payments only",
+        "status": "Active",
+        "fields": [
+          { "name": "monthly_limit", "label": "Monthly limit", "value": "₹25,000" },
+          { "name": "last_used", "label": "Last used", "value": "3 October · Streaming subscription" }
+        ],
+        "actions": ["freeze_card", "unfreeze_card"],
+        "userIds": ["CUST-10042"]
+      },
+      {
+        "id": "business-3364",
+        "title": "Business debit card ···· 3364",
+        "subtitle": "Current account",
+        "status": "Active",
+        "fields": [
+          { "name": "daily_limit", "label": "Daily limit", "value": "₹5,00,000" },
+          { "name": "last_used", "label": "Last used", "value": "Today, 11:05 am · Supplier payment" }
+        ],
+        "actions": ["freeze_card", "unfreeze_card"],
+        "userIds": ["CUST-10043"]
+      },
+      {
+        "id": "corporate-9017",
+        "title": "Corporate credit card ···· 9017",
+        "subtitle": "Statement due 12 November",
+        "status": "Frozen",
+        "fields": [
+          { "name": "outstanding", "label": "Outstanding", "value": "₹62,300" },
+          { "name": "last_used", "label": "Last used", "value": "28 September · Office supplies" }
+        ],
+        "actions": ["freeze_card", "unfreeze_card"],
+        "userIds": ["CUST-10043"]
+      }
+    ]
+  },
+  "actions": [
+    {
+      "name": "open_screen",
+      "effect": "open_screen",
+      "label": "Open",
+      "description": "Take the customer to a screen in the app: home, chat, cards, calls (their booked callbacks), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+      "args": [
+        {
+          "name": "screen",
+          "type": "string",
+          "required": true,
+          "description": "The screen to open.",
+          "enum": ["home", "chat", "cards", "calls", "memory", "profile"]
+        }
+      ]
+    },
+    {
+      "name": "open_item",
+      "effect": "open_item",
+      "label": "Details",
+      "description": "Open one of the customer's cards so they can see its limit and last use. Name the card as it appears on the Cards screen.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The card's name or its last four digits, e.g. \"Travel credit card ···· 7730\" or \"7730\"." }
+      ]
+    },
+    {
+      "name": "freeze_card",
+      "effect": "set_status",
+      "label": "Freeze card",
+      "status": "Frozen",
+      "description": "Freeze one of the customer's cards so it cannot be used — when they report it lost or stolen, or ask for it to be frozen. Confirm which card first.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The card's name or its last four digits, e.g. \"Travel credit card ···· 7730\" or \"7730\"." }
+      ]
+    },
+    {
+      "name": "unfreeze_card",
+      "effect": "set_status",
+      "label": "Unfreeze",
+      "status": "Active",
+      "description": "Unfreeze a card the customer froze earlier, only when they ask for it. Confirm which card first.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The card's name or its last four digits, e.g. \"Travel credit card ···· 7730\" or \"7730\"." }
+      ]
+    }
+  ],
+  "call": {
+    "callName": "Kabir · Graine Bank",
+    "title": "Callbacks",
+    "bookLabel": "Request a callback",
+    "reasons": ["Card issue", "Loan enquiry", "Account review"],
+    "quickTimes": [
+      { "label": "In 15 minutes", "inMinutes": 15 },
+      { "label": "Tomorrow 11:00", "day": "tomorrow", "time": "11:00" },
+      { "label": "Tomorrow 17:30", "day": "tomorrow", "time": "17:30" }
+    ],
+    "placeReason": "customer_question"
+  },
+  "memoryExamples": [
+    {
+      "tell": "I travel to Singapore every March for work.",
+      "ask": "When do I usually travel abroad?",
+      "expect": "Every March, to Singapore, for work."
+    },
+    {
+      "tell": "Please call me only after 6 pm on weekdays.",
+      "ask": "When do I prefer to be called?",
+      "expect": "After 6 pm on weekdays."
+    }
+  ],
+  "starters": [
+    "Freeze my card",
+    "Show my cards",
+    "Book a callback",
+    "What do you remember about me?"
+  ]
+}

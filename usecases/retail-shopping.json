@@ -1,0 +1,197 @@
+{
+  "$schema": "./usecase.schema.json",
+  "schemaVersion": 1,
+  "id": "retail-shopping",
+  "appTitle": "Graine Store",
+  "agentName": "Tara",
+  "agentRole": "shopping assistant",
+  "agents": {
+    "main": { "name": "Tara", "role": "shopping assistant", "starters": ["Where is my order?", "Return an item", "Book a delivery call", "What do you remember about me?"] },
+    "help": {
+      "name": "Returns desk",
+      "role": "returns desk",
+      "callName": "Graine Store · Returns",
+      "placeReason": "returns_question",
+      "bookLabel": "Book a call with returns",
+      "reasons": ["Return or exchange", "Refund status", "Damaged item"],
+      "starters": ["Start a return", "Where is my refund?", "My item arrived damaged", "Book a call with returns"]
+    }
+  },
+  "tagline": "A shopping assistant who tracks orders, starts returns, and calls with delivery updates when you ask.",
+  "accent": "#B45309",
+  "identifierField": "shopper_id",
+  "identifierLabel": "Shopper ID",
+  "userNoun": "shopper",
+  "users": [
+    { "id": "SHP-20031", "name": "Ananya Gupta", "traits": { "membership": "Plus member", "city": "Delhi" } },
+    { "id": "SHP-20032", "name": "Vikram Singh", "traits": { "membership": "Standard", "city": "Jaipur" } },
+    { "id": "SHP-20033", "name": "Kavya Reddy", "traits": { "membership": "Plus member", "city": "Chennai" } }
+  ],
+  "home": {
+    "title": "Your orders",
+    "cards": [
+      { "id": "orders", "title": "Orders", "body": "Track a delivery, cancel or start a return.", "target": "items" },
+      { "id": "calls", "title": "Delivery calls", "body": "Tara calls you at the time you book.", "target": "calls" },
+      { "id": "memory", "title": "What Tara remembers", "body": "See it, switch it off, or erase it.", "target": "memory" }
+    ]
+  },
+  "items": {
+    "title": "Orders",
+    "screenName": "orders",
+    "itemNoun": "order",
+    "emptyText": "No orders yet.",
+    "rows": [
+      {
+        "id": "gd-55120",
+        "title": "Running shoes, size 7",
+        "subtitle": "Order GD-55120 · ₹4,299",
+        "status": "Out for delivery",
+        "fields": [
+          { "name": "order_number", "label": "Order", "value": "GD-55120" },
+          { "name": "delivery", "label": "Delivery", "value": "Today, 3–7 pm" }
+        ],
+        "actions": [],
+        "userIds": ["SHP-20031"]
+      },
+      {
+        "id": "gd-54871",
+        "title": "Cotton bedsheet set, queen",
+        "subtitle": "Order GD-54871 · ₹1,849",
+        "status": "Delivered",
+        "fields": [
+          { "name": "order_number", "label": "Order", "value": "GD-54871" },
+          { "name": "delivered", "label": "Delivered", "value": "2 October" },
+          { "name": "return_by", "label": "Return by", "value": "16 October" }
+        ],
+        "actions": ["request_return"],
+        "userIds": ["SHP-20031"]
+      },
+      {
+        "id": "gd-55302",
+        "title": "Wireless earbuds",
+        "subtitle": "Order GD-55302 · ₹2,499",
+        "status": "Shipped",
+        "fields": [
+          { "name": "order_number", "label": "Order", "value": "GD-55302" },
+          { "name": "delivery", "label": "Delivery", "value": "Thursday, 10 am–2 pm" }
+        ],
+        "actions": ["cancel_order"],
+        "userIds": ["SHP-20032"]
+      },
+      {
+        "id": "gd-54990",
+        "title": "Steel water bottles, pack of 2",
+        "subtitle": "Order GD-54990 · ₹899",
+        "status": "Delivered",
+        "fields": [
+          { "name": "order_number", "label": "Order", "value": "GD-54990" },
+          { "name": "delivered", "label": "Delivered", "value": "6 October" },
+          { "name": "return_by", "label": "Return by", "value": "20 October" }
+        ],
+        "actions": ["request_return"],
+        "userIds": ["SHP-20032"]
+      },
+      {
+        "id": "gd-55417",
+        "title": "Ceramic dinner set, 18 pieces",
+        "subtitle": "Order GD-55417 · ₹3,650",
+        "status": "Packed",
+        "fields": [
+          { "name": "order_number", "label": "Order", "value": "GD-55417" },
+          { "name": "delivery", "label": "Delivery", "value": "Saturday, 9 am–1 pm" }
+        ],
+        "actions": ["cancel_order"],
+        "userIds": ["SHP-20033"]
+      },
+      {
+        "id": "gd-54702",
+        "title": "Yoga mat, 6 mm",
+        "subtitle": "Order GD-54702 · ₹1,199",
+        "status": "Delivered",
+        "fields": [
+          { "name": "order_number", "label": "Order", "value": "GD-54702" },
+          { "name": "delivered", "label": "Delivered", "value": "30 September" },
+          { "name": "return_by", "label": "Return by", "value": "14 October" }
+        ],
+        "actions": ["request_return"],
+        "userIds": ["SHP-20033"]
+      }
+    ]
+  },
+  "actions": [
+    {
+      "name": "open_screen",
+      "effect": "open_screen",
+      "label": "Open",
+      "description": "Take the shopper to a screen in the app: home, chat, orders, calls (their booked delivery calls), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+      "args": [
+        {
+          "name": "screen",
+          "type": "string",
+          "required": true,
+          "description": "The screen to open.",
+          "enum": ["home", "chat", "orders", "calls", "memory", "profile"]
+        }
+      ]
+    },
+    {
+      "name": "open_item",
+      "effect": "open_item",
+      "label": "Track",
+      "description": "Open one of the shopper's orders so they can see its delivery details. Name the order by its product or its order number.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The product or the order number, e.g. \"Running shoes, size 7\" or \"GD-55120\"." }
+      ]
+    },
+    {
+      "name": "request_return",
+      "effect": "set_status",
+      "label": "Return",
+      "status": "Return requested",
+      "description": "Start a return for a delivered order, when the shopper asks to return it and it is still within its return date. Confirm which order first.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The product or the order number, e.g. \"Yoga mat, 6 mm\" or \"GD-54702\"." }
+      ]
+    },
+    {
+      "name": "cancel_order",
+      "effect": "set_status",
+      "label": "Cancel order",
+      "status": "Cancelled",
+      "description": "Cancel an order that has not been delivered yet, when the shopper asks to cancel it. Confirm which order first.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The product or the order number, e.g. \"Wireless earbuds\" or \"GD-55302\"." }
+      ]
+    }
+  ],
+  "call": {
+    "callName": "Tara · Graine Store",
+    "title": "Delivery calls",
+    "bookLabel": "Book a delivery-update call",
+    "reasons": ["Delivery update", "Return pickup", "Help choosing a size"],
+    "quickTimes": [
+      { "label": "In 15 minutes", "inMinutes": 15 },
+      { "label": "Today 19:00", "day": "today", "time": "19:00" },
+      { "label": "Tomorrow 10:00", "day": "tomorrow", "time": "10:00" }
+    ],
+    "placeReason": "shopper_question"
+  },
+  "memoryExamples": [
+    {
+      "tell": "I wear size 7 in running shoes.",
+      "ask": "What size do I wear in running shoes?",
+      "expect": "Size 7."
+    },
+    {
+      "tell": "Please leave my parcels with the building security desk.",
+      "ask": "Where should my parcels be left?",
+      "expect": "With the building security desk."
+    }
+  ],
+  "starters": [
+    "Where is my order?",
+    "Return an item",
+    "Book a delivery call",
+    "What do you remember about me?"
+  ]
+}

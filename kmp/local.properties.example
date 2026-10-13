@@ -1,0 +1,16 @@
+# Copy to local.properties (git-ignored). Android Studio adds sdk.dir itself.
+sdk.dir=/path/to/Android/sdk
+
+# The agent's publishable key (Agent -> Embed & Widgets). Add app:// to the agent's Allowed domains.
+graine.publishableKey=pk_live_replace_me
+# Optional: a second agent (the pack's help desk) for the Help tab, with its own publishable key.
+graine.helpPublishableKey=
+# Optional: another server (default https://www.graine.ai).
+graine.baseUrl=https://www.graine.ai
+# Your Android application id. It must match the Android app registered under Workspace settings ->
+# In-app calling, and the package in composeApp/google-services.json, for Graine to ring this app.
+graine.applicationId=com.yourcompany.grainedemo
+
+# Optional: build against the Kotlin Multiplatform SDK's sources on this machine instead of the
+# published ai.graine:inapp-kmp (the iOS app then links the iOS SDK from iosApp/project.local.yml).
+# graine.kmpSdkDir=../../sdk-kmp/sdk/kmp

@@ -1,0 +1,30 @@
+name: graine_demo
+description: "Graine Demo for Flutter — one generic app; the use-case pack decides the agent, the people and the words."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # The Graine in-app SDK. Before 0.7.0 is on pub.dev, `scripts/use-local-sdks.sh local flutter` points this
+  # at the SDK's sources through pubspec_overrides.yaml (never committed).
+  graine_inapp: ^0.7.0
+  # The app asks for the microphone and notifications; the SDK hands the microphone to the agent.
+  permission_handler: ^11.0.0
+  # The chosen use-case pack and who is signed in, across launches.
+  shared_preferences: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  # Copies of ../usecases/*.json (scripts/sync-flutter-usecases.sh); a test fails when they drift.
+  assets:
+    - assets/usecases/

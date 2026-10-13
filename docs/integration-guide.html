@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Graine In-App Integration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,300;6..72,400&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a working manual — a sticky index on the left, one 70-character reading column, a platform switch that
+   re-renders every code sample for the reader's stack. Graine's own palette: quiet greys, indigo for anything
+   you can act on, saffron for what is live or new. */
+:root {
+  --canvas: #F9F9F9;
+  --surface: #FFFFFF;
+  --ink: #1F1F1F;
+  --muted: #5B5E66;
+  --line: #E3E4E8;
+  --indigo: #4250D5;
+  --indigo-soft: #ECEEFC;
+  --saffron: #E6651B;
+  --saffron-soft: #FDEFE6;
+  --red: #C43D2B;
+  --leaf: #2E7D4F;
+  --code-bg: #F2F2F5;
+  --code-ink: #24262C;
+  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-body: "Figtree", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --measure: 72ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #111214; --surface: #18191D; --ink: #ECECEE; --muted: #A2A4AC; --line: #2B2D34;
+    --indigo: #8F98F3; --indigo-soft: #23264A; --saffron: #F08B4C; --saffron-soft: #3A2516;
+    --red: #E27463; --leaf: #63C18B; --code-bg: #1D1F24; --code-ink: #E4E5E9; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --canvas: #111214; --surface: #18191D; --ink: #ECECEE; --muted: #A2A4AC; --line: #2B2D34;
+  --indigo: #8F98F3; --indigo-soft: #23264A; --saffron: #F08B4C; --saffron-soft: #3A2516;
+  --red: #E27463; --leaf: #63C18B; --code-bg: #1D1F24; --code-ink: #E4E5E9; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--canvas); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+  padding-inline: 20px; padding-block: 0 64px; }
+a { color: var(--indigo); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; border-radius: 4px; }
+.shell { display: grid; grid-template-columns: 1fr; gap: 40px; max-width: 1180px; margin: 0 auto; }
+@media (min-width: 1100px) { .shell { grid-template-columns: 240px minmax(0, 1fr); } }
+
+/* Index */
+.toc { display: none; }
+@media (min-width: 1100px) {
+  .toc { display: block; position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; padding-block: 40px;
+    max-height: 100vh; overflow-y: auto; font-size: 13.5px; }
+}
+.toc .eyebrow { margin-bottom: 12px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: grid; grid-template-columns: 26px 1fr; padding: 5px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; }
+.toc a::before { content: counter(toc); font-family: var(--font-mono); font-size: 11.5px; padding-top: 2px; color: var(--muted); }
+.toc a:hover { background: var(--surface); color: var(--ink); }
+
+main { min-width: 0; max-width: 820px; }
+.eyebrow { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+/* Masthead */
+.masthead { padding-block: 56px 28px; border-bottom: 1px solid var(--line); display: grid; gap: 18px; }
+.masthead h1 { font-family: var(--font-display); font-weight: 300; font-size: clamp(38px, 6vw, 60px); line-height: 1.04; margin: 0;
+  letter-spacing: -0.015em; text-wrap: balance; }
+.masthead .lede { font-size: 19px; color: var(--muted); max-width: var(--measure); margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.5px; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* Platform switch */
+.switch { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--canvas); padding-block: 14px;
+  border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.switch span { font-size: 13px; color: var(--muted); margin-right: 4px; }
+.switch button { font: 500 13.5px var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+
+section { padding-block: 44px 8px; scroll-margin-top: 70px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; margin: 6px 0 14px;
+  letter-spacing: -0.01em; text-wrap: balance; }
+h3 { font-size: 18px; font-weight: 600; margin: 32px 0 8px; text-wrap: balance; }
+h4 { font-size: 15px; font-weight: 600; margin: 22px 0 6px; }
+p, li { max-width: var(--measure); }
+p { margin: 0 0 14px; }
+ul, ol { padding-left: 22px; margin: 0 0 14px; }
+li { margin-bottom: 6px; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code-bg); color: var(--code-ink); padding: 1px 5px; border-radius: 4px; }
+.new { display: inline-block; font: 600 10.5px var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--saffron);
+  background: var(--saffron-soft); border-radius: 4px; padding: 2px 6px; vertical-align: 2px; margin-left: 6px; }
+
+/* Feature grid */
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 18px 0 8px; }
+.features div { background: var(--surface); padding: 16px 18px; min-width: 0; }
+.features h4 { margin: 0 0 4px; }
+.features p { font-size: 14.5px; color: var(--muted); margin: 0; }
+
+/* Code */
+.code { position: relative; margin: 12px 0 18px; }
+.code .label { font: 500 11px var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+pre { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font: 13px/1.6 var(--font-mono); tab-size: 2; }
+pre.mermaid { background: var(--surface); text-align: center; font-family: var(--font-body); }
+.copy { position: absolute; top: 26px; right: 8px; font: 500 12px var(--font-body); color: var(--muted); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+.code[data-p] { display: none; }
+html[data-platform="rn"] .code[data-p~="rn"], html[data-platform="ios"] .code[data-p~="ios"],
+html[data-platform="android"] .code[data-p~="android"], html[data-platform="flutter"] .code[data-p~="flutter"],
+html[data-platform="web"] .code[data-p~="web"] { display: block; }
+html:not([data-platform]) .code[data-p~="rn"] { display: block; }
+.only[data-p] { display: none; }
+html[data-platform="rn"] .only[data-p~="rn"], html[data-platform="ios"] .only[data-p~="ios"],
+html[data-platform="android"] .only[data-p~="android"], html[data-platform="flutter"] .only[data-p~="flutter"],
+html[data-platform="web"] .only[data-p~="web"] { display: block; }
+html:not([data-platform]) .only[data-p~="rn"] { display: block; }
+
+/* Callouts */
+.callout { border-left: 3px solid var(--indigo); background: var(--surface); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 16px 0;
+  max-width: var(--measure); }
+.callout.dash { border-left-color: var(--saffron); }
+.callout.warn { border-left-color: var(--red); }
+.callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+.callout .eyebrow { display: block; margin-bottom: 4px; }
+
+/* Tables */
+.table { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 12.5px; color: var(--muted); background: var(--canvas); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Status chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 16px; font-size: 13px; }
+.chip { font-family: var(--font-mono); font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.chip.ok { color: var(--leaf); border-color: color-mix(in srgb, var(--leaf) 40%, var(--line)); }
+.chip.live { color: var(--saffron); border-color: color-mix(in srgb, var(--saffron) 40%, var(--line)); }
+.chip.end { color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, var(--line)); }
+.arrow { color: var(--muted); }
+
+/* Checklists */
+.checks { list-style: none; padding: 0; }
+.checks li { position: relative; padding-left: 28px; }
+.checks li::before { content: ""; position: absolute; left: 0; top: 4px; width: 15px; height: 15px; border: 1.5px solid var(--muted); border-radius: 4px; }
+.steps { counter-reset: step; list-style: none; padding: 0; }
+.steps > li { counter-increment: step; position: relative; padding-left: 38px; margin-bottom: 14px; }
+.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--indigo-soft); color: var(--indigo); font: 600 13px/26px var(--font-mono); text-align: center; }
+.keyline { font-family: var(--font-mono); font-size: 13px; background: var(--surface); border: 1px dashed var(--line); border-radius: 8px;
+  padding: 12px 14px; overflow-x: auto; white-space: nowrap; }
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+
+/* Call screen mock-ups: the default call screen is dark in both themes, like the phone's own. */
+.phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin: 18px 0 8px; }
+.phone-wrap { display: grid; gap: 8px; justify-items: center; min-width: 0; }
+.phone-wrap figcaption { font-size: 13px; color: var(--muted); text-align: center; max-width: 220px; }
+.phone { --call-bg: #14161B; --call-bg2: #20243A; --call-ink: #F4F4F6; --call-muted: #A9ACB5; --ctrl: #2A2D35;
+  --accept: #1FAD5B; --decline: #E5484D; --accent-call: #4250D5;
+  width: 100%; max-width: 210px; aspect-ratio: 9 / 18.5; border-radius: 30px; padding: 12px; background: #0B0C0F;
+  box-shadow: 0 1px 0 #2B2D34 inset, 0 18px 40px -18px rgba(0,0,0,.45); }
+.screen { height: 100%; border-radius: 22px; background: linear-gradient(170deg, var(--call-bg2), var(--call-bg) 55%);
+  color: var(--call-ink); display: grid; grid-template-rows: auto 1fr auto; padding: 22px 14px 18px; text-align: center; overflow: hidden; }
+.screen .who { display: grid; gap: 6px; justify-items: center; padding-top: 12px; }
+.avatar { width: 66px; height: 66px; border-radius: 50%; background: var(--accent-call); display: grid; place-items: center;
+  font: 600 22px var(--font-body); color: #fff; box-shadow: 0 0 0 6px rgba(66,80,213,.18); }
+.screen .name { font: 600 16px var(--font-body); }
+.screen .status { font-size: 12px; color: var(--call-muted); }
+.screen .badge { font: 500 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: #FFD3B8;
+  background: rgba(230,101,27,.22); border-radius: 999px; padding: 3px 8px; }
+.caption { align-self: center; font-size: 11.5px; line-height: 1.45; background: rgba(255,255,255,.07); border-radius: 12px;
+  padding: 8px 10px; color: var(--call-ink); text-align: left; }
+.row { display: flex; justify-content: space-around; align-items: center; gap: 6px; }
+.btn { display: grid; gap: 4px; justify-items: center; font-size: 9.5px; color: var(--call-muted); }
+.btn i { width: 40px; height: 40px; border-radius: 50%; background: var(--ctrl); display: grid; place-items: center; }
+.btn i.big { width: 50px; height: 50px; }
+.btn i.accept { background: var(--accept); }
+.btn i.decline, .btn i.end { background: var(--decline); }
+.btn i.cb { background: var(--accent-call); width: auto; height: 36px; border-radius: 999px; padding: 0 16px; color: #fff; font: 600 12px var(--font-body); }
+.btn svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="toc" aria-label="Contents">
+  <div class="eyebrow">Contents</div>
+  <ol>
+    <li><a href="#overview">What you're building</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#before">Before you start</a></li>
+    <li><a href="#dashboard">Set up the agent</a></li>
+    <li><a href="#install">Install the SDK</a></li>
+    <li><a href="#permissions">Permissions</a></li>
+    <li><a href="#init">Initialise</a></li>
+    <li><a href="#identity">Users and memory</a></li>
+    <li><a href="#chat">Chat with components</a></li>
+    <li><a href="#voice">Voice in the app</a></li>
+    <li><a href="#calls">WhatsApp-style calls</a></li>
+    <li><a href="#scheduling">Scheduled calls</a></li>
+    <li><a href="#context">Screen context and actions</a></li>
+    <li><a href="#design">Design</a></li>
+    <li><a href="#test">Test it end to end</a></li>
+    <li><a href="#golive">Go-live checklist</a></li>
+    <li><a href="#privacy">Data, privacy and security</a></li>
+    <li><a href="#reference">Reference</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <li><a href="#demo">Demo app and support</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="masthead">
+  <div class="eyebrow">Integration guide · In-app agents</div>
+  <h1>Put a Graine agent inside your app and website</h1>
+  <p class="lede">Chat with interactive components, voice, WhatsApp-style calls, scheduled check-in calls and memory, in your iOS, Android, React Native or Flutter app, and on your website. You integrate with a publishable key and our SDKs. No server of your own is needed.</p>
+  <div class="meta">
+    <span><b>SDK</b> 0.7 · React Native 0.41 · Website embed v1</span>
+    <span><b>Updated</b> 13 October 2026</span>
+    <span><b>Audience</b> app and platform engineers</span>
+  </div>
+  <p class="meta" style="margin:0">App engineers can start at <a href="#before">Before you start</a>. Architects and reviewers can start at <a href="#how">How it works</a> and <a href="#privacy">Data, privacy and security</a>.</p>
+</header>
+
+<div class="switch" role="group" aria-label="Show code for">
+  <span>Code samples for</span>
+  <button type="button" data-set="rn" aria-pressed="true">React Native</button>
+  <button type="button" data-set="ios" aria-pressed="false">iOS (Swift)</button>
+  <button type="button" data-set="android" aria-pressed="false">Android (Kotlin)</button>
+  <button type="button" data-set="flutter" aria-pressed="false">Flutter</button>
+  <button type="button" data-set="web" aria-pressed="false">Website</button>
+</div>
+
+<!-- 1 -->
+<section id="overview">
+  <div class="eyebrow">1 · Overview</div>
+  <h2>What you're building</h2>
+  <p>One agent, configured in the Graine dashboard, reaches your users in every way below. Each SDK draws the same experience, so your users get the same agent on every platform.</p>
+  <div class="features">
+    <div><h4>Chat with components</h4><p>Text conversations where the agent shows cards, choices, lists and appointment slots, and acts inside your app.</p></div>
+    <div><h4>Voice in the app</h4><p>Users talk to the agent from the assistant bar, with live captions and low latency.</p></div>
+    <div><h4>WhatsApp-style calls</h4><p>A real phone-style call: CallKit on iPhone, a full-screen call on Android. It works with the screen locked.</p></div>
+    <div><h4>Scheduled calls</h4><p>The agent books a callback in conversation, your app books one, or your team books one in the dashboard. Graine rings the phone on time.</p></div>
+    <div><h4>Memory</h4><p>The agent remembers each user across chats and calls. Users can opt out, and you can erase a user.</p></div>
+    <div><h4>Screen context</h4><p>The agent knows which screen the user is on and what they are filling in, and can point at things or open screens.</p></div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="how">
+  <div class="eyebrow">2 · Architecture</div>
+  <h2>How it works</h2>
+  <p>Your app talks to Graine through the SDK, authenticated by a publishable key. Graine runs the conversation, remembers the user, schedules calls and rings devices through Apple and Google push services, using the push credentials you upload once.</p>
+  <pre class="mermaid">
+flowchart LR
+  subgraph App["Your app"]
+    UI["Your screens"] --> SDK["Graine SDK"]
+  end
+  SDK -- "publishable key, secure connection" --> G["Graine"]
+  G -- "conversation, components, actions" --> SDK
+  G -- "VoIP push" --> APNs["Apple Push"]
+  G -- "data message" --> FCM["Firebase Cloud Messaging"]
+  APNs --> Phone["User's phone rings"]
+  FCM --> Phone
+  Dash["Graine dashboard"] -- "agent, memory, calls, design" --> G
+  </pre>
+  <h3>The four ideas that make it work</h3>
+  <ol>
+    <li><b>The publishable key identifies your agent, not your user.</b> It is safe to ship in your app. It only opens conversations with the agent it belongs to, from the apps and sites you allow.</li>
+    <li><b>Your app says who the user is, and Graine decides what counts as identity.</b> In the dashboard you choose which field identifies a user (for example <code>patient_id</code>). The SDK sends that field once per conversation. Graine turns it into a one-way user key and never stores the value itself.</li>
+    <li><b>Memory belongs to a user, and a user belongs to their devices.</b> Each user key is bound to the devices that first used it (two by default). A different device claiming the same user gets no memory and receives no calls for that user.</li>
+    <li><b>Calls ring without your server.</b> You upload your APNs key and Firebase service account once. The SDK registers each device, and Graine rings it at the scheduled time, checking the user's local time and your calling rules first.</li>
+  </ol>
+  <h3>A scheduled check-in, start to finish</h3>
+  <pre class="mermaid">
+sequenceDiagram
+  participant U as User
+  participant A as Your app + SDK
+  participant G as Graine
+  participant P as Apple / Google push
+  U->>A: "Call me tomorrow at 6 pm"
+  A->>G: conversation (agent books the call)
+  G-->>A: "Booked for 6:00 pm tomorrow"
+  Note over G: next day, 6:00 pm in the user's timezone
+  G->>G: checks credits, agent on, calling hours
+  G->>P: ring device (no personal data in the push)
+  P->>A: incoming call
+  A->>U: CallKit / full-screen call
+  U->>A: answers
+  A->>G: joins the call (with the call id)
+  G-->>A: agent speaks, knows why it is calling
+  A->>G: outcome: answered, declined or missed
+  </pre>
+</section>
+
+<!-- 3 -->
+<section id="before">
+  <div class="eyebrow">3 · Prerequisites</div>
+  <h2>Before you start</h2>
+  <ul class="checks">
+    <li>A Graine workspace and an agent (<b>Agents → New agent</b>).</li>
+    <li>The agent's <b>publishable key</b> (<code>pk_live_…</code>) from <b>Agent → Embed &amp; Widgets</b>. Add <code>app://</code> to <b>Allowed domains</b> there so your mobile apps can connect, and your website's domain (for example <code>care.example.com</code>) for the website embed.</li>
+    <li>For incoming calls on iPhone: an <b>APNs auth key</b> (<code>.p8</code>) with its <b>Key ID</b>, your <b>Team ID</b> and your app's <b>bundle ID</b>. Create the key in Apple Developer → Keys with Apple Push Notifications enabled.</li>
+    <li>For incoming calls on Android: a <b>Firebase service-account JSON</b> for your app's Firebase project, and your app's <b>package name</b>. Your app already includes Firebase Cloud Messaging.</li>
+    <li>Platform minimums: iOS 15, Android 7.0 (API 24) with compile SDK 36, React Native 0.71, Flutter 3.19 (Dart 3.3).</li>
+  </ul>
+</section>
+
+<!-- 4 -->
+<section id="dashboard">
+  <div class="eyebrow">4 · Dashboard</div>
+  <h2>Set up the agent</h2>
+  <p>Everything in this section is a setting, not code, so your team can change it later without an app release.</p>
+
+  <h3>Memory &amp; identity <span class="new">New</span></h3>
+  <p><b>Agent → Memory &amp; identity</b></p>
+  <div class="table"><table>
+    <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+    <tr><td>Remember users</td><td>Turns memory on for chats and calls with this agent.</td><td>Off</td></tr>
+    <tr><td>Who is the user?</td><td>The field that identifies a user in your app: User ID, Email, Phone number, or a custom field such as <code>patient_id</code>. Phone calls are always identified by the caller's number.</td><td>User ID</td></tr>
+    <tr><td>Shared memory</td><td><i>This agent only</i>, or <i>shared by every agent in the workspace</i> that also chooses sharing.</td><td>This agent</td></tr>
+    <tr><td>Keep memories for</td><td>Memories older than this are deleted automatically.</td><td class="num">365 days</td></tr>
+    <tr><td>Devices per user</td><td>How many devices may act as the same user (1–5). Use 1 for the strictest protection.</td><td class="num">2</td></tr>
+    <tr><td>What to remember</td><td>Plain-language instructions, for example "Remember medication names and schedules; never remember payment details."</td><td>Empty</td></tr>
+  </table></div>
+  <p>The same page lets your team look up what the agent remembers about a user, erase a user's memories, and reset a user's devices.</p>
+
+  <h3>Calls &amp; scheduling <span class="new">New</span></h3>
+  <p><b>Agent → Calls &amp; scheduling</b></p>
+  <div class="table"><table>
+    <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+    <tr><td>Call name</td><td>What the phone shows when the agent calls.</td><td>Agent's name</td></tr>
+    <tr><td>Agent may book calls</td><td>The agent can schedule a callback when the user asks for one.</td><td>Off</td></tr>
+    <tr><td>Users may book calls</td><td>Your app can call <code>scheduleCall</code>.</td><td>Off</td></tr>
+    <tr><td>Ring for</td><td>Seconds before an unanswered ring counts as missed (20–60).</td><td class="num">45 s</td></tr>
+    <tr><td>Ring again after a missed call</td><td>One more try after this many minutes (0 = never). Never after a decline.</td><td class="num">10 min</td></tr>
+    <tr><td>Calls per user per day</td><td>The most rings one user gets in a day (1–10).</td><td class="num">3</td></tr>
+    <tr><td>Quiet hours</td><td>No agent- or dashboard-booked rings in this window, in the user's own timezone. A time the user booked themselves is kept.</td><td class="num">21:00–08:00</td></tr>
+    <tr><td>Booking limits</td><td>Earliest booking from now (2–1440 min), latest (1–30 days), and pending calls per user (1–10).</td><td class="num">5 min · 14 days · 3</td></tr>
+  </table></div>
+  <p>The agent's existing <b>Calling hours</b> also apply to every in-app call.</p>
+
+  <h3>In-app calling credentials <span class="new">New</span></h3>
+  <p><b>Settings → In-app calling</b> (workspace admins)</p>
+  <ul>
+    <li><b>iOS:</b> bundle ID, Team ID, Key ID, the <code>.p8</code> file, and environment (Production, Sandbox, or Automatic, which follows each device's build).</li>
+    <li><b>Android:</b> package name and the service-account JSON.</li>
+  </ul>
+  <p>Graine checks each credential when you save it and shows <b>Verified</b>, or the exact problem. Credentials are encrypted at rest and never shown again. You can replace or remove them at any time.</p>
+
+  <h3>Components and actions</h3>
+  <p><b>Agent → Embed &amp; Widgets → Components</b> holds the cards, choice lists, product and plan lists, information cards and appointment slots the agent can show. Try any of them in the <b>Playground</b> before you ship. Actions are names your app implements (for example <code>open_appointments</code>). The agent calls them, and the SDK runs your handler.</p>
+
+  <h3>Design (the Garage)</h3>
+  <p><b>Agent → Embed &amp; Widgets → Appearance</b> has three tabs: <b>Assistant bar</b>, <b>Chat window</b> and <b>Call screen</b>. Every change previews live, in light and dark, and reaches your app on its next launch with no release.</p>
+  <div class="table"><table>
+    <tr><th>Tab</th><th>What you design</th></tr>
+    <tr><td>Assistant bar</td><td>Launcher shape and icon, colours, typeface, corners, shadow, motion, captions.</td></tr>
+    <tr><td>Chat window</td><td>Title and subtitle, avatar, background, bubbles, suggestion chips (up to 4), composer placeholder, timestamps, the upcoming-calls card.</td></tr>
+    <tr><td>Call screen</td><td>Every state, previewed one by one: scheduled ring, incoming ring, connecting, in call, ended, missed. You set the background (accent, dark, light, gradient or brand), avatar (logo, glyph or initials) and its shape, which controls appear (mute, speaker, chat, end), the end-button style, live captions, the timer, the ringtone, and every line of text.</td></tr>
+  </table></div>
+
+  <h3>Prompt tips</h3>
+  <ul>
+    <li>Tell the agent when to offer a callback: "After every consultation, offer a check-in call for the next day."</li>
+    <li>Tell it what it may say on a scheduled call: "On a check-in call, ask about symptoms and medication. Do not discuss lab results; point the user to the app."</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section id="install">
+  <div class="eyebrow">5 · Install</div>
+  <h2>Install the SDK</h2>
+  <div class="code" data-p="rn"><div class="label">Terminal</div><pre>npm install @graineai/inapp-react-native @graineai/inapp-react-native-calls react-native-webview
+cd ios &amp;&amp; pod install &amp;&amp; cd ..</pre></div>
+  <div class="only" data-p="rn"><p>The calls package adds native calling (CallKit and the Android call screen). Expo apps need a development build (<code>npx expo prebuild</code>); Expo Go cannot load native code.</p></div>
+  <div class="code" data-p="ios"><div class="label">Swift Package Manager (recommended)</div><pre>.package(url: "https://github.com/GraineAI/inapp-ios", from: "0.7.0")</pre></div>
+  <div class="code" data-p="ios"><div class="label">or CocoaPods — Podfile</div><pre>pod 'GraineInApp', '~&gt; 0.7'</pre></div>
+  <div class="code" data-p="android"><div class="label">app/build.gradle.kts — from Maven Central</div><pre>dependencies {
+    implementation("ai.graine:inapp-android:0.7.0")
+}</pre></div>
+  <div class="only" data-p="android"><p>The library has no runtime dependencies, Firebase included. Your app keeps its own Firebase setup and passes messages to the SDK (see <a href="#calls">calls</a>).</p></div>
+  <div class="code" data-p="flutter"><div class="label">pubspec.yaml</div><pre>dependencies:
+  graine_inapp: ^0.7.0</pre></div>
+  <div class="code" data-p="web"><div class="label">Paste before &lt;/body&gt; (Agent → Embed &amp; Widgets → Install has your exact snippet)</div><pre>&lt;script src="https://www.graine.ai/embed/v1.js"&gt;&lt;/script&gt;</pre></div>
+  <div class="only" data-p="web"><p>No build step and no dependencies. The agent runs in an isolated frame, so your page's styles can't change it and it can't read your page. It only calls the functions you define.</p></div>
+</section>
+
+<!-- 6 -->
+<section id="permissions">
+  <div class="eyebrow">6 · Permissions</div>
+  <h2>Permissions</h2>
+  <p>Ask for each permission when the user first uses the feature that needs it, not at launch. Everything else in the SDK works without them.</p>
+  <div class="table"><table>
+    <tr><th>Feature</th><th>iOS</th><th>Android</th><th>If refused</th></tr>
+    <tr><td>Chat</td><td>None</td><td>None (internet is declared by the SDK)</td><td>—</td></tr>
+    <tr><td>Voice in the app</td><td>Microphone (<code>NSMicrophoneUsageDescription</code>)</td><td><code>RECORD_AUDIO</code> (runtime)</td><td>The bar offers chat instead</td></tr>
+    <tr><td>Calls (outgoing and incoming)</td><td>Microphone · Background modes <i>Audio</i> and <i>Voice over IP</i> · Push Notifications capability</td><td><code>RECORD_AUDIO</code> · <code>POST_NOTIFICATIONS</code> (Android 13+, runtime) · full-screen intent · microphone foreground service (declared by the SDK)</td><td>No microphone: the call ends with a clear message. No notifications on Android: incoming calls cannot ring.</td></tr>
+    <tr><td>Bluetooth headsets</td><td>None</td><td>None</td><td>—</td></tr>
+    <tr><td>Website voice</td><td colspan="2">The browser asks for the microphone the first time a visitor starts voice. The page must be served over HTTPS.</td><td>The widget offers chat instead</td></tr>
+  </table></div>
+  <div class="code" data-p="ios rn flutter"><div class="label">iOS — Info.plist</div><pre>&lt;key&gt;NSMicrophoneUsageDescription&lt;/key&gt;
+&lt;string&gt;Lets you talk to your health coach by voice and on calls.&lt;/string&gt;
+&lt;key&gt;UIBackgroundModes&lt;/key&gt;
+&lt;array&gt;&lt;string&gt;audio&lt;/string&gt;&lt;string&gt;voip&lt;/string&gt;&lt;/array&gt;</pre></div>
+  <div class="callout warn">
+    <span class="eyebrow">Store review</span>
+    <ul>
+      <li><b>Google Play</b> grants the full-screen-intent permission by default only to calling and alarm apps. Declare it in Play Console under <i>App content</i>. If it is not granted, an incoming call still rings, as a high-priority notification the user taps to answer.</li>
+      <li><b>Apple</b> requires every VoIP push to show a call immediately. The SDK always does this. Never send VoIP pushes for anything else, or iOS stops delivering them to your app.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="init">
+  <div class="eyebrow">7 · Initialise</div>
+  <h2>Initialise once, at launch</h2>
+  <div class="code" data-p="rn"><div class="label">App.tsx</div><pre>import { useRef } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { WebView } from "react-native-webview";
+import { GraineProvider, GraineVoiceLauncher, GraineAgentBar } from "@graineai/inapp-react-native";
+
+export default function App() {
+  const navigationRef = useRef(null);
+  return (
+    &lt;GraineProvider
+      baseUrl="https://www.graine.ai"
+      publishableKey="pk_live_…"
+      navigationRef={navigationRef}
+      autoConnect={false}
+    &gt;
+      &lt;NavigationContainer ref={navigationRef}&gt;
+        &lt;RootNavigator /&gt;
+      &lt;/NavigationContainer&gt;
+      &lt;GraineVoiceLauncher webView={WebView} onError={(m) =&gt; console.warn("[graine]", m)}&gt;
+        {() =&gt; &lt;GraineAgentBar /&gt;}
+      &lt;/GraineVoiceLauncher&gt;
+    &lt;/GraineProvider&gt;
+  );
+}</pre></div>
+  <div class="only" data-p="rn"><p><code>autoConnect={false}</code> is required with the launcher. Without it, two conversations open. <code>navigationRef</code> lets the SDK follow your screens automatically. Always pass <code>onError</code>: a rejected key otherwise shows nothing.</p></div>
+  <div class="code" data-p="ios"><div class="label">AppDelegate / App init</div><pre>import GraineInApp
+
+let graine = GraineInApp.configure(GraineConfig(
+    baseUrl: "https://www.graine.ai",
+    publishableKey: "pk_live_…"
+))</pre></div>
+  <div class="code" data-p="android"><div class="label">Application.onCreate</div><pre>val graine = GraineInApp.init(this, GraineConfig(
+    baseUrl = "https://www.graine.ai",
+    publishableKey = "pk_live_…",
+))</pre></div>
+  <div class="code" data-p="flutter"><div class="label">main.dart</div><pre>void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  GraineInApp.init(const GraineConfig(
+    baseUrl: 'https://www.graine.ai',
+    publishableKey: 'pk_live_…',
+  ));
+  runApp(const MyApp());
+}</pre></div>
+  <div class="code" data-p="web"><div class="label">After the loader</div><pre>&lt;script&gt;
+  GraineAgent.load({
+    agentId: "your-agent-id",
+    publishableKey: "pk_live_…",
+  });
+&lt;/script&gt;</pre></div>
+</section>
+
+<!-- 8 -->
+<section id="identity">
+  <div class="eyebrow">8 · Identity and memory</div>
+  <h2>Tell the SDK who the user is <span class="new">New</span></h2>
+  <p>Call <code>identify</code> after your own sign-in, with the field you chose under <b>Who is the user?</b> plus anything the agent should know, such as a first name. Call it with <code>null</code> on sign-out.</p>
+  <div class="code" data-p="rn"><pre>const identify = useGraineIdentify();
+const graine = useGraineClient();
+
+useEffect(() =&gt; {
+  if (patient) identify({ patient_id: patient.mrn, name: patient.firstName }, { memory: patient.memoryConsent });
+  else identify(null); // sign-out: releases this device and stops calls for that user
+}, [patient, identify]);
+
+// later, from a settings screen
+graine.setMemory(false);      // stop remembering this user
+const remembered = await graine.memories();   // [{ id, text, createdAt, updatedAt }]
+const erased = await graine.forgetMemory();   // erase what the agent remembers; returns how many</pre></div>
+  <div class="code" data-p="ios"><pre>graine.identify(["patient_id": patient.mrn, "name": patient.firstName], memory: patient.memoryConsent)
+graine.identify(nil)                 // sign-out
+
+graine.setMemory(false)
+let remembered = try await graine.memories()   // [GraineMemory]
+let erased = try await graine.forgetMemory()   // how many were erased</pre></div>
+  <div class="code" data-p="android"><pre>graine.identify(mapOf("patient_id" to patient.mrn, "name" to patient.firstName), memory = patient.memoryConsent)
+graine.identify(null)                // sign-out
+
+graine.setMemory(false)
+graine.memories { items, error -&gt; /* [GraineMemory] newest first */ }
+graine.forgetMemory { deleted, error -&gt; /* how many were erased */ }</pre></div>
+  <div class="code" data-p="flutter"><pre>GraineInApp.instance.identify({'patient_id': patient.mrn, 'name': patient.firstName}, memory: patient.memoryConsent);
+GraineInApp.instance.identify(null); // sign-out
+
+GraineInApp.instance.setMemory(false);
+final remembered = await GraineInApp.instance.memories();
+final erased = await GraineInApp.instance.forgetMemory(); // how many were erased</pre></div>
+  <div class="code" data-p="web"><pre>// after your own sign-in; safe to call before load() finishes
+GraineAgent.identify({ patient_id: patient.mrn, name: patient.firstName }, { memory: patient.memoryConsent });
+GraineAgent.identify(null);                  // sign-out
+
+GraineAgent.setMemory(false);
+const remembered = await GraineAgent.memories();
+const erased = await GraineAgent.forgetMemory();</pre></div>
+  <h3>What happens to the identifier</h3>
+  <p>The SDK sends the identifier field only when a conversation starts. Graine immediately turns it into a one-way key scoped to your workspace, then discards the value. The key is the same every time for the same user, so memory and scheduled calls follow them across chat, voice and calls.</p>
+  <div class="keyline">patient_id "MRN-000981"  →  u1_26emnecbtm4pktqzkxl3vmw2wu  (example; your workspace's keys differ)</div>
+  <p>Other traits (name, plan) become context for the agent. Phone numbers, email addresses and government or card numbers in traits are masked on the device before anything is sent.</p>
+  <h3>Rules worth knowing</h3>
+  <ul>
+    <li>Identity is read when a conversation starts. A change applies to the next conversation.</li>
+    <li>No identity, or a placeholder value such as <code>"guest"</code>, <code>"0"</code> or <code>"unknown"</code>, means the conversation has no memory. Strangers never share memories.</li>
+    <li>Phone calls are identified by the caller's number. If you choose <b>Phone number</b> as the in-app identifier, a user's phone and app conversations share one memory. Numbers match on their last 10 digits.</li>
+    <li>A device beyond the user's device limit gets no memory and no calls for that user. A device is released when the user signs out on it, after 30 days of inactivity, or when your team resets it in the dashboard.</li>
+  </ul>
+</section>
+
+<!-- 9 -->
+<section id="chat">
+  <div class="eyebrow">9 · Chat</div>
+  <h2>Chat with components <span class="new">New on iOS, Android, Flutter</span></h2>
+  <p>Chat is a full conversation surface: streaming replies, components, actions, reconnecting after a network drop, and messages typed offline sent when the connection returns. Whether users get chat, voice or both is a dashboard setting (<b>Embed &amp; Widgets → What visitors get</b>).</p>
+  <div class="code" data-p="rn"><div class="label">The assistant bar switches between voice and chat; or render the chat window on its own screen</div><pre>&lt;GraineVoiceLauncher webView={WebView}&gt;
+  {(api) =&gt; &lt;GraineVoiceBar api={api} /&gt;}   {/* voice and chat, components included */}
+&lt;/GraineVoiceLauncher&gt;</pre></div>
+  <div class="code" data-p="ios"><div class="label">SwiftUI</div><pre>struct CoachChatScreen: View {
+    var body: some View {
+        GraineChatView()            // components and actions included
+            .navigationTitle("Coach")
+    }
+}
+// UIKit: present GraineChatViewController()</pre></div>
+  <div class="code" data-p="android"><div class="label">A full-screen chat, or a view inside your layout</div><pre>GraineChatActivity.open(this)
+
+// or in a layout
+val chat = GraineChatView(context)
+container.addView(chat)</pre></div>
+  <div class="code" data-p="flutter"><pre>Navigator.of(context).push(MaterialPageRoute(builder: (_) =&gt; const GraineChat()));</pre></div>
+  <div class="code" data-p="web"><div class="label">The launcher opens chat or voice, as the dashboard sets; open it from your own button too</div><pre>document.querySelector("#talk-to-coach").addEventListener("click", () =&gt; GraineAgent.open());</pre></div>
+  <h3>Components</h3>
+  <p>Components appear in chat and during voice: choice chips and quick actions, product and plan lists, plan comparisons, information cards and appointment slots. They are drawn natively by each SDK from your design. A user's answer goes back to the agent, and runs any in-app action the component is tied to.</p>
+</section>
+
+<!-- 10 -->
+<section id="voice">
+  <div class="eyebrow">10 · Voice</div>
+  <h2>Voice in the app</h2>
+  <p>The assistant bar starts a voice conversation with one tap, with live captions and an end button. It uses a low-latency real-time media connection and falls back automatically on networks that block it. Voice ends when the app goes to the background. For a conversation that continues with the screen locked, use a call.</p>
+</section>
+
+<!-- 11 -->
+<section id="calls">
+  <div class="eyebrow">11 · Calls</div>
+  <h2>WhatsApp-style calls</h2>
+  <p>A call is the phone's own kind of call. It rings over the lock screen, works with Bluetooth and continues in the background. It is the same agent, so it sees the user's screen and can run your actions.</p>
+  <h3>What your users see</h3>
+  <div class="phones">
+    <figure class="phone-wrap">
+      <div class="phone" role="img" aria-label="Incoming scheduled call from Care Coach with Decline and Accept buttons">
+        <div class="screen">
+          <div class="who"><span class="badge">Scheduled call</span><div class="avatar">DC</div><div class="name">Care Coach</div><div class="status">Your 6:00 pm check-in</div></div>
+          <div></div>
+          <div class="row">
+            <span class="btn"><i class="decline big"><svg viewBox="0 0 24 24"><path d="M3 15c5-4 13-4 18 0l-2 3-4-1v-3c-2-.6-4-.6-6 0v3l-4 1z"/></svg></i>Decline</span>
+            <span class="btn"><i class="accept big"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg></i>Accept</span>
+          </div>
+        </div>
+      </div>
+      <figcaption>A scheduled call rings full screen on Android and through CallKit on iPhone, even when the app is closed.</figcaption>
+    </figure>
+    <figure class="phone-wrap">
+      <div class="phone" role="img" aria-label="In-call screen with timer, live caption and Mute, Speaker, Chat and End buttons">
+        <div class="screen">
+          <div class="who"><div class="avatar">DC</div><div class="name">Care Coach</div><div class="status num">02:14</div></div>
+          <div class="caption">How are you feeling after starting the new dose yesterday?</div>
+          <div class="row">
+            <span class="btn"><i><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3M3 3l18 18"/></svg></i>Mute</span>
+            <span class="btn"><i><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></i>Speaker</span>
+            <span class="btn"><i><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></i>Chat</span>
+            <span class="btn"><i class="end"><svg viewBox="0 0 24 24"><path d="M3 15c5-4 13-4 18 0l-2 3-4-1v-3c-2-.6-4-.6-6 0v3l-4 1z"/></svg></i>End</span>
+          </div>
+        </div>
+      </div>
+      <figcaption>In the call: timer, live captions and controls. Components and actions keep working.</figcaption>
+    </figure>
+    <figure class="phone-wrap">
+      <div class="phone" role="img" aria-label="Missed scheduled call with a Call back button">
+        <div class="screen">
+          <div class="who"><div class="avatar">DC</div><div class="name">Care Coach</div><div class="status">Missed call · 6:00 pm</div></div>
+          <div></div>
+          <div class="row"><span class="btn"><i class="cb">Call back</i></span></div>
+        </div>
+      </div>
+      <figcaption>Missed or declined: the outcome is recorded, and the user can call back in one tap.</figcaption>
+    </figure>
+  </div>
+  <p>Every colour, the avatar, which controls appear, and each line of text (including "Scheduled call" and "Missed call") come from the <b>Call screen</b> tab in the Garage. See <a href="#design">Design</a>.</p>
+  <div class="only" data-p="web"><div class="callout"><span class="eyebrow">On the website</span><p>WhatsApp-style calls ring your <b>apps</b>. Website visitors talk by voice in the browser while the page is open. A call booked from the website (by the agent or with <code>GraineAgent.scheduleCall</code>) rings that user's app on their phone. If they have never signed in to your app, it ends as <code>no_device</code>.</p></div></div>
+  <h3>Set up calls at launch</h3>
+  <div class="code" data-p="rn"><pre>import { GraineCalls } from "@graineai/inapp-react-native-calls";
+
+await GraineCalls.configure({ publishableKey: "pk_live_…", displayName: "Care Coach" });
+GraineCalls.attach(useGraineClient());   // shares identity, screen and actions with calls
+GraineCalls.onOutcome((o) =&gt; analytics.track("coach_call", o));</pre></div>
+  <div class="code" data-p="ios"><pre>let calls = graine.calls
+calls.configure(GraineCallsConfig(displayName: "Care Coach", ringTimeout: 45))
+calls.enableVoIPPushes()   // with in-app calling credentials uploaded, Graine registers this device itself
+calls.addListener(self)</pre></div>
+  <div class="code" data-p="android"><pre>GraineInApp.get().calls.configure(GraineCallsConfig(
+    displayName = "Care Coach",
+    smallIcon = R.drawable.ic_stat_call,
+))</pre></div>
+  <div class="code" data-p="flutter"><pre>final calls = GraineCalls.instance;
+await calls.configure(const GraineCallsOptions(publishableKey: 'pk_live_…', displayName: 'Care Coach'));</pre></div>
+
+  <h3>The user calls the coach</h3>
+  <div class="code" data-p="rn"><pre>const callId = await GraineCalls.startCall({ reason: "called_from_home" }); // null if a call is already live</pre></div>
+  <div class="code" data-p="ios"><pre>let callId = calls.startCall(reason: "called_from_home")</pre></div>
+  <div class="code" data-p="android"><pre>val callId = GraineInApp.get().calls.startCall(activity, reason = "called_from_home")</pre></div>
+  <div class="code" data-p="flutter"><pre>final callId = await calls.startCall(reason: 'called_from_home');</pre></div>
+
+  <h3>Graine rings the user <span class="new">New</span></h3>
+  <p>Once your in-app calling credentials are verified, each device registers itself and Graine rings it for every scheduled call. On iOS, nothing else is needed. On Android, pass Firebase messages and token refreshes to the SDK. That is two lines in your messaging service:</p>
+  <div class="code" data-p="android rn flutter"><div class="label">Android — your FirebaseMessagingService</div><pre>class Messaging : FirebaseMessagingService() {
+    override fun onNewToken(token: String) {
+        GraineCalls.onNewToken(this, token)
+    }
+    override fun onMessageReceived(message: RemoteMessage) {
+        if (GraineCalls.handlePush(this, message.data)) return
+        // …your own messages
+    }
+}</pre></div>
+  <div class="only" data-p="rn flutter"><p>React Native and Flutter apps add the same service on the Android side. The calls package and plugin read the token and messages from it, so incoming calls ring even when the app has been closed.</p></div>
+  <h3>Outcomes</h3>
+  <p>The SDK reports every ring's outcome to Graine. You see it in Call History, in your webhooks (<code>call_declined</code>, <code>call_missed</code>, <code>call_expired</code>) and in the listener:</p>
+  <div class="chips"><span class="chip">scheduled</span><span class="arrow">→</span><span class="chip live">ringing</span><span class="arrow">→</span><span class="chip ok">answered</span><span class="arrow">→</span><span class="chip ok">completed</span></div>
+  <div class="chips"><span class="chip end">declined</span><span class="chip end">missed</span><span class="chip end">failed</span><span class="chip">cancelled</span><span class="chip">expired</span><span class="chip">no_device</span></div>
+</section>
+
+<!-- 12 -->
+<section id="scheduling">
+  <div class="eyebrow">12 · Scheduling</div>
+  <h2>Scheduled calls <span class="new">New</span></h2>
+  <p>There are three ways to book a call, and all of them follow the same rules.</p>
+  <ol class="steps">
+    <li><b>The agent books it in conversation</b> when <i>Agent may book calls</i> is on. "Call me tomorrow evening" becomes a call at a time the agent confirms in the user's own timezone.</li>
+    <li><b>Your app books it</b> when <i>Users may book calls</i> is on, for example a "Schedule a check-in" button.</li>
+    <li><b>Your team books it</b> in the dashboard under <b>Agent → Calls &amp; scheduling → Scheduled calls</b>, for a user by their identifier or for a phone number.</li>
+  </ol>
+  <h3>Who the call is for</h3>
+  <p>A scheduled call is booked for a <b>user</b>, never for a device. The user is the one identified by the field you selected under <b>Memory &amp; identity → Who is the user?</b>:</p>
+  <ul>
+    <li><b>Agent-booked:</b> the user in that conversation.</li>
+    <li><b>App-booked:</b> the user your app passed to <code>identify</code> on that device.</li>
+    <li><b>Dashboard-booked:</b> the user whose value your team types into the field the form shows, for example <i>Patient ID</i> <code>MRN-000981</code>. Add an optional label such as the patient's name to find the call in the list later.</li>
+  </ul>
+  <p>At ring time, Graine rings the device that user used most recently, among the devices bound to them. A call booked for one patient can never ring a device that only another patient has used. If you change the identifier field later, calls follow the new field from each user's next sign-in. Users who have not signed in can book calls only for the device they are on.</p>
+  <div class="code" data-p="rn"><pre>const graine = useGraineClient();
+
+const call = await graine.scheduleCall({ at: new Date("2026-10-14T18:00:00+05:30"), reason: "Daily check-in" });
+const upcoming = await graine.scheduledCalls();   // [{ id, at, status, reason, source }]
+await graine.cancelScheduledCall(call.id);</pre></div>
+  <div class="code" data-p="ios"><pre>let call = try await graine.scheduleCall(at: checkInTime, reason: "Daily check-in")
+let upcoming = try await graine.scheduledCalls()
+try await graine.cancelScheduledCall(id: call.id)</pre></div>
+  <div class="code" data-p="android"><pre>graine.scheduleCall(at = checkInTime, reason = "Daily check-in") { call, error -&gt; /* GraineScheduledCall, or a GraineError with a code */ }
+graine.scheduledCalls { calls, error -&gt; /* upcoming first */ }
+graine.cancelScheduledCall(id) { status, error -&gt; /* GraineCallStatus.CANCELLED */ }</pre></div>
+  <div class="code" data-p="flutter"><pre>final call = await GraineInApp.instance.scheduleCall(at: checkInTime, reason: 'Daily check-in');
+final upcoming = await GraineInApp.instance.scheduledCalls();
+await GraineInApp.instance.cancelScheduledCall(call.id);</pre></div>
+  <div class="code" data-p="web"><pre>const call = await GraineAgent.scheduleCall({ at: "2026-10-14T18:00:00+05:30", reason: "Daily check-in" });
+const upcoming = await GraineAgent.scheduledCalls();
+await GraineAgent.cancelScheduledCall(call.id);</pre></div>
+  <h3>The rules every booking follows</h3>
+  <ul>
+    <li>Times always carry a timezone. The SDK sends the device's timezone, and calling hours and quiet hours are checked in the user's local time.</li>
+    <li>A call rings no more than 10 minutes late. If it cannot ring by then (for example, the agent was switched off), it is marked <code>expired</code>.</li>
+    <li>A call is booked for the user, and rings their most recently used device. A user who signed out everywhere has no device, and the call is marked <code>no_device</code>.</li>
+    <li>Graine checks your credit balance and that the agent is on, both when the call is booked and when it rings.</li>
+    <li>The push that wakes the phone carries only the call name and an opaque call id. Why the agent is calling reaches the agent, never the push.</li>
+  </ul>
+</section>
+
+<!-- 13 -->
+<section id="context">
+  <div class="eyebrow">13 · Context</div>
+  <h2>Screen context and actions</h2>
+  <p>Tell the agent what the user is looking at, and let it act. It sees this context in chat, in voice and on calls.</p>
+  <div class="code" data-p="rn"><pre>useGraineScreen(useMemo(() =&gt; ({
+  screen: "medication_schedule",
+  title: "My medicines",
+  fields: [{ name: "next_dose", label: "Next dose", value: "8:00 pm" }],
+}), []));
+
+useGraineAction("open_appointments", () =&gt; navigation.navigate("Appointments"));</pre></div>
+  <div class="code" data-p="ios"><pre>graine.setScreen(GraineScreen(screen: "medication_schedule", title: "My medicines"))
+let unregister = graine.registerAction("open_appointments") { _ in router.open(.appointments) }</pre></div>
+  <div class="code" data-p="android"><pre>graine.setScreen(GraineScreen(screen = "medication_schedule", title = "My medicines"))
+graine.registerAction("open_appointments") { _ -&gt; navController.navigate("appointments") }</pre></div>
+  <div class="code" data-p="flutter"><pre>graine.setScreen(const GraineScreen(screen: 'medication_schedule', title: 'My medicines'));
+final unregister = graine.registerAction('open_appointments', (args) async =&gt; router.go('/appointments'));</pre></div>
+  <div class="code" data-p="web"><pre>GraineAgent.setScreen({ screen: "medication_schedule", title: "My medicines" });
+GraineAgent.defineAction("open_appointments", () =&gt; { location.href = "/appointments"; });</pre></div>
+  <p>Taps on labelled elements and screen changes are reported automatically, at most a couple of times a second. Values are masked like traits.</p>
+</section>
+
+<!-- 14 -->
+<section id="design">
+  <div class="eyebrow">14 · Design</div>
+  <h2>Design</h2>
+  <p>Design lives in the dashboard's Garage. You set colours, typeface, corners, shadow and motion once, and the assistant bar, the chat window (header, bubbles, suggestions, composer, upcoming calls) and the call screen (scheduled ring, incoming ring, in call, ended, missed) follow them on every platform. The SDK keeps the last design on the device, so a call that wakes a closed app still looks like your brand. On iPhone, the lock-screen call screen is Apple's own and shows your call name and app icon.</p>
+</section>
+
+<!-- 15 -->
+<section id="test">
+  <div class="eyebrow">15 · QA</div>
+  <h2>Test it end to end</h2>
+  <p>Run this on a real iPhone and a real Android phone. Push and calls do not work in simulators.</p>
+  <ol class="steps">
+    <li><b>Chat:</b> sign in as test user A and send "hello". Expect a streamed reply and a component when the prompt calls for one. Turn on airplane mode, type a message, then turn it off. Expect the message to send.</li>
+    <li><b>Memory:</b> as user A, say "I take metformin at 8 pm". End the chat, start a new one and ask "what do I take in the evening?" Expect the agent to know. Sign in as user B on another phone and ask the same. Expect it not to know.</li>
+    <li><b>Consent:</b> call <code>setMemory(false)</code> for user A, repeat step 2 and expect no recall. Then call <code>forgetMemory()</code> and confirm in the dashboard that A has no memories.</li>
+    <li><b>Voice:</b> tap the bar, speak, and expect captions and a reply within a second or two.</li>
+    <li><b>Outgoing call:</b> tap "Call coach". Expect CallKit (iOS) or the full-screen call (Android), and audio both ways. Lock the screen and the call continues.</li>
+    <li><b>Agent-booked call:</b> say "call me in 10 minutes". Expect a confirmed time. Kill the app. In 10 minutes the phone rings; answer it, and expect the agent to know it is a check-in.</li>
+    <li><b>App-booked call:</b> <code>scheduleCall</code> 15 minutes ahead, list it, cancel it, and expect no ring.</li>
+    <li><b>Decline and miss:</b> decline one ring and let another time out. Expect <code>declined</code> and <code>missed</code> in Call History and your webhooks.</li>
+    <li><b>Device limit:</b> sign in as user A on a third device. Expect no memory, and no calls for A on that device.</li>
+    <li><b>Sign-out:</b> sign out on a device. Expect it to stop receiving calls for that user.</li>
+  </ol>
+</section>
+
+<!-- 16 -->
+<section id="golive">
+  <div class="eyebrow">16 · Launch</div>
+  <h2>Go-live checklist</h2>
+  <ul class="checks">
+    <li>The production publishable key is in the release build, and <code>app://</code> is in Allowed domains.</li>
+    <li>In-app calling shows <b>Verified</b> for iOS (Production environment) and Android.</li>
+    <li>Memory &amp; identity: the identifier field matches what your app passes. Retention and device limit are agreed with your compliance team.</li>
+    <li>Calls &amp; scheduling: calling hours, quiet hours and daily caps are set. Agent and user booking are on only where intended.</li>
+    <li>Microphone and notification permission texts are final. The Play Console full-screen-intent declaration is filed.</li>
+    <li>Your privacy policy covers voice, chat transcripts, memory, device tokens and scheduled calls (see below).</li>
+    <li>The QA script above passed on both platforms with production credentials.</li>
+    <li>Webhooks are subscribed for the call outcomes you report on.</li>
+  </ul>
+</section>
+
+<!-- 17 -->
+<section id="privacy">
+  <div class="eyebrow">17 · Trust</div>
+  <h2>Data, privacy and security</h2>
+  <div class="table"><table>
+    <tr><th>Data</th><th>Where it goes</th><th>How long</th></tr>
+    <tr><td>The identifier field (for example <code>patient_id</code>)</td><td>Sent once per conversation, turned into a one-way key, never stored</td><td>Not kept</td></tr>
+    <tr><td>Other traits and screen context</td><td>Masked on the device (phone, email, ID and card numbers), used as conversation context</td><td>With the conversation record</td></tr>
+    <tr><td>Conversation transcripts</td><td>Call History in your workspace</td><td>Your workspace's retention</td></tr>
+    <tr><td>Memories</td><td>Facts extracted from conversations, redacted before storage, keyed by the user key</td><td>Your retention setting (365 days by default), or until erased</td></tr>
+    <tr><td>Push credentials</td><td>Encrypted at rest with your workspace's key, never displayed or logged</td><td>Until you remove them</td></tr>
+    <tr><td>Device tokens</td><td>Encrypted, linked to the install and, when trusted, to the user key</td><td>Removed on sign-out, when a token dies, or after 90 days unused</td></tr>
+    <tr><td>Push contents</td><td>Call name and an opaque call id only</td><td>—</td></tr>
+  </table></div>
+  <h3>The trust model, plainly</h3>
+  <p>Because there is no server of yours in the loop, Graine believes what your app tells it about who the user is. Three things keep that safe:</p>
+  <ul>
+    <li><b>Device binding:</b> a user's memory and calls stay with the devices they first used.</li>
+    <li><b>Limits:</b> per-device and per-workspace rate limits on every request.</li>
+    <li><b>Nothing personal in pushes,</b> and nothing remembered for anonymous users.</li>
+  </ul>
+  <p>For the strictest setup, set <b>Devices per user</b> to 1 and only call <code>identify</code> after your own authentication. Server-verified identity, where your backend signs the identifier, is planned as an optional upgrade.</p>
+  <h3>Erasure</h3>
+  <p>A user can erase their memories from your app (<code>forgetMemory</code>), and your team can erase any user from the dashboard. Signing out releases the device and stops calls to it.</p>
+</section>
+
+<!-- 18 -->
+<section id="reference">
+  <div class="eyebrow">18 · Reference</div>
+  <h2>Reference</h2>
+  <h3>Errors your app may see</h3>
+  <div class="table"><table>
+    <tr><th>Code</th><th>Meaning</th><th>What to do</th></tr>
+    <tr><td><code>invalid_key</code></td><td>The publishable key is wrong or was rotated</td><td>Copy the current key from Embed &amp; Widgets</td></tr>
+    <tr><td><code>origin_refused</code></td><td>The app or site is not allowed</td><td>Add <code>app://</code> (apps) or your domain to Allowed domains</td></tr>
+    <tr><td><code>rate_limited</code></td><td>Too many requests from this device or workspace</td><td>Retry later. The SDK backs off for you.</td></tr>
+    <tr><td><code>identity_required</code></td><td>This needs an identified user</td><td>Call <code>identify</code> first</td></tr>
+    <tr><td><code>device_limit</code></td><td>This user already has the maximum number of devices</td><td>Sign out on another device, or reset devices in the dashboard</td></tr>
+    <tr><td><code>scheduling_off</code></td><td>Users may not book calls for this agent</td><td>Turn on <i>Users may book calls</i></td></tr>
+    <tr><td><code>too_soon</code> / <code>too_far</code></td><td>Outside the booking window</td><td>Pick a time within the limits</td></tr>
+    <tr><td><code>outside_window</code></td><td>Outside the agent's calling hours</td><td>Pick a time within calling hours</td></tr>
+    <tr><td><code>too_many_pending</code></td><td>The user has the maximum pending calls</td><td>Cancel one first</td></tr>
+    <tr><td><code>not_found</code></td><td>No such call for this user</td><td>Refresh the list</td></tr>
+  </table></div>
+  <h3>Defaults and limits</h3>
+  <div class="table"><table>
+    <tr><th>Item</th><th>Value</th></tr>
+    <tr><td>Ring duration</td><td class="num">45 s (20–60)</td></tr>
+    <tr><td>Latest a call may ring</td><td class="num">10 min after its time</td></tr>
+    <tr><td>Booking window</td><td class="num">5 min to 14 days ahead (configurable 2 min to 30 days)</td></tr>
+    <tr><td>Pending calls per user</td><td class="num">3 (1–10)</td></tr>
+    <tr><td>Bookings per device</td><td class="num">10 per hour</td></tr>
+    <tr><td>Devices per user</td><td class="num">2 (1–5); released after 30 days unused</td></tr>
+    <tr><td>Memory retention</td><td class="num">365 days (1–3650)</td></tr>
+    <tr><td>Reason text on a booking</td><td class="num">120 characters</td></tr>
+  </table></div>
+</section>
+
+<!-- 19 -->
+<section id="troubleshooting">
+  <div class="eyebrow">19 · Fixes</div>
+  <h2>Troubleshooting</h2>
+  <div class="table"><table>
+    <tr><th>Symptom</th><th>Check</th></tr>
+    <tr><td>Nothing appears; no bar</td><td>The <code>onError</code> message. Usually a wrong key or a missing <code>app://</code>.</td></tr>
+    <tr><td>The agent doesn't remember</td><td>Memory is on, the identifier field name matches exactly, the user didn't opt out, and the device isn't over the limit. Memory starts with the next conversation after <code>identify</code>.</td></tr>
+    <tr><td>Scheduled call never rings (iOS)</td><td>Credentials show Verified and the environment matches the build (Sandbox for Xcode debug builds). The app enabled VoIP pushes at launch, and the user signed in on that device.</td></tr>
+    <tr><td>Scheduled call never rings (Android)</td><td>Notifications are allowed, your messaging service passes messages to <code>handlePush</code>, and battery optimisation isn't blocking the app.</td></tr>
+    <tr><td>Rings as a notification, not full screen</td><td>Android didn't grant the full-screen intent. See <a href="#permissions">store review</a>.</td></tr>
+    <tr><td>Call shows <code>expired</code></td><td>It couldn't ring within 10 minutes: no credit, agent off, or outside calling hours.</td></tr>
+  </table></div>
+</section>
+
+<!-- 20 -->
+<section id="demo">
+  <div class="eyebrow">20 · Next</div>
+  <h2>Demo app and support</h2>
+  <p>We'll share a demo app repository with a working health-coach app in React Native, iOS (SwiftUI), Android and Flutter. It covers chat with components, voice, calls, scheduled check-ins, memory with consent, and screen context, wired exactly as this guide describes. Point it at your own publishable key to see your agent in it.</p>
+  <p>For integration help, contact your Graine team. Include the call id from Call History (or the <code>callId</code> your app logged) and we can trace the exact conversation.</p>
+</section>
+
+<footer>Graine in-app SDK 0.7 · React Native 0.41 · This guide is updated as the SDK changes; the version above tells you which release it describes.</footer>
+</main>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('.switch button');
+  function set(p) {
+    root.setAttribute('data-platform', p);
+    buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.set === p)); });
+    try { localStorage.setItem('graine-guide-platform', p); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('graine-guide-platform'); } catch (e) {}
+  set(saved && /^(rn|ios|android|flutter|web)$/.test(saved) ? saved : 'rn');
+  buttons.forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.set); }); });
+
+  document.querySelectorAll('.code').forEach(function (block) {
+    var pre = block.querySelector('pre');
+    if (!pre) return;
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'copy'; btn.textContent = 'Copy';
+    if (!block.querySelector('.label')) btn.style.top = '8px';
+    btn.addEventListener('click', function () {
+      var text = pre.innerText;
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { select(pre); });
+      } else { select(pre); }
+    });
+    block.appendChild(btn);
+  });
+  function select(el) {
+    var range = document.createRange(); range.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  }
+})();
+</script>
+
+</body>
+</html>

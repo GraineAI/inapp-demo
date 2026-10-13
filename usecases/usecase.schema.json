@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "usecase.schema.json",
+  "title": "Graine Demo use-case pack",
+  "description": "Every domain word the demo apps show comes from one of these packs. The app code is generic; a pack names the agent, the people, the list screen, the actions the agent may run and the calls it may book. Read by every platform (bundled as an asset). See README.md beside this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "id", "appTitle", "agentName", "agentRole", "agents", "tagline", "identifierField", "identifierLabel",
+    "userNoun", "users", "home", "items", "actions", "call", "memoryExamples", "starters"
+  ],
+  "properties": {
+    "$schema": { "type": "string", "description": "Editor hint only; ignored by the apps." },
+    "schemaVersion": { "const": 1, "description": "Bumped only for a change an existing app could misread." },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,39}$",
+      "description": "Stable id, also the file name without .json. Remembered on the device as the chosen pack."
+    },
+    "appTitle": { "type": "string", "minLength": 1, "maxLength": 40, "description": "The product name shown in the app bar, e.g. \"Graine Care\"." },
+    "agentName": { "type": "string", "minLength": 1, "maxLength": 30, "description": "The agent's name as users see it, e.g. \"Asha\". Must match the agent's display name in the dashboard." },
+    "agentRole": { "type": "string", "minLength": 1, "maxLength": 40, "description": "What the agent is, lower case, e.g. \"care coach\"." },
+    "agents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["main", "help"],
+      "description": "The two agents the app talks to, each its own agent (and publishable key) in the dashboard: `main` on Home and Chat, `help` on the Help screen. Sign-in is shared. `main` repeats agentName / agentRole / starters, which stay for older readers.",
+      "properties": {
+        "main": { "$ref": "#/$defs/agent" },
+        "help": { "$ref": "#/$defs/helpAgent" }
+      }
+    },
+    "tagline": { "type": "string", "minLength": 1, "maxLength": 140, "description": "One sentence under the pack's name on the sign-in screen." },
+    "notice": { "type": "string", "maxLength": 240, "description": "Optional standing notice shown on Home and Chat (e.g. that the agent does not diagnose)." },
+    "accent": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "description": "Optional accent for the app's own chrome. The agent's look comes from the dashboard, not from here." },
+    "identifierField": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,39}$",
+      "description": "The trait that identifies a user. Must equal the agent's Memory & identity → Who is the user? setting (Custom field)."
+    },
+    "identifierLabel": { "type": "string", "minLength": 1, "maxLength": 30, "description": "How the identifier is labelled on Profile, e.g. \"Patient ID\"." },
+    "userNoun": { "type": "string", "minLength": 1, "maxLength": 20, "description": "Singular, lower case: \"patient\", \"customer\", \"shopper\". Used in sign-in copy." },
+    "users": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "description": "Fictional people to sign in as. Never real people.",
+      "items": { "$ref": "#/$defs/user" }
+    },
+    "home": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "cards"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "cards": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "$ref": "#/$defs/homeCard" } }
+      }
+    },
+    "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "screenName", "itemNoun", "emptyText", "rows"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 30, "description": "The list screen's title and tab label, e.g. \"Medicines\"." },
+        "screenName": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "not": { "enum": ["sign_in", "home", "chat", "calls", "memory", "profile"] },
+          "description": "What the app reports as the screen while the list is open, e.g. \"medicines\". The open_screen action accepts it too."
+        },
+        "itemNoun": { "type": "string", "minLength": 1, "maxLength": 20, "description": "Singular, lower case: \"medicine\", \"card\", \"order\"." },
+        "emptyText": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "rows": { "type": "array", "minItems": 1, "maxItems": 30, "items": { "$ref": "#/$defs/row" } }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "description": "The in-app actions the agent may run. The app registers every one by name and runs it by its effect. The same list, as JSON Schema, is agent-setup/<pack>/actions.json.",
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["callName", "title", "bookLabel", "reasons", "quickTimes", "placeReason"],
+      "properties": {
+        "callName": { "type": "string", "minLength": 1, "maxLength": 40, "description": "Name on the incoming call. Must match Calls & scheduling → Name on the incoming call." },
+        "title": { "type": "string", "minLength": 1, "maxLength": 30, "description": "The scheduled-calls screen's title, e.g. \"Check-in calls\"." },
+        "bookLabel": { "type": "string", "minLength": 1, "maxLength": 40, "description": "The button that opens the booking sheet, e.g. \"Schedule a consultation call\"." },
+        "reasons": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "description": "The reasons offered in the booking sheet (one is chosen). Sent as the booking's reason (at most 120 characters).",
+          "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+        },
+        "quickTimes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "description": "One-tap times in the booking sheet, in the device's time zone. A chip outside the SDK's earliest/latest is shown disabled.",
+          "items": { "$ref": "#/$defs/quickTime" }
+        },
+        "placeReason": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "description": "The reason a call the user places from Home carries (the agent hears it as call_reason)."
+        }
+      }
+    },
+    "memoryExamples": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "description": "The memory QA script: say `tell` in one chat, start a new chat, say `ask`; the agent answers with `expect`. Signed in as someone else, it does not.",
+      "items": { "$ref": "#/$defs/memoryExample" }
+    },
+    "starters": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "description": "Suggestion chips in the chat. Same limits as the dashboard's conversation starters.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 40 }
+    }
+  },
+  "$defs": {
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "role", "starters"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 40, "description": "The agent's display name — match the dashboard." },
+        "role": { "type": "string", "minLength": 1, "maxLength": 40, "description": "Lower case, e.g. \"care coach\"." },
+        "starters": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "string", "minLength": 1, "maxLength": 40 } }
+      }
+    },
+    "helpAgent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "role", "callName", "placeReason", "bookLabel", "reasons", "starters"],
+      "description": "The Help screen's agent: its chat, voice and calls; its bookings appear in the same Scheduled calls list, named.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 40, "description": "The agent's display name — match the dashboard." },
+        "role": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "callName": { "type": "string", "minLength": 1, "maxLength": 40, "description": "Its Calls & scheduling → Name on the incoming call." },
+        "placeReason": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$", "description": "The reason on a call placed from the Help screen." },
+        "bookLabel": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "reasons": { "type": "array", "minItems": 2, "maxItems": 4, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 120 } },
+        "starters": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "string", "minLength": 1, "maxLength": 40 } }
+      }
+    },
+    "user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "traits"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "The identifier's value. Sent as traits[identifierField]."
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "traits": {
+          "type": "object",
+          "description": "Extra prompt variables for this person. Strings only. Must not repeat the identifier field or name.",
+          "maxProperties": 6,
+          "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+          "additionalProperties": { "type": "string", "maxLength": 120 }
+        }
+      }
+    },
+    "homeCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "body", "target"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "target": { "enum": ["items", "calls", "memory", "chat", "profile"], "description": "The generic screen a tap opens." }
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "subtitle", "fields", "actions"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,39}$", "description": "Stable id; the agent may name an item by it or by its title." },
+        "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "subtitle": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "maxLength": 40, "description": "Optional starting status chip. A set_status action replaces it." },
+        "fields": {
+          "type": "array",
+          "maxItems": 6,
+          "description": "Shown when the row is open, and reported to the agent as the item's details.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "label", "value"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+              "label": { "type": "string", "minLength": 1, "maxLength": 40 },
+              "value": { "type": "string", "maxLength": 100 }
+            }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "description": "Names of set_status actions this row offers (as buttons) and accepts from the agent.",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,47}$" }
+        },
+        "userIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Shown only to these users (their `id`). Absent: shown to everyone.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "effect", "label", "description", "args"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,47}$",
+          "not": { "enum": ["switch_language", "transfer_call", "end_call", "highlight_element"] },
+          "description": "The tool name. The app registers a handler under exactly this name."
+        },
+        "effect": {
+          "enum": ["open_screen", "open_item", "set_status"],
+          "description": "What the app does. open_screen: go to `screen` (or `path`). open_item: open the row named by `item`. set_status: set that row's status to `status`."
+        },
+        "label": { "type": "string", "minLength": 1, "maxLength": 30, "description": "Button text in the app, e.g. \"Mark as taken\"." },
+        "description": { "type": "string", "minLength": 1, "maxLength": 400, "description": "For the model: when to use it. Carried into actions.json." },
+        "status": { "type": "string", "minLength": 1, "maxLength": 40, "description": "set_status only: the status the row gets." },
+        "args": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type", "required", "description"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+              "type": { "enum": ["string", "number", "boolean"] },
+              "required": { "type": "boolean" },
+              "description": { "type": "string", "minLength": 1, "maxLength": 300 },
+              "enum": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "effect": { "const": "set_status" } } },
+          "then": { "required": ["status"] }
+        },
+        {
+          "if": { "properties": { "effect": { "const": "open_screen" } } },
+          "then": { "properties": { "args": { "contains": { "properties": { "name": { "const": "screen" } } } } } }
+        },
+        {
+          "if": { "properties": { "effect": { "enum": ["open_item", "set_status"] } } },
+          "then": { "properties": { "args": { "contains": { "properties": { "name": { "const": "item" } } } } } }
+        }
+      ]
+    },
+    "quickTime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label"],
+      "description": "Either `inMinutes` from now, or a `day` and a local `time` (24-hour HH:MM).",
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "inMinutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+        "day": { "enum": ["today", "tomorrow"] },
+        "time": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+      },
+      "allOf": [
+        { "if": { "required": ["inMinutes"] }, "then": { "not": { "required": ["day"] } } },
+        { "if": { "required": ["day"] }, "then": { "required": ["time"] } },
+        { "if": { "required": ["time"] }, "then": { "required": ["day"] } },
+        { "if": { "not": { "required": ["inMinutes"] } }, "then": { "required": ["day"] } }
+      ]
+    },
+    "memoryExample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tell", "ask", "expect"],
+      "properties": {
+        "tell": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "ask": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "expect": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+# Per-developer settings (copy Config.example.xcconfig)
+Config.xcconfig
+# The local-SDK project (./use-local-sdk.sh)
+GraineDemoLocal.xcodeproj/
+# Build output
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.swiftpm/

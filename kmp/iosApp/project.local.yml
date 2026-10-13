@@ -1,0 +1,10 @@
+# The local-SDK switch: the same app, built against the GraineInApp sources at $GRAINE_IOS_SDK_PATH
+# instead of the published package. Run ./use-local-sdk.sh, which sets the path and generates
+# iosAppLocal.xcodeproj (git-ignored) — the committed iosApp.xcodeproj is left alone. The Kotlin side
+# follows graine.kmpSdkDir in ../local.properties.
+include:
+  - project.yml
+name: iosAppLocal
+packages:
+  GraineInApp:
+    path: ${GRAINE_IOS_SDK_PATH}

@@ -1,0 +1,17 @@
+// Copy to Config.xcconfig (git-ignored) and fill in. Read after Base.xcconfig.
+
+// Your Apple Developer team (Xcode → Settings → Accounts), for signing on a device.
+DEVELOPMENT_TEAM = ABCDE12345
+
+// Your bundle id. It must match the iOS app registered under Workspace settings → In-app calling
+// for Graine to ring this app (its VoIP topic is <bundle id>.voip).
+PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.grainedemo
+
+// The agent's publishable key (Agent → Embed & Widgets). Add app:// to the agent's Allowed domains.
+GRAINE_PUBLISHABLE_KEY = pk_live_replace_me
+
+// Optional: a second agent for the Help screen (the pack's help desk), with its own publishable key.
+GRAINE_HELP_PUBLISHABLE_KEY =
+
+// Keep the $() — "//" starts a comment in an xcconfig file.
+GRAINE_BASE_URL = https:/$()/www.graine.ai

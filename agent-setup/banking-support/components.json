@@ -1,0 +1,121 @@
+[
+  {
+    "name": "Card help",
+    "slug": "card_help",
+    "toolName": "show_card_options",
+    "kind": "quick_actions",
+    "data": {
+      "prompt": "What would you like to do?",
+      "actions": [
+        {
+          "id": "freeze",
+          "label": "Freeze a card"
+        },
+        {
+          "id": "cards",
+          "label": "See my cards"
+        },
+        {
+          "id": "dispute",
+          "label": "Report a transaction"
+        },
+        {
+          "id": "callback",
+          "label": "Book a callback"
+        }
+      ]
+    },
+    "fallbackText": "I can freeze a card, show your cards, help you report a transaction or book a callback. What would you like?",
+    "style": {
+      "preset": "compact",
+      "button": "outline",
+      "surface": "card"
+    }
+  },
+  {
+    "name": "Report a transaction",
+    "slug": "dispute_form",
+    "toolName": "show_dispute_form",
+    "kind": "lead_form",
+    "data": {
+      "title": "Report a transaction",
+      "fields": [
+        {
+          "name": "merchant",
+          "label": "Merchant",
+          "type": "text",
+          "placeholder": "Where the payment went",
+          "required": true
+        },
+        {
+          "name": "amount",
+          "label": "Amount",
+          "type": "number",
+          "placeholder": "Amount in rupees",
+          "required": true
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "text",
+          "placeholder": "For example, 12 October"
+        },
+        {
+          "name": "card_last4",
+          "label": "Card's last 4 digits",
+          "type": "number",
+          "placeholder": "4821"
+        }
+      ],
+      "submitLabel": "Send",
+      "successMessage": "Thank you. Kabir has the details."
+    },
+    "fallbackText": "Tell me the merchant, the amount, the date, and the last four digits of the card.",
+    "style": {
+      "surface": "sheet"
+    }
+  },
+  {
+    "name": "Callback times",
+    "slug": "callback_times",
+    "toolName": "show_callback_times",
+    "kind": "calendar_slots",
+    "data": {
+      "title": "When should Kabir call you back?",
+      "note": "Times are in your time zone.",
+      "days": [
+        {
+          "id": "today",
+          "label": "Today",
+          "slots": [
+            "6:00 PM",
+            "7:30 PM"
+          ]
+        },
+        {
+          "id": "tomorrow",
+          "label": "Tomorrow",
+          "slots": [
+            "9:00 AM",
+            "12:30 PM",
+            "6:00 PM",
+            "7:30 PM"
+          ]
+        },
+        {
+          "id": "day_after",
+          "label": "Day after tomorrow",
+          "slots": [
+            "9:00 AM",
+            "12:30 PM",
+            "6:00 PM"
+          ]
+        }
+      ]
+    },
+    "fallbackText": "When would you like a callback: today, tomorrow or the day after? Tell me a time.",
+    "style": {
+      "surface": "card"
+    }
+  }
+]

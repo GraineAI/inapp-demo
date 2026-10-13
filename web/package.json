@@ -1,0 +1,11 @@
+{
+  "name": "graine-demo-web",
+  "private": true,
+  "description": "Graine Demo website: static files, no build step. This file only marks the scripts as ES modules and names the checks.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node test/check-syntax.mjs && node --test test/*.test.mjs",
+    "headless": "node test/headless-check.mjs"
+  }
+}

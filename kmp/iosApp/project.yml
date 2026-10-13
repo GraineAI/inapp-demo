@@ -1,0 +1,73 @@
+# The Xcode project is generated from this file by XcodeGen (`xcodegen generate`).
+# iosApp.xcodeproj is committed too, so the app opens without XcodeGen.
+# The shared Kotlin code (../composeApp) is built by Gradle in the first build phase and linked as the
+# static framework ComposeApp; Graine's iOS SDK comes from Swift Package Manager.
+# To build against SDK sources on this machine instead of the published packages, see use-local-sdk.sh.
+name: iosApp
+options:
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  GraineInApp:
+    url: https://github.com/GraineAI/inapp-ios
+    from: 0.7.0
+targets:
+  GraineDemoKMP:
+    type: application
+    platform: iOS
+    # Team, bundle id, publishable keys and base URL: Base.xcconfig, overridden by the git-ignored Config.xcconfig.
+    configFiles:
+      Debug: Base.xcconfig
+      Release: Base.xcconfig
+    sources:
+      - path: iosApp
+    dependencies:
+      # The iOS SDK the shared code calls (through its Objective-C facade); linked here, once.
+      - package: GraineInApp
+        product: GraineInApp
+    preBuildScripts:
+      - name: Build the shared Kotlin code
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+    info:
+      path: iosApp/Info.plist
+      properties:
+        CFBundleDisplayName: Graine Demo
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        GraineBaseURL: $(GRAINE_BASE_URL)
+        GrainePublishableKey: $(GRAINE_PUBLISHABLE_KEY)
+        GraineHelpPublishableKey: $(GRAINE_HELP_PUBLISHABLE_KEY)
+        NSMicrophoneUsageDescription: Graine Demo uses the microphone when you talk to the assistant or take its calls.
+        UIBackgroundModes: [audio, voip]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CADisableMinimumFrameDurationOnPhone: true
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: iosApp/iosApp.entitlements
+      properties:
+        # Push Notifications. Xcode signs it as production in an App Store or TestFlight build.
+        aps-environment: development
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1"
+        # Gradle writes the framework here (embedAndSignAppleFrameworkForXcode).
+        FRAMEWORK_SEARCH_PATHS: ["$(inherited)", "$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"]
+        OTHER_LDFLAGS: ["$(inherited)", "-framework", "ComposeApp"]
+        # The Gradle build phase reads and writes outside the sandbox Xcode gives scripts.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+schemes:
+  GraineDemoKMP:
+    build:
+      targets:
+        GraineDemoKMP: all

@@ -1,0 +1,185 @@
+{
+  "$schema": "./usecase.schema.json",
+  "schemaVersion": 1,
+  "id": "health-coach",
+  "appTitle": "Graine Care",
+  "agentName": "Asha",
+  "agentRole": "care coach",
+  "agents": {
+    "main": { "name": "Asha", "role": "care coach", "starters": ["What is due today?", "I have a new symptom", "Book a check-in call", "What do you remember about me?"] },
+    "help": {
+      "name": "Billing & appointments help",
+      "role": "billing and appointments desk",
+      "callName": "Graine Care · Billing",
+      "placeReason": "billing_question",
+      "bookLabel": "Book a call with billing",
+      "reasons": ["Billing question", "Change an appointment", "Insurance and coverage"],
+      "starters": ["Why was I charged twice?", "Move my appointment", "Is my next visit covered?", "Book a call with billing"]
+    }
+  },
+  "tagline": "A care coach who checks in on symptoms and medicines, and calls at the time you choose.",
+  "notice": "Asha does not diagnose or change prescriptions. For urgent symptoms, call your doctor or your local emergency number.",
+  "accent": "#0F766E",
+  "identifierField": "patient_id",
+  "identifierLabel": "Patient ID",
+  "userNoun": "patient",
+  "users": [
+    { "id": "MRN-000981", "name": "Riya Sharma", "traits": { "plan": "Diabetes care", "care_team": "Dr. Kavya Rao" } },
+    { "id": "MRN-000982", "name": "Arjun Mehta", "traits": { "plan": "Heart health", "care_team": "Dr. Sameer Joshi" } },
+    { "id": "MRN-000983", "name": "Meera Iyer", "traits": { "plan": "Thyroid care", "care_team": "Dr. Anita Menon" } }
+  ],
+  "home": {
+    "title": "Today",
+    "cards": [
+      { "id": "plan", "title": "Medicines due today", "body": "See what is due and mark each dose as taken.", "target": "items" },
+      { "id": "calls", "title": "Check-in calls", "body": "Asha calls you at the time you book.", "target": "calls" },
+      { "id": "memory", "title": "What Asha remembers", "body": "See it, switch it off, or erase it.", "target": "memory" }
+    ]
+  },
+  "items": {
+    "title": "Medicines",
+    "screenName": "medicines",
+    "itemNoun": "medicine",
+    "emptyText": "No medicines on your plan.",
+    "rows": [
+      {
+        "id": "metformin",
+        "title": "Metformin 500 mg",
+        "subtitle": "Twice a day, after breakfast and dinner",
+        "status": "Due 8:00 pm",
+        "fields": [
+          { "name": "next_dose", "label": "Next dose", "value": "8:00 pm" },
+          { "name": "supply", "label": "Supply", "value": "18 days left" }
+        ],
+        "actions": ["mark_done"],
+        "userIds": ["MRN-000981"]
+      },
+      {
+        "id": "atorvastatin",
+        "title": "Atorvastatin 10 mg",
+        "subtitle": "Once a day, at bedtime",
+        "status": "Due 10:00 pm",
+        "fields": [
+          { "name": "next_dose", "label": "Next dose", "value": "10:00 pm" },
+          { "name": "supply", "label": "Supply", "value": "9 days left" }
+        ],
+        "actions": ["mark_done"],
+        "userIds": ["MRN-000981"]
+      },
+      {
+        "id": "amlodipine",
+        "title": "Amlodipine 5 mg",
+        "subtitle": "Once a day, in the morning",
+        "status": "Due 9:00 am",
+        "fields": [
+          { "name": "next_dose", "label": "Next dose", "value": "9:00 am" },
+          { "name": "supply", "label": "Supply", "value": "24 days left" }
+        ],
+        "actions": ["mark_done"],
+        "userIds": ["MRN-000982"]
+      },
+      {
+        "id": "aspirin",
+        "title": "Aspirin 75 mg",
+        "subtitle": "Once a day, after lunch",
+        "status": "Due 2:00 pm",
+        "fields": [
+          { "name": "next_dose", "label": "Next dose", "value": "2:00 pm" },
+          { "name": "supply", "label": "Supply", "value": "30 days left" }
+        ],
+        "actions": ["mark_done"],
+        "userIds": ["MRN-000982"]
+      },
+      {
+        "id": "levothyroxine",
+        "title": "Levothyroxine 50 mcg",
+        "subtitle": "Once a day, before breakfast on an empty stomach",
+        "status": "Due 7:00 am",
+        "fields": [
+          { "name": "next_dose", "label": "Next dose", "value": "7:00 am" },
+          { "name": "supply", "label": "Supply", "value": "12 days left" }
+        ],
+        "actions": ["mark_done"],
+        "userIds": ["MRN-000983"]
+      },
+      {
+        "id": "vitamin-d3",
+        "title": "Vitamin D3 60,000 IU",
+        "subtitle": "Once a week, on Sunday",
+        "status": "Due Sunday",
+        "fields": [
+          { "name": "next_dose", "label": "Next dose", "value": "Sunday, after lunch" },
+          { "name": "supply", "label": "Supply", "value": "4 weeks left" }
+        ],
+        "actions": ["mark_done"],
+        "userIds": ["MRN-000983"]
+      }
+    ]
+  },
+  "actions": [
+    {
+      "name": "open_screen",
+      "effect": "open_screen",
+      "label": "Open",
+      "description": "Take the patient to a screen in the app: home, chat, medicines, calls (their check-in calls), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+      "args": [
+        {
+          "name": "screen",
+          "type": "string",
+          "required": true,
+          "description": "The screen to open.",
+          "enum": ["home", "chat", "medicines", "calls", "memory", "profile"]
+        }
+      ]
+    },
+    {
+      "name": "open_item",
+      "effect": "open_item",
+      "label": "Details",
+      "description": "Open one of the patient's medicines so they can see its dose times and supply. Name the medicine as it appears on the Medicines screen.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The medicine's name or id, e.g. \"Metformin 500 mg\" or \"metformin\"." }
+      ]
+    },
+    {
+      "name": "mark_done",
+      "effect": "set_status",
+      "label": "Mark as taken",
+      "status": "Taken today",
+      "description": "Record that the patient has taken today's dose of one of their medicines. Only when the patient says they have taken it; never assume.",
+      "args": [
+        { "name": "item", "type": "string", "required": true, "description": "The medicine's name or id, e.g. \"Metformin 500 mg\" or \"metformin\"." }
+      ]
+    }
+  ],
+  "call": {
+    "callName": "Asha · Graine Care",
+    "title": "Check-in calls",
+    "bookLabel": "Schedule a consultation call",
+    "reasons": ["Consultation", "Medication review", "Follow-up"],
+    "quickTimes": [
+      { "label": "In 15 minutes", "inMinutes": 15 },
+      { "label": "Tomorrow 10:00", "day": "tomorrow", "time": "10:00" },
+      { "label": "Tomorrow 18:00", "day": "tomorrow", "time": "18:00" }
+    ],
+    "placeReason": "patient_question"
+  },
+  "memoryExamples": [
+    {
+      "tell": "I take metformin at 8 pm, after my evening walk.",
+      "ask": "What do I take in the evening?",
+      "expect": "Metformin at 8 pm, after your evening walk."
+    },
+    {
+      "tell": "I feel dizzy if I skip breakfast.",
+      "ask": "What happens when I skip breakfast?",
+      "expect": "You told me you feel dizzy."
+    }
+  ],
+  "starters": [
+    "What is due today?",
+    "I have a new symptom",
+    "Book a check-in call",
+    "What do you remember about me?"
+  ]
+}

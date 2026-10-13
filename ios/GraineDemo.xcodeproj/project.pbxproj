@@ -1,0 +1,635 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		016D838DF8D89716EB525CB2 /* ChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A85861443B4BEE49785E66C /* ChatScreen.swift */; };
+		0D8927356E6284518D6EE7FB /* PackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DB23F28558FF91DBBE0239 /* PackTests.swift */; };
+		0F1E396664497C5FD3BE19F6 /* Booking.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2DBCEB2F63C26FF65B5C13A /* Booking.swift */; };
+		12AFD5E53499A52455873705 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2D9A4F6685D1F711E4F611 /* HomeView.swift */; };
+		1A14B8B2D889C80545B3FD79 /* GraineService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9EF033BDB460243A471D01 /* GraineService.swift */; };
+		1C98430D466902CBF64B1232 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E9650E997787CCFC183F5F /* ProfileView.swift */; };
+		2861A046F0D25FF93DB7119A /* ItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573C587D8E88B069C483665D /* ItemsView.swift */; };
+		30FCD86394EED3C3CCE3CC32 /* CallLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1FD8F885E03DD06EDC7E4 /* CallLogView.swift */; };
+		34BC4531861D62D0A154A0AE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F4EA1895F8C26DEA8855EA4 /* Assets.xcassets */; };
+		454A5D6D639DD6917444AAA4 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9D56C699F7356C8DF9E48F /* AppModel.swift */; };
+		48BD4B23B7D998BD87180B2E /* DemoAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC3F6103F2EECDF926D16106 /* DemoAgent.swift */; };
+		4D52D30715B6114A8DB46E30 /* usecases in Resources */ = {isa = PBXBuildFile; fileRef = 00AD61A53707B325087465FE /* usecases */; };
+		51B80A0A54FF7061FA37D42B /* DemoScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDDDBB271B18BD6A5D69A24 /* DemoScreens.swift */; };
+		54D4F5375A57ECCEAA5EDDDF /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7056895217B2BA10FB24769 /* AppModelTests.swift */; };
+		55AABC5CF3951F263CFED74B /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8D05B091CF72CF0A247A56 /* HelpView.swift */; };
+		5F9A21272F7D3D3386063DE6 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1A42B0FF88E02B3844E059 /* MemoryView.swift */; };
+		64AA863EB3670D529FF50760 /* GraineDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5AB17C17913986D645C91E /* GraineDemoApp.swift */; };
+		66F78752B6A60934E59FAC5E /* ItemsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */; };
+		7A2CD3A6DF8BF50BDBDD55D5 /* BookingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F34C81A15AA58D843F8469 /* BookingTests.swift */; };
+		9A705855C9520B1D038F259B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 059A14E0E851E5703D4E08EE /* RootView.swift */; };
+		9EA37EE97184A0F9FE23A27F /* UseCasePack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */; };
+		A388A7B82AAD75537EBEADC2 /* TestPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14AD8F42B3B833E36F79726 /* TestPack.swift */; };
+		A98B76D2A1515036A643C190 /* GraineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546214C3AAC6F0018E63EC4D /* GraineClient.swift */; };
+		AABD076AC27D815DEBAC3D0F /* TestClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B9A81DFBDD56BA44595F25 /* TestClock.swift */; };
+		C891A249EF1833CC4850F3B5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E46D8EDACE36D9F55C97A3 /* Theme.swift */; };
+		C901F4B41889F3AA57B95B3E /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 094D57CAF2FFDD55BB57856B /* AppConfig.swift */; };
+		CBBF52FA4DA3D9C0A772CC75 /* CallTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE597B4E99CACACF746AAE06 /* CallTextTests.swift */; };
+		CF4A8C372679E58427B04ED0 /* FakeGraineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */; };
+		DA4707D6DDEA9F1DC35F5380 /* GraineInApp in Frameworks */ = {isa = PBXBuildFile; productRef = C2DB785B6018B93C4A5D1DB9 /* GraineInApp */; };
+		DC8B330278FC199F3323BD39 /* CallLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 950AAFE1489AFA6CAAE2D52F /* CallLog.swift */; };
+		E6CF79A84A63AD1881504538 /* CallPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4BECBB0340824ADB0364BE /* CallPresentation.swift */; };
+		EB9A3463CB4AA644A7D1C199 /* ScheduledCallsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5E44D85D9920C3297A118E /* ScheduledCallsView.swift */; };
+		EE8912D8C60356E7E10E47CC /* OfflineGraineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB1277E8D520D72D5A59EDA2 /* OfflineGraineClient.swift */; };
+		F4EAB8693A06A7A4CB631879 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F425410275459FC8075EBF82 /* SignInView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F304592304644D2E5A28E158 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 076E26A3382997A388888ED0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 18C039BE94D43D4BE48539DF;
+			remoteInfo = GraineDemo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		00AD61A53707B325087465FE /* usecases */ = {isa = PBXFileReference; lastKnownFileType = folder; name = usecases; path = ../usecases; sourceTree = SOURCE_ROOT; };
+		059A14E0E851E5703D4E08EE /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		094D57CAF2FFDD55BB57856B /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		0A85861443B4BEE49785E66C /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
+		12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UseCasePack.swift; sourceTree = "<group>"; };
+		12E9650E997787CCFC183F5F /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeGraineClient.swift; sourceTree = "<group>"; };
+		19F34C81A15AA58D843F8469 /* BookingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookingTests.swift; sourceTree = "<group>"; };
+		1A9EF033BDB460243A471D01 /* GraineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraineService.swift; sourceTree = "<group>"; };
+		1D8D05B091CF72CF0A247A56 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		2C4BECBB0340824ADB0364BE /* CallPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallPresentation.swift; sourceTree = "<group>"; };
+		534623D318F5C19A5F3137B3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		53E46D8EDACE36D9F55C97A3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		546214C3AAC6F0018E63EC4D /* GraineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraineClient.swift; sourceTree = "<group>"; };
+		573C587D8E88B069C483665D /* ItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemsView.swift; sourceTree = "<group>"; };
+		6A5E44D85D9920C3297A118E /* ScheduledCallsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledCallsView.swift; sourceTree = "<group>"; };
+		6F4EA1895F8C26DEA8855EA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		77DB23F28558FF91DBBE0239 /* PackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackTests.swift; sourceTree = "<group>"; };
+		874FDD19896A4486C336BA7E /* GraineDemo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GraineDemo.entitlements; sourceTree = "<group>"; };
+		8D1A42B0FF88E02B3844E059 /* MemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryView.swift; sourceTree = "<group>"; };
+		8F9D56C699F7356C8DF9E48F /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		9050366DFBD592957F38F008 /* GraineDemoTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GraineDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		950AAFE1489AFA6CAAE2D52F /* CallLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallLog.swift; sourceTree = "<group>"; };
+		986B0657772173DEF39D270D /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		AC3F6103F2EECDF926D16106 /* DemoAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAgent.swift; sourceTree = "<group>"; };
+		AF5AB17C17913986D645C91E /* GraineDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraineDemoApp.swift; sourceTree = "<group>"; };
+		B251A6A0B63DE79CFF254408 /* GraineDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GraineDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD2D9A4F6685D1F711E4F611 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		C14AD8F42B3B833E36F79726 /* TestPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestPack.swift; sourceTree = "<group>"; };
+		C7B9A81DFBDD56BA44595F25 /* TestClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestClock.swift; sourceTree = "<group>"; };
+		D2DBCEB2F63C26FF65B5C13A /* Booking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Booking.swift; sourceTree = "<group>"; };
+		D7056895217B2BA10FB24769 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
+		DE597B4E99CACACF746AAE06 /* CallTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallTextTests.swift; sourceTree = "<group>"; };
+		DEC1FD8F885E03DD06EDC7E4 /* CallLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallLogView.swift; sourceTree = "<group>"; };
+		DEDDDBB271B18BD6A5D69A24 /* DemoScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoScreens.swift; sourceTree = "<group>"; };
+		EB1277E8D520D72D5A59EDA2 /* OfflineGraineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineGraineClient.swift; sourceTree = "<group>"; };
+		F425410275459FC8075EBF82 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemsState.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8CF480083B01AC188F8C1C93 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DA4707D6DDEA9F1DC35F5380 /* GraineInApp in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		055042756BFCD74BA7BD392A /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				DEC1FD8F885E03DD06EDC7E4 /* CallLogView.swift */,
+				0A85861443B4BEE49785E66C /* ChatScreen.swift */,
+				1D8D05B091CF72CF0A247A56 /* HelpView.swift */,
+				BD2D9A4F6685D1F711E4F611 /* HomeView.swift */,
+				573C587D8E88B069C483665D /* ItemsView.swift */,
+				8D1A42B0FF88E02B3844E059 /* MemoryView.swift */,
+				12E9650E997787CCFC183F5F /* ProfileView.swift */,
+				059A14E0E851E5703D4E08EE /* RootView.swift */,
+				6A5E44D85D9920C3297A118E /* ScheduledCallsView.swift */,
+				F425410275459FC8075EBF82 /* SignInView.swift */,
+			);
+			path = Screens;
+			sourceTree = "<group>";
+		};
+		127487D66E60C97D483A90BC /* Service */ = {
+			isa = PBXGroup;
+			children = (
+				1A9EF033BDB460243A471D01 /* GraineService.swift */,
+				EB1277E8D520D72D5A59EDA2 /* OfflineGraineClient.swift */,
+			);
+			path = Service;
+			sourceTree = "<group>";
+		};
+		2825BA8B0D65871B1130E51B = {
+			isa = PBXGroup;
+			children = (
+				991921855AADAA1037678C36 /* demo */,
+				30A2E5B1CFCA889E86FDC20D /* GraineDemo */,
+				DACD6B56B1E77F8FD05BB52E /* GraineDemoTests */,
+				6ACD56B3EED9D0783C99B99F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		30A2E5B1CFCA889E86FDC20D /* GraineDemo */ = {
+			isa = PBXGroup;
+			children = (
+				FE0BA25F6F6108D93DA5DB71 /* App */,
+				D56A2D81736D307EABD6A104 /* Domain */,
+				CC8BC11A68050A618695D110 /* Resources */,
+				055042756BFCD74BA7BD392A /* Screens */,
+				127487D66E60C97D483A90BC /* Service */,
+				BEC4E01D90D0EF7150D7E20F /* Support */,
+			);
+			path = GraineDemo;
+			sourceTree = "<group>";
+		};
+		6ACD56B3EED9D0783C99B99F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B251A6A0B63DE79CFF254408 /* GraineDemo.app */,
+				9050366DFBD592957F38F008 /* GraineDemoTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		991921855AADAA1037678C36 /* demo */ = {
+			isa = PBXGroup;
+			children = (
+				00AD61A53707B325087465FE /* usecases */,
+				AD1B892061625F3363800C82 /* ios */,
+			);
+			name = demo;
+			path = ..;
+			sourceTree = "<group>";
+		};
+		AD1B892061625F3363800C82 /* ios */ = {
+			isa = PBXGroup;
+			children = (
+				986B0657772173DEF39D270D /* Base.xcconfig */,
+			);
+			path = ios;
+			sourceTree = "<group>";
+		};
+		BEC4E01D90D0EF7150D7E20F /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				53E46D8EDACE36D9F55C97A3 /* Theme.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		CC8BC11A68050A618695D110 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				6F4EA1895F8C26DEA8855EA4 /* Assets.xcassets */,
+				874FDD19896A4486C336BA7E /* GraineDemo.entitlements */,
+				534623D318F5C19A5F3137B3 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D56A2D81736D307EABD6A104 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				094D57CAF2FFDD55BB57856B /* AppConfig.swift */,
+				D2DBCEB2F63C26FF65B5C13A /* Booking.swift */,
+				950AAFE1489AFA6CAAE2D52F /* CallLog.swift */,
+				2C4BECBB0340824ADB0364BE /* CallPresentation.swift */,
+				AC3F6103F2EECDF926D16106 /* DemoAgent.swift */,
+				DEDDDBB271B18BD6A5D69A24 /* DemoScreens.swift */,
+				546214C3AAC6F0018E63EC4D /* GraineClient.swift */,
+				F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */,
+				12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		DACD6B56B1E77F8FD05BB52E /* GraineDemoTests */ = {
+			isa = PBXGroup;
+			children = (
+				D7056895217B2BA10FB24769 /* AppModelTests.swift */,
+				19F34C81A15AA58D843F8469 /* BookingTests.swift */,
+				DE597B4E99CACACF746AAE06 /* CallTextTests.swift */,
+				1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */,
+				77DB23F28558FF91DBBE0239 /* PackTests.swift */,
+				C7B9A81DFBDD56BA44595F25 /* TestClock.swift */,
+				C14AD8F42B3B833E36F79726 /* TestPack.swift */,
+			);
+			path = GraineDemoTests;
+			sourceTree = "<group>";
+		};
+		FE0BA25F6F6108D93DA5DB71 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				8F9D56C699F7356C8DF9E48F /* AppModel.swift */,
+				AF5AB17C17913986D645C91E /* GraineDemoApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		18C039BE94D43D4BE48539DF /* GraineDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9B92CFF6B1C037C711C33767 /* Build configuration list for PBXNativeTarget "GraineDemo" */;
+			buildPhases = (
+				EC0DD72443A84F06533B91F7 /* Sources */,
+				BD17F09A5FCB4BA755C5B573 /* Resources */,
+				8CF480083B01AC188F8C1C93 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GraineDemo;
+			packageProductDependencies = (
+				C2DB785B6018B93C4A5D1DB9 /* GraineInApp */,
+			);
+			productName = GraineDemo;
+			productReference = B251A6A0B63DE79CFF254408 /* GraineDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C33E85E6296B7101DEE5A7AE /* GraineDemoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 52ACBC29044FE260E20D82A0 /* Build configuration list for PBXNativeTarget "GraineDemoTests" */;
+			buildPhases = (
+				760E19C2BFCA962E3E8E3A95 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				61B78722424F6933ACD7D368 /* PBXTargetDependency */,
+			);
+			name = GraineDemoTests;
+			packageProductDependencies = (
+			);
+			productName = GraineDemoTests;
+			productReference = 9050366DFBD592957F38F008 /* GraineDemoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		076E26A3382997A388888ED0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					18C039BE94D43D4BE48539DF = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = DC888F1E6531DE8C8DB4F2E6 /* Build configuration list for PBXProject "GraineDemo" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 2825BA8B0D65871B1130E51B;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B1C80D77BA7DA8A1AC70AEE9 /* XCRemoteSwiftPackageReference "inapp-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 6ACD56B3EED9D0783C99B99F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				18C039BE94D43D4BE48539DF /* GraineDemo */,
+				C33E85E6296B7101DEE5A7AE /* GraineDemoTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BD17F09A5FCB4BA755C5B573 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34BC4531861D62D0A154A0AE /* Assets.xcassets in Resources */,
+				4D52D30715B6114A8DB46E30 /* usecases in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		760E19C2BFCA962E3E8E3A95 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				54D4F5375A57ECCEAA5EDDDF /* AppModelTests.swift in Sources */,
+				7A2CD3A6DF8BF50BDBDD55D5 /* BookingTests.swift in Sources */,
+				CBBF52FA4DA3D9C0A772CC75 /* CallTextTests.swift in Sources */,
+				CF4A8C372679E58427B04ED0 /* FakeGraineClient.swift in Sources */,
+				0D8927356E6284518D6EE7FB /* PackTests.swift in Sources */,
+				AABD076AC27D815DEBAC3D0F /* TestClock.swift in Sources */,
+				A388A7B82AAD75537EBEADC2 /* TestPack.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC0DD72443A84F06533B91F7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C901F4B41889F3AA57B95B3E /* AppConfig.swift in Sources */,
+				454A5D6D639DD6917444AAA4 /* AppModel.swift in Sources */,
+				0F1E396664497C5FD3BE19F6 /* Booking.swift in Sources */,
+				DC8B330278FC199F3323BD39 /* CallLog.swift in Sources */,
+				30FCD86394EED3C3CCE3CC32 /* CallLogView.swift in Sources */,
+				E6CF79A84A63AD1881504538 /* CallPresentation.swift in Sources */,
+				016D838DF8D89716EB525CB2 /* ChatScreen.swift in Sources */,
+				48BD4B23B7D998BD87180B2E /* DemoAgent.swift in Sources */,
+				51B80A0A54FF7061FA37D42B /* DemoScreens.swift in Sources */,
+				A98B76D2A1515036A643C190 /* GraineClient.swift in Sources */,
+				64AA863EB3670D529FF50760 /* GraineDemoApp.swift in Sources */,
+				1A14B8B2D889C80545B3FD79 /* GraineService.swift in Sources */,
+				55AABC5CF3951F263CFED74B /* HelpView.swift in Sources */,
+				12AFD5E53499A52455873705 /* HomeView.swift in Sources */,
+				66F78752B6A60934E59FAC5E /* ItemsState.swift in Sources */,
+				2861A046F0D25FF93DB7119A /* ItemsView.swift in Sources */,
+				5F9A21272F7D3D3386063DE6 /* MemoryView.swift in Sources */,
+				EE8912D8C60356E7E10E47CC /* OfflineGraineClient.swift in Sources */,
+				1C98430D466902CBF64B1232 /* ProfileView.swift in Sources */,
+				9A705855C9520B1D038F259B /* RootView.swift in Sources */,
+				EB9A3463CB4AA644A7D1C199 /* ScheduledCallsView.swift in Sources */,
+				F4EAB8693A06A7A4CB631879 /* SignInView.swift in Sources */,
+				C891A249EF1833CC4850F3B5 /* Theme.swift in Sources */,
+				9EA37EE97184A0F9FE23A27F /* UseCasePack.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		61B78722424F6933ACD7D368 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 18C039BE94D43D4BE48539DF /* GraineDemo */;
+			targetProxy = F304592304644D2E5A28E158 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0A13F625272DF3CCB7CBDB14 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 986B0657772173DEF39D270D /* Base.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GraineDemo/Resources/GraineDemo.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = GraineDemo/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		0D2B0D37538962A64011089B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3881BDE4929B461FBCBB96BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		38FC910EC90D75AB917A5563 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 986B0657772173DEF39D270D /* Base.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GraineDemo/Resources/GraineDemo.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = GraineDemo/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		9ECE303737A98729368CFAD4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.grainedemo.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GraineDemo.app/GraineDemo";
+			};
+			name = Debug;
+		};
+		AE33A246F0E4AECF49017344 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.grainedemo.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GraineDemo.app/GraineDemo";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		52ACBC29044FE260E20D82A0 /* Build configuration list for PBXNativeTarget "GraineDemoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9ECE303737A98729368CFAD4 /* Debug */,
+				AE33A246F0E4AECF49017344 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9B92CFF6B1C037C711C33767 /* Build configuration list for PBXNativeTarget "GraineDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A13F625272DF3CCB7CBDB14 /* Debug */,
+				38FC910EC90D75AB917A5563 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DC888F1E6531DE8C8DB4F2E6 /* Build configuration list for PBXProject "GraineDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0D2B0D37538962A64011089B /* Debug */,
+				3881BDE4929B461FBCBB96BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B1C80D77BA7DA8A1AC70AEE9 /* XCRemoteSwiftPackageReference "inapp-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GraineAI/inapp-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.7.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C2DB785B6018B93C4A5D1DB9 /* GraineInApp */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1C80D77BA7DA8A1AC70AEE9 /* XCRemoteSwiftPackageReference "inapp-ios" */;
+			productName = GraineInApp;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 076E26A3382997A388888ED0 /* Project object */;
+}

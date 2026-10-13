@@ -1,0 +1,13 @@
+// Committed defaults for the GraineDemoKMP target. Put your own values in Config.xcconfig
+// (copy Config.example.xcconfig; it is git-ignored). It is read last, so it wins.
+
+DEVELOPMENT_TEAM =
+CODE_SIGN_STYLE = Automatic
+PRODUCT_BUNDLE_IDENTIFIER = com.example.grainedemo.kmp
+
+// "//" starts a comment in an xcconfig file, hence the $() in the URL.
+GRAINE_BASE_URL = https:/$()/www.graine.ai
+GRAINE_PUBLISHABLE_KEY =
+GRAINE_HELP_PUBLISHABLE_KEY =
+
+#include? "Config.xcconfig"

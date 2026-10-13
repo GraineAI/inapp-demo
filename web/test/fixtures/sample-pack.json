@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-pack",
+  "appTitle": "Sample Service",
+  "agentName": "Nova",
+  "agentRole": "service assistant",
+  "tagline": "A test pack: two people, a short list and three actions.",
+  "notice": "Test data only.",
+  "accent": "#2563EB",
+  "identifierField": "member_id",
+  "identifierLabel": "Member ID",
+  "userNoun": "member",
+  "users": [
+    {
+      "id": "M-001",
+      "name": "Alex Rivera",
+      "traits": {
+        "tier": "Gold",
+        "city": "Pune"
+      }
+    },
+    {
+      "id": "M-002",
+      "name": "Sam Lee",
+      "traits": {
+        "tier": "Silver"
+      }
+    }
+  ],
+  "home": {
+    "title": "Overview",
+    "cards": [
+      {
+        "id": "list",
+        "title": "Your tickets",
+        "body": "See and close tickets.",
+        "target": "items"
+      },
+      {
+        "id": "calls",
+        "title": "Callbacks",
+        "body": "Nova calls you back.",
+        "target": "calls"
+      },
+      {
+        "id": "memory",
+        "title": "What Nova remembers",
+        "body": "See it or erase it.",
+        "target": "memory"
+      }
+    ]
+  },
+  "items": {
+    "title": "Tickets",
+    "screenName": "tickets",
+    "itemNoun": "ticket",
+    "emptyText": "No tickets.",
+    "rows": [
+      {
+        "id": "t-100",
+        "title": "Router replacement",
+        "subtitle": "Opened 2 October",
+        "status": "Open",
+        "fields": [
+          {
+            "name": "ref",
+            "label": "Reference",
+            "value": "REF-55120"
+          }
+        ],
+        "actions": [
+          "close_ticket"
+        ],
+        "userIds": [
+          "M-001"
+        ]
+      },
+      {
+        "id": "t-101",
+        "title": "Router password reset",
+        "subtitle": "Opened 5 October",
+        "fields": [
+          {
+            "name": "ref",
+            "label": "Reference",
+            "value": "REF-55121"
+          }
+        ],
+        "actions": [
+          "close_ticket",
+          "reopen_ticket"
+        ],
+        "userIds": [
+          "M-001"
+        ]
+      },
+      {
+        "id": "t-200",
+        "title": "Billing question",
+        "subtitle": "Opened 7 October",
+        "status": "Waiting",
+        "fields": [],
+        "actions": [],
+        "userIds": [
+          "M-002"
+        ]
+      },
+      {
+        "id": "t-300",
+        "title": "Shared notice",
+        "subtitle": "For everyone",
+        "fields": [],
+        "actions": []
+      }
+    ]
+  },
+  "actions": [
+    {
+      "name": "open_screen",
+      "effect": "open_screen",
+      "label": "Open",
+      "description": "Open a screen.",
+      "args": [
+        {
+          "name": "screen",
+          "type": "string",
+          "required": true,
+          "description": "The screen.",
+          "enum": [
+            "home",
+            "chat",
+            "tickets",
+            "calls",
+            "memory",
+            "profile"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "open_item",
+      "effect": "open_item",
+      "label": "Details",
+      "description": "Open a ticket.",
+      "args": [
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The ticket."
+        }
+      ]
+    },
+    {
+      "name": "close_ticket",
+      "effect": "set_status",
+      "label": "Close ticket",
+      "status": "Closed",
+      "description": "Close a ticket.",
+      "args": [
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The ticket."
+        }
+      ]
+    },
+    {
+      "name": "reopen_ticket",
+      "effect": "set_status",
+      "label": "Reopen",
+      "status": "Open",
+      "description": "Reopen a ticket.",
+      "args": [
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The ticket."
+        }
+      ]
+    }
+  ],
+  "call": {
+    "callName": "Nova · Sample Service",
+    "title": "Callbacks",
+    "bookLabel": "Request a callback",
+    "reasons": [
+      "General question",
+      "Follow up on a ticket"
+    ],
+    "quickTimes": [
+      {
+        "label": "In 20 minutes",
+        "inMinutes": 20
+      },
+      {
+        "label": "Today 19:00",
+        "day": "today",
+        "time": "19:00"
+      },
+      {
+        "label": "Tomorrow 09:30",
+        "day": "tomorrow",
+        "time": "09:30"
+      },
+      {
+        "label": "Broken",
+        "day": "someday",
+        "time": "25:00"
+      }
+    ],
+    "placeReason": "member_question"
+  },
+  "memoryExamples": [
+    {
+      "tell": "I prefer calls after 6 pm.",
+      "ask": "When do I prefer calls?",
+      "expect": "After 6 pm."
+    }
+  ],
+  "starters": [
+    "Show my tickets",
+    "Book a callback"
+  ]
+}

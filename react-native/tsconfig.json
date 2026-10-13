@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "resolveJsonModule": true,
+    "noUnusedLocals": true,
+    "types": ["jest", "react-native"]
+  },
+  "include": ["App.tsx", "index.ts", "src/**/*.ts", "src/**/*.tsx", "app.config.ts", "../usecases/*.json"]
+}

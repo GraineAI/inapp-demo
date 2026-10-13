@@ -1,0 +1,125 @@
+[
+  {
+    "name": "Recommended for you",
+    "slug": "recommendations",
+    "toolName": "show_recommendations",
+    "kind": "product_list",
+    "data": {
+      "title": "Picked for you",
+      "prompt": "Tap one and I'll tell you more.",
+      "selectLabel": "Tell me more",
+      "items": [
+        {
+          "id": "trail-shoes",
+          "title": "Trail running shoes",
+          "subtitle": "Sizes 5 to 11",
+          "price": "₹5,499",
+          "facts": [
+            "Cushioned sole",
+            "Water resistant"
+          ]
+        },
+        {
+          "id": "bedsheet-king",
+          "title": "Cotton bedsheet set, king",
+          "subtitle": "300 thread count",
+          "price": "₹2,299",
+          "facts": [
+            "Two pillow covers"
+          ]
+        },
+        {
+          "id": "lunch-box",
+          "title": "Insulated lunch box",
+          "subtitle": "Keeps food warm for 6 hours",
+          "price": "₹899",
+          "facts": [
+            "Leak-proof"
+          ]
+        }
+      ]
+    },
+    "fallbackText": "I can suggest trail running shoes, a king-size cotton bedsheet set or an insulated lunch box. Which would you like to hear about?",
+    "style": {
+      "preset": "cards",
+      "density": "comfortable",
+      "button": "filled"
+    }
+  },
+  {
+    "name": "Return reason",
+    "slug": "return_reason",
+    "toolName": "show_return_reasons",
+    "kind": "quick_actions",
+    "data": {
+      "prompt": "Why are you returning it?",
+      "actions": [
+        {
+          "id": "wrong_size",
+          "label": "Wrong size"
+        },
+        {
+          "id": "damaged",
+          "label": "Damaged or faulty"
+        },
+        {
+          "id": "not_as_described",
+          "label": "Not as described"
+        },
+        {
+          "id": "changed_mind",
+          "label": "Changed my mind"
+        }
+      ]
+    },
+    "fallbackText": "Why are you returning it: wrong size, damaged or faulty, not as described, or you changed your mind?",
+    "style": {
+      "preset": "compact",
+      "button": "outline",
+      "surface": "card"
+    }
+  },
+  {
+    "name": "Delivery call times",
+    "slug": "delivery_call_times",
+    "toolName": "show_delivery_call_times",
+    "kind": "calendar_slots",
+    "data": {
+      "title": "When should Tara call you?",
+      "note": "Times are in your time zone.",
+      "days": [
+        {
+          "id": "today",
+          "label": "Today",
+          "slots": [
+            "6:00 PM",
+            "7:30 PM"
+          ]
+        },
+        {
+          "id": "tomorrow",
+          "label": "Tomorrow",
+          "slots": [
+            "9:00 AM",
+            "12:30 PM",
+            "6:00 PM",
+            "7:30 PM"
+          ]
+        },
+        {
+          "id": "day_after",
+          "label": "Day after tomorrow",
+          "slots": [
+            "9:00 AM",
+            "12:30 PM",
+            "6:00 PM"
+          ]
+        }
+      ]
+    },
+    "fallbackText": "When would you like me to call: today, tomorrow or the day after? Tell me a time.",
+    "style": {
+      "surface": "card"
+    }
+  }
+]
