@@ -35,29 +35,28 @@ All people, cards and orders are fictional.
 
 | Feature | React Native | Flutter | iOS | Android | Website | Kotlin Multiplatform |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|
-| Three use cases, chosen on the sign-in screen and remembered | ✓ | ✓ ¹ | ✓ | ✓ | ✓ | SDK ⁴ |
-| Sign in as a fictional person, identified by the pack's field, with a memory consent switch | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| Memory on / off chip on Home | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| "What the assistant remembers about you" — list, pull to refresh, consent switch, erase with confirmation | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| Chat with components (check-in card, lists, time slots) | ✓ ² | ✓ | ✓ | ✓ | ✓ | SDK |
-| Voice in the assistant bar | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| Screen context on every screen | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| App actions the assistant runs: open a screen, open an item, change an item's status | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| Call the assistant (a phone-style call) | ✓ | ✓ | ✓ | ✓ | — | SDK |
-| Book a call: reason, quick times, date and time pickers in 5-minute steps, the time zone shown | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| Scheduled calls with status chips (scheduled, ringing, answered, completed, declined, missed, expired, no device) and Cancel | ✓ | ✓ | ✓ | ✓ | ✓ | SDK |
-| Hosted ringing — Graine rings the booked call | ✓ ³ | ✓ ³ | ✓ ³ | ✓ ³ | rings the user's phone app | SDK |
-| Call outcomes logged in the app | ✓ | ✓ | ✓ | ✓ | — | SDK |
-| Two agents in one app: a Help screen on a second agent (chat, voice, calls, booking), one sign-in for both, both agents' calls listed by name | ✓ ⁵ | ✓ ⁵ | ✓ | ✓ | ✓ | SDK |
+| Three use cases, chosen on the sign-in screen and remembered | ✓ | ✓ ¹ | ✓ | ✓ | ✓ | ✓ ⁴ |
+| Sign in as a fictional person, identified by the pack's field, with a memory consent switch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Memory on / off chip on Home | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| "What the assistant remembers about you" — list, pull to refresh, consent switch, erase with confirmation | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Chat with components (check-in card, lists, time slots) | ✓ ² | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Voice in the assistant bar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Screen context on every screen | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| App actions the assistant runs: open a screen, open an item, change an item's status | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Call the assistant (a phone-style call) | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| Book a call: reason, quick times, date and time pickers in 5-minute steps, the time zone shown | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Scheduled calls with status chips (scheduled, ringing, answered, completed, declined, missed, expired, no device) and Cancel | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Hosted ringing — Graine rings the booked call | ✓ ³ | ✓ ³ | ✓ ³ | ✓ ³ | rings the user's phone app | ✓ ³ |
+| Call outcomes logged in the app | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| Two agents in one app: a Help screen on a second agent (chat, voice, calls, booking), one sign-in for both, both agents' calls listed by name | ✓ ⁵ | ✓ ⁵ | ✓ | ✓ | ✓ | ✓ |
 
 1. Flutter starts the chosen use case's two agents at launch: choosing a use case whose agents have other
    publishable keys takes effect the next time the app is opened (the app says so).
 2. React Native draws the chat from the SDK's conversation state and components; it switches to the SDK's
    own full-screen chat window as soon as the installed SDK provides one.
 3. Real devices only (see [Testing hosted ringing](#testing-hosted-ringing)).
-4. Kotlin Multiplatform: the SDK's shared API (identity, memory, booked calls, screen context, actions) over
-   the Android and iOS engines. There is no separate demo app; the Android and iOS demos are the reference
-   for its screens.
+4. Kotlin Multiplatform: one Compose Multiplatform app in [`kmp/`](kmp/README.md) — Android 8.0+ and iOS 16+,
+   every screen and SDK call in shared code, the SDK's own chat, call screen and voice bar as composables.
 5. The help agent's key is optional: without it the Help screen says how to add one. A call placed from the
    Help screen goes to the help agent with SDK releases that route calls by agent.
 
