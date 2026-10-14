@@ -23,15 +23,21 @@ The project is generated from `project.yml` with [XcodeGen](https://github.com/y
 (`brew install xcodegen`, then `xcodegen generate`); the generated project is committed, so XcodeGen is
 needed only to change it.
 
-**Before the SDK version is published**, build against SDK sources on your machine:
+**The SDK comes from Swift Package Manager, which is live**: `GraineDemo.xcodeproj` takes `GraineInApp`
+from `https://github.com/GraineAI/inapp-ios`, from 0.7.0 (a public repository, tagged), so the project builds
+as it is — Xcode fetches the package on first open. (The SDK's CocoaPods pod is not on trunk yet; this demo
+does not use it.)
+
+To build against SDK sources on your machine instead — a version that is not tagged yet — use the
+local-SDK switch:
 
 ```sh
-./use-local-sdk.sh                                  # sources at ../../sdk-ios/sdk/ios
+./use-local-sdk.sh                                  # sources at ../../inapp-ios: a checkout beside this repository
 GRAINE_IOS_SDK_PATH=/path/to/inapp-ios ./use-local-sdk.sh
 ```
 
 and open the generated `GraineDemoLocal.xcodeproj` (git-ignored). `GraineDemo.xcodeproj` keeps the
-published package (`https://github.com/GraineAI/inapp-ios`, from 0.7.0).
+published package.
 
 ## What is where
 
@@ -88,6 +94,7 @@ calls cannot ring or connect there, and a ring shows as missed. The pictures in
 
 ## Memory, in two minutes
 
-Sign in with memory on, tell the assistant one of the pack's `memoryExamples` (`tell`) in the chat, start a
-new chat and ask the `ask` question: it answers from memory, and the **Memory** tab lists it. Sign in as
-another user: nothing is shared. Switch back: it is there. **Erase everything** removes it.
+Sign in with memory on, tell the assistant one of the pack's `memoryExamples` (`tell`) in the chat and close
+the app. Open it again: the chat continues where it was. Tap **New conversation** in the chat's header and ask
+the `ask` question: it answers from memory, and the **Memory** tab lists it. Sign in as another user: nothing
+is shared. Switch back: it is there. **Erase everything** removes it.

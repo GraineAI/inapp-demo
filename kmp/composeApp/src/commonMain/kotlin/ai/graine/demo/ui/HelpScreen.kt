@@ -86,7 +86,7 @@ fun HelpScreen(model: AppModel) {
         } else {
             DemoCard(name) {
                 Text(
-                    if (model.config.hasHelpKey) "The help agent's key is set, but the SDK on this phone runs one agent at a time, so this screen is off. Everything else works."
+                    if (model.config.hasHelpKey) "The help agent's key is set, but the help agent could not be started on this phone (the app's log says why). Everything else works."
                     else "This screen talks to a second agent, with its own publishable key, in the same app. To try it, add the help agent's key (graine.helpPublishableKey in local.properties on Android, GRAINE_HELP_PUBLISHABLE_KEY in Config.xcconfig on iOS) and build again.",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.testTag("help_not_configured"),

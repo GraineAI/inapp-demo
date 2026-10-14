@@ -12,8 +12,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@graineai/inapp-react-native": "0.41.0",
-    "@graineai/inapp-react-native-calls": "0.2.0",
+    "@graineai/inapp-react-native": "^0.41.0",
+    "@graineai/inapp-react-native-calls": "^0.2.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.4.0",

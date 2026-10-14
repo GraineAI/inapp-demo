@@ -1,15 +1,25 @@
 /**
- * Chat: the SDK's chat, full screen, with the components the agent shows. Opening it moves the agent
- * to its chat (one conversation at a time, so a voice call ends); the chat stays open while the
- * person moves between screens, so the agent keeps seeing where they are and can act there.
+ * Chat: the conversation with the agent, full screen, with the components the agent shows. Opening it
+ * moves the agent to its chat (one conversation at a time, so a voice call ends); the chat stays open
+ * while the person moves between screens, so the agent keeps seeing where they are and can act there.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useDemo } from "../state/DemoState";
 import { useVoice } from "../state/voice";
-import { GraineWidget, SdkChatWindow, useAgentConversation, useAgentSurface, useScreenContext } from "../graine";
-import { Chip, Notice, styles, useColors } from "../ui/components";
+import {
+  chatClock,
+  chatPieces,
+  chatTurnRows,
+  describeError,
+  GraineWidget,
+  useAgentConversation,
+  useAgentDesign,
+  useAgentSurface,
+  useScreenContext,
+} from "../graine";
+import { Chip, ErrorText, Notice, styles, useColors } from "../ui/components";
 
 export function ChatScreen() {
   const { pack } = useDemo();
@@ -24,18 +34,24 @@ export function ChatScreen() {
     }, [voice.close, setSurface]),
   );
 
-  if (SdkChatWindow) return <SdkChatWindow />;
   return <ChatWindow agentName={pack.agents.main.name} starters={pack.agents.main.starters} notice={pack.notice} />;
 }
 
 /**
- * The chat drawn from the SDK's own conversation state, until the SDK ships its window (see graine.ts).
- * It talks to whichever agent's <GraineProvider> is above it: the main agent here, the help agent on Help.
+ * The chat drawn from the SDK's own conversation state (see graine.ts → Chat), laid out by the SDK's own
+ * rules, so a conversation that continues looks as it does in the SDK's chat windows: the earlier messages
+ * under a day line where the day changes, an earlier call as one "Voice call" row, no starters, and
+ * "New conversation" in the header. It talks to whichever agent's <GraineProvider> is above it: the main
+ * agent here, the help agent on Help.
  */
 export function ChatWindow({ agentName, starters, notice }: { agentName: string; starters: string[]; notice?: string }) {
   const c = useColors();
-  const { messages, send, connected, connecting, typing, reconnecting, error } = useAgentConversation();
+  const { messages, send, connected, connecting, typing, reconnecting, error, newConversation } = useAgentConversation();
+  // What the brand chose in the dashboard (Chat window: Earlier messages, New conversation), as the SDK reads it.
+  const pieces = chatPieces(messages, useAgentDesign().chat);
   const [text, setText] = useState("");
+  const [startingOver, setStartingOver] = useState(false);
+  const [startOverError, setStartOverError] = useState<string | null>(null);
   const scroll = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -50,28 +66,66 @@ export function ChatWindow({ agentName, starters, notice }: { agentName: string;
     setText("");
   };
 
+  // Graine lets go of the conversation it kept for this person and agent; the chat clears and opens fresh,
+  // with the welcome and the starters. What the agent remembers about them is untouched.
+  const startOver = async () => {
+    setStartOverError(null);
+    setStartingOver(true);
+    try {
+      await newConversation();
+    } catch (err) {
+      setStartOverError(describeError(err, { agentName }));
+    } finally {
+      setStartingOver(false);
+    }
+  };
+
   const status = error ? error : connected ? "Online" : reconnecting ? "Reconnecting…" : connecting ? "Connecting…" : "Offline";
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
       <View style={{ paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.surface }}>
-        <Text accessibilityLiveRegion="polite" style={{ color: c.textMuted, fontSize: 13 }}>{status}</Text>
+        <View style={styles.row}>
+          <Text accessibilityLiveRegion="polite" style={{ color: c.textMuted, fontSize: 13, flex: 1 }}>{status}</Text>
+          {/* Offered while an earlier conversation is on screen, and where the brand keeps it. */}
+          {pieces.newConversation ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="New conversation"
+              accessibilityState={{ busy: startingOver }}
+              disabled={startingOver}
+              hitSlop={10}
+              onPress={() => void startOver()}
+            >
+              <Text style={{ color: c.accent, fontSize: 13, fontWeight: "600", opacity: startingOver ? 0.5 : 1 }}>New conversation</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {startOverError ? <ErrorText>{startOverError}</ErrorText> : null}
       </View>
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 8 }}>
         {notice ? <Notice>{notice}</Notice> : null}
-        {messages.length === 0 ? (
-          <View style={{ gap: 8 }}>
-            <Text style={{ color: c.textMuted, fontSize: 15 }}>{`Ask ${agentName} anything, or start with one of these:`}</Text>
-            <View style={styles.wrap}>
-              {starters.map((s) => <Chip key={s} label={s} onPress={() => submit(s)} />)}
-            </View>
-          </View>
-        ) : null}
-        {messages.map((m, i) => {
+        {chatTurnRows(pieces.turns).map((row) => {
+          if (row.kind === "day") {
+            return (
+              <Text key={row.key} accessibilityRole="header" style={{ alignSelf: "center", color: c.textMuted, fontSize: 12, fontWeight: "600", marginVertical: 4 }}>
+                {row.label}
+              </Text>
+            );
+          }
+          if (row.kind === "voice") {
+            // An earlier call: that it happened, never its transcript.
+            return (
+              <Text key={row.key} accessibilityLabel={`Voice call at ${chatClock(row.at)}`} style={{ alignSelf: "center", color: c.textMuted, fontSize: 12 }}>
+                {`☏ ${row.label}`}
+              </Text>
+            );
+          }
+          const m = row.item;
           const mine = m.role === "customer";
           return (
             <View
-              key={m.id ?? `${i}`}
+              key={row.key}
               accessible
               accessibilityLabel={`${mine ? "You" : agentName}: ${m.text}`}
               style={{
@@ -91,6 +145,15 @@ export function ChatWindow({ agentName, starters, notice }: { agentName: string;
             </View>
           );
         })}
+        {/* The starters belong to a new chat: not once the person has said something, not on a conversation that continues. */}
+        {pieces.starters ? (
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: c.textMuted, fontSize: 15 }}>{`Ask ${agentName} anything, or start with one of these:`}</Text>
+            <View style={styles.wrap}>
+              {starters.map((s) => <Chip key={s} label={s} onPress={() => submit(s)} />)}
+            </View>
+          </View>
+        ) : null}
         {typing ? <Text style={{ color: c.textMuted, fontSize: 13 }}>{`${agentName} is typing…`}</Text> : null}
         {/* The agent's components: check-in cards, lists, time slots — drawn by the SDK. */}
         <GraineWidget />

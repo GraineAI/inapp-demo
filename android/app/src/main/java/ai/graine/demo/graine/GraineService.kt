@@ -119,14 +119,22 @@ class GraineService private constructor(private val main: GraineInApp, private v
 
     private val callListener = object : GraineCallListener {
         override fun onIncomingCall(call: GraineCall) {
-            onCallEvent?.invoke(CallEvent(call.callId, "incoming", if (call.hosted) "scheduled" else null))
+            onCallEvent?.invoke(CallEvent(call.callId, "incoming", if (call.hosted) "scheduled" else null, agentOf(call.callId)))
         }
 
         override fun onCallOutcome(callId: String, outcome: GraineCallOutcome) {
             val detail = outcome.endReason?.wire ?: outcome.error
-            onCallEvent?.invoke(CallEvent(callId, outcome.wire, detail))
+            onCallEvent?.invoke(CallEvent(callId, outcome.wire, detail, agentOf(callId)))
         }
     }
+
+    /**
+     * The agent a call is with, as the SDK says: `calls.callAgent`, the agent it routed a ring to (by the
+     * push's agent) or placed the call with. Read for the call in progress only — an outcome reaches the app
+     * before the call is let go of; a ring refused while another call is live is not that call.
+     */
+    private fun agentOf(callId: String): DemoAgent? =
+        main.calls.callAgent?.takeIf { main.calls.call?.callId == callId }?.let { DemoAgent.ofSdkName(it.name) }
 
     init {
         main.addListener(sessionListener)

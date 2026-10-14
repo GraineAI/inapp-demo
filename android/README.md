@@ -23,14 +23,22 @@ screen). All people and records are fictional.
 
 The packs are bundled from `../usecases/*.json` at build time (task `bundleUseCases`); edit them there.
 
-**Before the SDK version is published**, build against SDK sources on your machine — in `local.properties`:
+**Maven Central does not have `ai.graine:inapp-android:0.7.0` yet**, so until it does, build against the
+SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.7.0`. Beside this
+repository:
 
-```properties
-graine.sdkDir=../../sdk-android/sdk/android
+```sh
+git clone --branch 0.7.0 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
 ```
 
-(or `-Pgraine.sdkDir=…`). Gradle then builds the SDK from that checkout in place of the published
-`ai.graine:inapp-android:0.7.0`. Remove the line to go back.
+and in `local.properties`:
+
+```properties
+graine.sdkDir=../../inapp-android
+```
+
+(or `-Pgraine.sdkDir=…`, or `GRAINE_ANDROID_SDK_DIR`). Gradle then builds the SDK from that checkout in place
+of the published artifact. Remove the line once Maven Central has 0.7.0.
 
 ## What is where
 
@@ -67,6 +75,7 @@ sheet asks which agent should call. `GraineService.kt` initialises the help desk
 
 ## Memory, in two minutes
 
-Sign in with memory on, tell the assistant one of the pack's `memoryExamples` (`tell`) in the chat, start a
-new chat and ask the `ask` question: it answers from memory, and the **Memory** tab lists it. Sign in as
-another user: nothing is shared. Switch back: it is there. **Erase everything** removes it.
+Sign in with memory on, tell the assistant one of the pack's `memoryExamples` (`tell`) in the chat and close
+the app. Open it again: the chat continues where it was. Tap **New conversation** in the chat's header and ask
+the `ask` question: it answers from memory, and the **Memory** tab lists it. Sign in as another user: nothing
+is shared. Switch back: it is there. **Erase everything** removes it.

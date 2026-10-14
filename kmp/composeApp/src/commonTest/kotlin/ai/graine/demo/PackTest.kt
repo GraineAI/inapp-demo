@@ -78,6 +78,14 @@ class PackTest {
     }
 
     @Test
+    fun theSdksAgentNamesAreTheAppsAgents() {
+        assertEquals(DemoAgent.MAIN, DemoAgent.ofSdkName("default"))
+        assertEquals(DemoAgent.HELP, DemoAgent.ofSdkName("help"))
+        assertNull(DemoAgent.ofSdkName(null))
+        assertNull(DemoAgent.ofSdkName("sales"))
+    }
+
+    @Test
     fun timesStatusesAndLogLinesReadPlainly() {
         val now = TestClock.at(12)
         assertEquals("Today, 6:00 pm", DemoFormat.time(TestClock.instant(18), now, TestClock.zone))

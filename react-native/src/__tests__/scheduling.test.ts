@@ -3,7 +3,7 @@
  * quick times as moments, the range the pickers offer inside the SDK's bounds on a 5-minute grid, and
  * the time zone line. The booking rules are the SDK's.
  */
-import { inRange, mergeAgentCalls, pickerRange, quickTimeAt, roundUpToStep, snapToRange, sourceLabel, statusChip, zoneLabel } from "../logic/scheduling";
+import { callEventLine, inRange, mergeAgentCalls, pickerRange, quickTimeAt, roundUpToStep, snapToRange, sourceLabel, statusChip, zoneLabel } from "../logic/scheduling";
 import { formatDay, formatTime, formatWhen } from "../logic/time";
 import { PACKS } from "../usecases";
 
@@ -105,5 +105,17 @@ describe("both agents' calls in one list", () => {
     ];
     expect(mergeAgentCalls(main, help).map((x) => `${x.agent}:${x.call.id}`)).toEqual(["help:h1", "main:m1", "help:h2", "main:m2"]);
     expect(mergeAgentCalls(main, [])).toHaveLength(2);
+  });
+});
+
+describe("call activity on this phone", () => {
+  it("names the agent each call was with, when the call engine says", () => {
+    const names = { main: "Asha", help: "Billing & appointments help" };
+    const at = new Date(2026, 9, 14, 18, 5);
+    expect(callEventLine({ callId: "call_1f2e3d4c-aaaa", kind: "ended", detail: "remote", agent: "help", at }, names))
+      .toBe("6:05 pm · Billing & appointments help · ended (remote) · call_1f2e3d4");
+    expect(callEventLine({ callId: "c2", kind: "incoming", detail: "Asha · Graine Care", agent: "main", at }, names))
+      .toBe("6:05 pm · Asha · incoming (Asha · Graine Care) · c2");
+    expect(callEventLine({ callId: "c3", kind: "missed", detail: null, agent: null, at }, names)).toBe("6:05 pm · missed · c3");
   });
 });

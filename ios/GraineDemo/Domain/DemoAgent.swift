@@ -15,6 +15,12 @@ enum DemoAgent: String, CaseIterable, Hashable, Identifiable {
 
     /// The name the SDK knows it by (`GraineInApp.configure(_:name:)`).
     var sdkName: String { self == .main ? "default" : "help" }
+
+    /// The app's agent for the SDK's name of one (`GraineCalls.agent`); nil for none, or one the app does not have.
+    init?(sdkName: String?) {
+        guard let agent = DemoAgent.allCases.first(where: { $0.sdkName == sdkName }) else { return nil }
+        self = agent
+    }
 }
 
 /// What the app shows of an agent: its name, its role line and its chat starters (the pack's `agents`).

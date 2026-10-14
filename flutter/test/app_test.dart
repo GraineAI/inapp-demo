@@ -194,5 +194,13 @@ void main() {
     await tester.tap(find.byKey(const Key('cancel-h1')));
     await tester.pumpAndSettle();
     expect(service.calls[DemoAgent.help]!.single.status, GraineCallStatus.cancelled);
+
+    // Call activity: each ring and outcome with the agent the call engine says the call was with.
+    service.callEventsIn
+      ..add(CallEvent('call_h1', 'incoming', 'Graine Care billing', DateTime(2026, 10, 14, 18, 5), agent: DemoAgent.help))
+      ..add(CallEvent('call_m1', 'ended', 'remote', DateTime(2026, 10, 14, 18, 9), agent: DemoAgent.main));
+    await tester.pumpAndSettle();
+    expect(find.text('6:05 pm · Billing & appointments help · incoming (Graine Care billing) · call_h1'), findsOneWidget);
+    expect(find.text('6:09 pm · Asha · ended (remote) · call_m1'), findsOneWidget);
   });
 }

@@ -118,8 +118,11 @@ class FakeGraineService implements GraineService {
     return null;
   }
 
+  /// What the call engine reports, as a test hands it in.
+  final StreamController<CallEvent> callEventsIn = StreamController<CallEvent>.broadcast();
+
   @override
-  Stream<CallEvent> get callEvents => const Stream<CallEvent>.empty();
+  Stream<CallEvent> get callEvents => callEventsIn.stream;
 
   final List<DemoAgent> voiceStarts = <DemoAgent>[];
 

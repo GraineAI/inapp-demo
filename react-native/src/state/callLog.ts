@@ -10,7 +10,7 @@ const watchers = new Set<() => void>();
 
 export function logCallEvent(e: CallEvent): void {
   events = [e, ...events].slice(0, 20);
-  console.log(`[Graine Demo] call ${e.callId}: ${e.kind}${e.detail ? ` (${e.detail})` : ""}`);
+  console.log(`[Graine Demo] call ${e.callId}${e.agent ? ` (${e.agent} agent)` : ""}: ${e.kind}${e.detail ? ` (${e.detail})` : ""}`);
   for (const w of [...watchers]) w();
 }
 

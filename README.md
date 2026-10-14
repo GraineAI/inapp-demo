@@ -1,5 +1,8 @@
 # Graine Demo
 
+**Running it end to end — the dashboard, ringing, every platform, and a 10-minute demo script:
+[RUN-THE-DEMO.md](RUN-THE-DEMO.md).**
+
 One generic app, built for every platform the Graine in-app SDKs support, that shows everything they do:
 an assistant that knows who the user is and remembers them (only with their consent), sees the screen
 they are on and acts on it, chats with cards and lists, talks in a voice bar, takes a phone-style call,
@@ -40,6 +43,7 @@ All people, cards and orders are fictional.
 | Memory on / off chip on Home | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | "What the assistant remembers about you" — list, pull to refresh, consent switch, erase with confirmation | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Chat with components (check-in card, lists, time slots) | ✓ ² | ✓ | ✓ | ✓ | ✓ | ✓ |
+| A conversation that continues: the chat reopens where the person left it (earlier messages under day lines, an earlier call as one row), with **New conversation** | ✓ ² | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Voice in the assistant bar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Screen context on every screen | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | App actions the assistant runs: open a screen, open an item, change an item's status | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -47,18 +51,20 @@ All people, cards and orders are fictional.
 | Book a call: reason, quick times, date and time pickers in 5-minute steps, the time zone shown | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Scheduled calls with status chips (scheduled, ringing, answered, completed, declined, missed, expired, no device) and Cancel | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Hosted ringing — Graine rings the booked call | ✓ ³ | ✓ ³ | ✓ ³ | ✓ ³ | rings the user's phone app | ✓ ³ |
-| Call outcomes logged in the app | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| Call outcomes logged in the app, with the agent each call was with | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | Two agents in one app: a Help screen on a second agent (chat, voice, calls, booking), one sign-in for both, both agents' calls listed by name | ✓ ⁵ | ✓ ⁵ | ✓ | ✓ | ✓ | ✓ |
 
 1. Flutter starts the chosen use case's two agents at launch: choosing a use case whose agents have other
    publishable keys takes effect the next time the app is opened (the app says so).
-2. React Native draws the chat from the SDK's conversation state and components; it switches to the SDK's
-   own full-screen chat window as soon as the installed SDK provides one.
+2. React Native draws the chat itself — in the Chat tab and under the Help screen's buttons — from the SDK's
+   conversation state and components, laid out by the SDK's own rules: a conversation that continues shows its
+   earlier messages under day lines and an earlier call as one "Voice call" row, and offers **New
+   conversation**, as the SDK's chat windows do. An app that gives the chat a screen of its own can use the
+   SDK's `GraineChatScreen`.
 3. Real devices only (see [Testing hosted ringing](#testing-hosted-ringing)).
 4. Kotlin Multiplatform: one Compose Multiplatform app in [`kmp/`](kmp/README.md) — Android 8.0+ and iOS 16+,
    every screen and SDK call in shared code, the SDK's own chat, call screen and voice bar as composables.
-5. The help agent's key is optional: without it the Help screen says how to add one. A call placed from the
-   Help screen goes to the help agent with SDK releases that route calls by agent.
+5. The help agent's key is optional: without it the Help screen says how to add one.
 
 ## What you need
 
@@ -120,21 +126,39 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 **Website** — from `demo/`: `npx serve .`, then open `http://localhost:3000/web/` ([`web/README.md`](web/README.md)).
 
-### Before the SDK versions are published
+### Where the SDKs come from
 
-The committed manifests name the SDK releases this demo is written for (React Native
-`@graineai/inapp-react-native` 0.41.0 and `@graineai/inapp-react-native-calls` 0.2.0; Flutter
-`graine_inapp` ^0.7.0; iOS and Android 0.7.0). To build against SDK sources on your machine first:
+The committed manifests name the published releases (0.7.0; React Native 0.41.0 and calls 0.2.0). Swift
+Package Manager and npm have them today; Maven Central, pub.dev and CocoaPods come next. Until a registry has
+its version, build that app against the SDK's sources with its local-SDK switch — the sources of iOS, Android,
+Flutter and Kotlin Multiplatform are public repositories tagged `0.7.0`:
+
+| App | Committed dependency | Registry | Live today | Until it is |
+|---|---|---|:-:|---|
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.7.0 | Swift Package Manager | **yes** | — |
+| Android | `ai.graine:inapp-android:0.7.0` | Maven Central | not yet | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `inapp-kmp-compose` 0.7.0; iOS: `GraineInApp` (Swift Package Manager) | Maven Central | not yet (iOS SDK: yes) | `graine.kmpSdkDir` → a checkout of `https://github.com/GraineAI/inapp-kmp`, with `inapp-android` beside it ([`kmp/README.md`](kmp/README.md)) |
+| Flutter | `graine_inapp: ^0.7.0` | pub.dev | not yet | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
+| React Native | `@graineai/inapp-react-native` ^0.41.0, `@graineai/inapp-react-native-calls` ^0.2.0 | npm | **yes** | — |
+| Website | the loader, `https://www.graine.ai/embed/v1.js` | — | **yes** | — |
+
+The SDK's CocoaPods pod (`GraineInApp`) is not on trunk yet either; these demos do not use it.
+
+Flutter switches with one script, from the repository root (React Native has the same switch, for an SDK
+version that is not on npm yet):
 
 ```bash
-scripts/use-local-sdks.sh local         # React Native: SDK tarballs built from the sources; Flutter: a path override
-scripts/use-local-sdks.sh published     # back to the published versions
-node scripts/check-manifests.mjs        # fails while a manifest still points at local sources
+git clone --branch 0.7.0 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
+scripts/use-local-sdks.sh local flutter    # flutter/pubspec_overrides.yaml → ../inapp-flutter
+GRAINE_SDK_RN_DIR=/path/to/sdk scripts/use-local-sdks.sh local rn
+                                          # the folder holding the React Native SDK's inapp/ and inapp-calls/
+scripts/use-local-sdks.sh published       # back to the published versions, before you commit
+node scripts/check-manifests.mjs          # fails while a manifest still points at local sources
 ```
 
-iOS and Android have their own switch (`ios/use-local-sdk.sh`, `graine.sdkDir` in `android/local.properties`).
-The SDK sources are looked for beside this repository; set `GRAINE_SDK_RN_DIR` / `GRAINE_SDK_FLUTTER_DIR`
-to point elsewhere.
+Then `flutter pub get` in `flutter/` and `npm install` in `react-native/`. `GRAINE_SDK_FLUTTER_DIR` points the
+Flutter switch at another checkout. iOS has its own switch for an SDK that is not tagged yet
+(`ios/use-local-sdk.sh`); Android and Kotlin Multiplatform switch in their `local.properties`.
 
 ## Testing hosted ringing
 
@@ -166,6 +190,9 @@ works on **real devices**, with the app installed from your own build:
 - [ ] Sign in with memory on → Home shows **Memory on**. Turn the switch off on the Memory screen → **Memory off**.
 - [ ] **Talk to Asha** opens the voice bar and the assistant greets the user by name; ending closes it.
 - [ ] **Chat**: the assistant shows a component (for example the daily check-in); a tap answers it.
+- [ ] A conversation continues: close the app in the middle of a chat and open it again — the chat shows the
+      earlier messages under a day line (an earlier call as one "Voice call" row) and no starters; **New
+      conversation** in the chat's header starts a fresh one, and what the assistant remembers stays.
 - [ ] Screen context: on the list screen, ask "what is due today?" — the assistant answers from the screen.
 - [ ] Actions: "open my medicines" navigates; "I have taken my metformin" marks it **Taken today**; asking
       again says it is already done; another person's item is refused.
@@ -178,13 +205,16 @@ works on **real devices**, with the app installed from your own build:
 - [ ] Two agents: **Help** opens the help agent (for example *Billing & appointments help*) — it already
       knows who the user is (no second sign-in); its chat and voice are its own; opening Help ends the main
       agent's voice and chat. Book a call from Help with one of its reasons → it appears under Scheduled
-      calls named after the help agent, next to the main agent's calls; Cancel works on either.
+      calls named after the help agent, next to the main agent's calls; Cancel works on either. *Call activity*
+      names the agent of every ring and outcome.
 - [ ] Memory never crosses people — the script below.
 
 ### Memory QA script
 
 What is said is remembered when a conversation ends, so end each conversation before the next step: close the
-app completely, or sign out and back in. Each pack has its own sentences (`memoryExamples` in its file):
+app completely, or sign out and back in. A person who comes back finds their conversation where they left it,
+so to show what **memory** knows — not the conversation — tap **New conversation** in the chat's header before
+asking: the chat starts fresh, and memory stays. Each pack has its own sentences (`memoryExamples` in its file):
 
 | Pack | Tell | Then ask | Expect |
 |---|---|---|---|
@@ -193,13 +223,14 @@ app completely, or sign out and back in. Each pack has its own sentences (`memor
 | Shopping | "I wear size 7 in running shoes." | "What size do I wear in running shoes?" | Size 7 |
 
 1. Sign in as the first person (memory on). In **Chat**, tell the assistant the sentence. End the conversation.
-2. Start a new conversation and ask the question — the assistant knows.
+2. Open the app again: the chat continues where it was. Tap **New conversation**, then ask the question — the
+   assistant knows.
 3. Open **Memory**: the list shows it (pull to refresh). The dashboard shows it too: Agent → Memory → People.
 4. Sign out, sign in as the second person, ask the same question — the assistant does not know, and their
    Memory list does not show it.
-5. Sign out, sign in as the first person again — the assistant knows again.
+5. Sign out, sign in as the first person again, tap **New conversation** and ask — the assistant knows again.
 6. **Erase everything** → confirm → the list is empty; in a new conversation the assistant no longer knows.
-7. Turn memory off, tell it something new, end the conversation — it is not remembered.
+7. Turn memory off, tell it something new, end the conversation — in a new conversation it does not know it.
 
 ## Troubleshooting
 

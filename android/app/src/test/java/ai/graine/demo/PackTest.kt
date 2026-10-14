@@ -109,6 +109,13 @@ class PackModelTest {
         assertEquals("Schedule a consultation call", pack.bookLabel(DemoAgent.HELP))
     }
 
+    @Test fun theSdksAgentNamesAreTheAppsAgents() {
+        assertEquals(DemoAgent.MAIN, DemoAgent.ofSdkName("default"))
+        assertEquals(DemoAgent.HELP, DemoAgent.ofSdkName("help"))
+        assertNull(DemoAgent.ofSdkName(null))
+        assertNull(DemoAgent.ofSdkName("sales"))
+    }
+
     @Test(expected = UseCasePack.PackException::class)
     fun aFileThatIsNotAPackIsRefused() {
         UseCasePack.parse("{\"id\": \"x\"}")

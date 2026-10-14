@@ -110,7 +110,13 @@ class _CallsScreenState extends State<CallsScreen> {
             const SectionLabel('Call activity on this phone'),
             if (state.callLog.isEmpty) Text('Rings and their outcomes appear here.', style: theme.textTheme.bodySmall),
             for (final e in state.callLog)
-              Text('${formatTime(e.at)} · ${e.kind}${e.detail != null ? ' (${e.detail})' : ''} · ${e.callId.length > 12 ? e.callId.substring(0, 12) : e.callId}',
+              Text(
+                  callEventLine(
+                      at: e.at,
+                      agentName: switch (e.agent) { DemoAgent.help => pack.helpAgent.name, DemoAgent.main => pack.agentName, null => null },
+                      kind: e.kind,
+                      detail: e.detail,
+                      callId: e.callId),
                   style: theme.textTheme.bodySmall),
           ],
         ),

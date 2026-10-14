@@ -95,6 +95,13 @@ final class PackModelTests: XCTestCase {
         XCTAssertEqual(pack.bookLabel(.help), "Schedule a consultation call")
     }
 
+    func testTheSDKsAgentNamesAreTheAppsAgents() {
+        XCTAssertEqual(DemoAgent(sdkName: "default"), .main)
+        XCTAssertEqual(DemoAgent(sdkName: "help"), .help)
+        XCTAssertNil(DemoAgent(sdkName: nil))
+        XCTAssertNil(DemoAgent(sdkName: "sales"))
+    }
+
     func testAccentColour() {
         XCTAssertNotNil(Color(hex: "#0F766E"))
         XCTAssertNil(Color(hex: "0F766E"))

@@ -1,17 +1,14 @@
 /**
  * THE ONE FILE THAT TALKS TO THE GRAINE SDKs.
  *
- * Every screen goes through here, so an SDK change is one file to read, and the parts of the
- * contract an SDK release has not shipped yet are isolated where they can be seen (search for
- * "PENDING SDK"). Two packages:
+ * Every screen goes through here, so an SDK change is one file to read. Two packages:
  *   @graineai/inapp-react-native        the agent: identity, memory, screen context, actions, chat, voice
  *   @graineai/inapp-react-native-calls  calls like a phone call: CallKit / VoIP on iOS, a ringing call screen on Android
  */
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import * as GraineSdk from "@graineai/inapp-react-native";
 import {
   GraineInAppClient,
   requestMicrophonePermission,
@@ -38,6 +35,7 @@ export {
   useGraineAgent as useAgentConversation,
   useGraineSurface as useAgentSurface,
   useGraineMemories as useMemories,
+  useGraineTheme as useAgentDesign,
 } from "@graineai/inapp-react-native";
 export { useGraineCall as useNativeCall } from "@graineai/inapp-react-native-calls";
 export type { GraineMemory as Memory } from "@graineai/inapp-react-native";
@@ -230,14 +228,17 @@ export function registerPackActions(pack: UseCasePack, run: ActionRunner): () =>
 }
 
 // ── Chat ───────────────────────────────────────────────────────────────────
-
-/**
- * PENDING SDK: a full-screen chat window component for React Native (Flutter has `GraineChat`, the
- * native SDKs `GraineChatView`). Used as soon as the installed SDK exports `GraineChat`; until then
- * the Chat screen draws the SDK's own conversation state (useAgentConversation + GraineWidget).
- */
-export const SdkChatWindow: ComponentType<{ onClose?: () => void }> | null =
-  ((GraineSdk as Record<string, unknown>).GraineChat as ComponentType<{ onClose?: () => void }> | undefined) ?? null;
+//
+// The app draws its chat — in the Chat tab, and under the Help screen's own buttons — from the SDK's
+// conversation state (useAgentConversation: the turns, typing, newConversation) and the SDK's own
+// layout rules, so it shows a conversation that continues exactly as the SDK's chat windows do:
+//   chatPieces(turns, design.chat)  what to draw — earlier messages (unless the brand hides them in the
+//                                   dashboard), the starters only on a new chat, New conversation only
+//                                   while earlier messages are on screen and the brand keeps it
+//   chatTurnRows(turns)             a day line where the day changes, an earlier call as ONE
+//                                   "Voice call · 6:05 PM" row (never its transcript), then the bubbles
+// An app that gives the chat a screen of its own can use the SDK's `GraineChatScreen` instead.
+export { chatClock, chatPieces, chatTurnRows } from "@graineai/inapp-react-native";
 
 // ── Calls like a phone call ────────────────────────────────────────────────
 
@@ -249,17 +250,24 @@ export function callsAvailable(): boolean {
 let configured = "";
 let voipOn = false;
 
+/** The name the call engine knows the help agent by. The main agent is the engine's default agent. */
+const HELP_AGENT = "help";
+
 /**
- * Configure the call engine for `pack`'s agent (kept natively, so a ring that wakes a closed app
- * works before any JavaScript runs) and, on iOS, register for VoIP pushes. With the workspace's push
+ * Configure the call engine for `pack`'s agents (kept natively, so a ring that wakes a closed app
+ * works before any JavaScript runs) and, on iOS, register for VoIP pushes. One engine for the app:
+ * the main agent is its default agent, the help agent is named "help" — so a call can be placed with
+ * either, and a ring Graine sends comes in as the agent that booked it. With the workspace's push
  * credentials uploaded (Workspace settings → In-app calling), the SDK registers this device with
- * Graine itself and reports what became of every ring: no server of ours is involved. Android hands
- * its FCM token and pushes over natively — see plugins/with-graine-fcm.js.
+ * Graine for every agent itself and reports what became of every ring: no server of ours is
+ * involved. Android hands its FCM token and pushes over natively — see plugins/with-graine-fcm.js.
  */
 export async function setUpCalls(pack: UseCasePack, callName: string): Promise<boolean> {
   if (!GraineCalls.isAvailable || !isConfigured(pack.id)) return false;
   const publishableKey = publishableKeyFor(pack.id);
-  const fingerprint = `${publishableKey}\n${callName}`;
+  // The same rule as selectPack: the main agent's own key is no help agent.
+  const helpKey = helpKeyFor(pack.id) !== publishableKey ? helpKeyFor(pack.id) : "";
+  const fingerprint = `${publishableKey}\n${helpKey}\n${callName}`;
   if (configured !== fingerprint) {
     await GraineCalls.configure({
       publishableKey,
@@ -268,6 +276,7 @@ export async function setUpCalls(pack: UseCasePack, callName: string): Promise<b
       appVersion: demoConfig.appVersion,
       callScreen: "sdk",
       debug: typeof __DEV__ !== "undefined" && __DEV__,
+      ...(helpKey ? { agents: { [HELP_AGENT]: { publishableKey: helpKey } } } : {}),
     });
     configured = fingerprint;
   }
@@ -279,20 +288,22 @@ export async function setUpCalls(pack: UseCasePack, callName: string): Promise<b
   return true;
 }
 
-/** Share who is signed in, the screen and the actions with the call. Returns the detach function. */
-export function attachCalls(client: GraineInAppClient): () => void {
+/**
+ * Share who is signed in, the screen and the actions with the calls: each agent's client, so a call
+ * with the help agent runs the help agent's actions. Returns the function that detaches both.
+ */
+export function attachCalls(main: GraineInAppClient, help: GraineInAppClient | null = null): () => void {
   if (!GraineCalls.isAvailable) return () => {};
-  return GraineCalls.attach(client);
+  const offs = [GraineCalls.attach(main), ...(help ? [GraineCalls.attach(help, { agent: HELP_AGENT })] : [])];
+  return () => offs.forEach((off) => off());
 }
 
 /**
- * The person calls an agent. The call's id, or null while another call is live.
- *
- * PENDING SDK: `agent` — the multi-agent spec's startCall(reason, agent) — is passed for the help agent;
- * the calls package routes it once it supports more than one agent (today it calls the configured one).
+ * The person calls an agent: the main one (the engine's default), or the help agent by its name. The
+ * call's id, or null while another call is live.
  */
 export function placeCall(reason: string, agent: "main" | "help" = "main"): Promise<string | null> {
-  const options: { reason: string; agent?: string } = agent === "help" ? { reason, agent: "help" } : { reason };
+  const options: { reason: string; agent?: string } = agent === "help" ? { reason, agent: HELP_AGENT } : { reason };
   return GraineCalls.startCall(options);
 }
 
@@ -348,14 +359,22 @@ export interface CallEvent {
   callId: string;
   kind: "incoming" | GraineCallOutcome["outcome"];
   detail: string | null;
+  /** Which of the app's agents the call is with, as the call engine says; null when it does not. */
+  agent: "main" | "help" | null;
   at: Date;
 }
 
-/** One line for the in-app call log, from what the call engine reports (today's outcome shape or the SDK types'). */
+/** The app's agent for the engine's name: "help" is the help agent, the default agent is the main one. */
+export function agentOfCall(name: string | null | undefined): "main" | "help" | null {
+  if (name === HELP_AGENT) return "help";
+  return name ? "main" : null;
+}
+
+/** One line for the in-app call log, from what the call engine reports. */
 export function callEventFrom(e: { incoming: GraineIncomingCall } | { outcome: GraineCallOutcome }, at = new Date()): CallEvent {
-  if ("incoming" in e) return { callId: e.incoming.callId, kind: "incoming", detail: e.incoming.callerName, at };
+  if ("incoming" in e) return { callId: e.incoming.callId, kind: "incoming", detail: e.incoming.callerName, agent: agentOfCall(e.incoming.agent), at };
   const o = e.outcome as GraineCallOutcome & { reason?: string | null; error?: string | null };
-  return { callId: o.callId, kind: o.outcome, detail: o.reason ?? o.error ?? null, at };
+  return { callId: o.callId, kind: o.outcome, detail: o.reason ?? o.error ?? null, agent: agentOfCall(o.agent), at };
 }
 
 /** Rings and outcomes, including those from before the app's JavaScript was running. */

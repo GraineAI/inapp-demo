@@ -183,6 +183,8 @@ describe("calls like a phone call", () => {
     await expect(graine.setUpCalls(health, "Asha · Graine Care")).resolves.toBe(true);
     expect(mockCalls.configure).toHaveBeenCalledWith(expect.objectContaining({
       publishableKey: "pk_test_default", baseUrl: "https://example.test", displayName: "Asha · Graine Care", callScreen: "sdk",
+      // The help agent beside the main one (the engine's default agent), by name.
+      agents: { help: { publishableKey: "pk_test_help" } },
     }));
     expect(mockCalls.enableVoIPPushes).toHaveBeenCalledTimes(1);
     await graine.setUpCalls(health, "Asha · Graine Care");
@@ -203,19 +205,23 @@ describe("calls like a phone call", () => {
 
   it("attaches the agent's client and places calls with the pack's reason", async () => {
     const client = graine.selectPack(health);
-    graine.attachCalls(client);
+    const detach = graine.attachCalls(client);
+    expect(mockCalls.attach).toHaveBeenCalledTimes(1);
     expect(mockCalls.attach).toHaveBeenCalledWith(client);
+    detach();
+    expect(mockCalls.attach.mock.results[0].value).toHaveBeenCalled();
     await expect(graine.placeCall(health.call.placeReason)).resolves.toBe("call-1");
     expect(mockCalls.startCall).toHaveBeenCalledWith({ reason: "patient_question" });
   });
 
-  it("logs rings and outcomes in one shape", () => {
+  it("logs rings and outcomes in one shape, with the agent the call is with", () => {
     const at = new Date(0);
-    expect(graine.callEventFrom({ incoming: { callId: "c9", reason: null, callerName: "Asha · Graine Care" } }, at))
-      .toEqual({ callId: "c9", kind: "incoming", detail: "Asha · Graine Care", at });
-    expect(graine.callEventFrom({ outcome: { callId: "c9", outcome: "ended", reason: "remote" } }, at)).toMatchObject({ kind: "ended", detail: "remote" });
-    expect(graine.callEventFrom({ outcome: { callId: "c9", outcome: "failed", error: "no_network" } }, at)).toMatchObject({ kind: "failed", detail: "no_network" });
-    expect(graine.callEventFrom({ outcome: { callId: "c9", outcome: "declined" } }, at)).toMatchObject({ kind: "declined", detail: null });
+    expect(graine.callEventFrom({ incoming: { callId: "c9", reason: null, callerName: "Asha · Graine Care", agent: "default" } }, at))
+      .toEqual({ callId: "c9", kind: "incoming", detail: "Asha · Graine Care", agent: "main", at });
+    expect(graine.callEventFrom({ outcome: { callId: "c9", outcome: "ended", reason: "remote", agent: "help" } }, at)).toMatchObject({ kind: "ended", detail: "remote", agent: "help" });
+    expect(graine.callEventFrom({ outcome: { callId: "c9", outcome: "failed", error: "no_network" } }, at)).toMatchObject({ kind: "failed", detail: "no_network", agent: null });
+    expect(graine.callEventFrom({ outcome: { callId: "c9", outcome: "declined", agent: null } }, at)).toMatchObject({ kind: "declined", detail: null, agent: null });
+    expect(graine.callEventFrom({ outcome: { callId: "c9", outcome: "ringing", hosted: true, agent: "help" } }, at)).toMatchObject({ kind: "ringing", agent: "help" });
     const fn = jest.fn();
     graine.onCallEvents(fn);
     const [[incoming]] = mockCalls.onIncomingCall.mock.calls as any[];
@@ -231,12 +237,6 @@ describe("calls like a phone call", () => {
     mockPlatform.Version = "34";
     await graine.requestPermissions();
     expect(mockPermissions.request).toHaveBeenCalledWith("android.permission.POST_NOTIFICATIONS");
-  });
-});
-
-describe("chat window", () => {
-  it("uses the SDK's chat window only when the SDK exports one", () => {
-    expect(graine.SdkChatWindow).toBeNull();
   });
 });
 
@@ -267,6 +267,17 @@ describe("two agents in one app", () => {
     const off = graine.registerPackActions(banking, () => ({ status: "ok" as const, message: "done" }));
     expect(help.registerAction.mock.calls.map((x: any[]) => x[0])).toEqual(banking.actions.map((a) => a.name));
     off();
+  });
+
+  it("attaches the help agent's client by name, beside the main one", () => {
+    graine.selectPack(health);
+    const main = graine.currentClient();
+    const help = graine.helpClient()!;
+    const detach = graine.attachCalls(main, help);
+    expect(mockCalls.attach).toHaveBeenNthCalledWith(1, main);
+    expect(mockCalls.attach).toHaveBeenNthCalledWith(2, help, { agent: "help" });
+    detach();
+    for (const r of mockCalls.attach.mock.results) expect(r.value).toHaveBeenCalled();
   });
 
   it("places a call with the help agent by name", async () => {

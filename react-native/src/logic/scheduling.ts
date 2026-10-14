@@ -107,6 +107,18 @@ export function zoneLabel(at: Date, zone: string, now: Date): string {
   return `${zone} · ${formatDay(at, now)}, ${formatTime(at)}`;
 }
 
+/**
+ * One line of the call activity log: when, which agent the call was with (as the call engine said), what
+ * happened and the call's id — "6:05 pm · Asha · ended (remote) · call_1f2e3d4c".
+ */
+export function callEventLine(
+  e: { callId: string; kind: string; detail: string | null; agent: "main" | "help" | null; at: Date },
+  names: { main: string; help: string },
+): string {
+  const what = `${e.kind}${e.detail ? ` (${e.detail})` : ""}`;
+  return [formatTime(e.at), e.agent ? names[e.agent] : null, what, e.callId.slice(0, 12)].filter(Boolean).join(" · ");
+}
+
 /** A booked call and which of the app's two agents it belongs to. */
 export interface AgentCall<C> { call: C; agent: "main" | "help" }
 

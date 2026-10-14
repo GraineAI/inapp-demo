@@ -17,6 +17,9 @@ enum class DemoAgent(val key: String) {
 
     companion object {
         fun of(key: String?): DemoAgent? = values().firstOrNull { it.key == key }
+
+        /** The app's agent for the SDK's name of one (GraineInApp.name); null for none, or one the app does not have. */
+        fun ofSdkName(name: String?): DemoAgent? = values().firstOrNull { it.sdkName == name }
     }
 }
 

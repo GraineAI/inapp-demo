@@ -38,7 +38,7 @@ enum DemoAgent { main, help }
 
 /// One line of the in-app call log: a ring, or what became of a call.
 class CallEvent {
-  const CallEvent(this.callId, this.kind, this.detail, this.at);
+  const CallEvent(this.callId, this.kind, this.detail, this.at, {this.agent});
 
   final String callId;
 
@@ -46,6 +46,9 @@ class CallEvent {
   final String kind;
   final String? detail;
   final DateTime at;
+
+  /// Which of the app's agents the call is with, as the call engine says; null when it does not.
+  final DemoAgent? agent;
 }
 
 typedef ActionRunner = FutureOr<ActionResult> Function(PackAction action, Map<String, Object?> args);
@@ -154,6 +157,9 @@ String clockZoneLabel(DateTime now) {
 
 /// The name the help agent is configured under.
 const String helpAgentName = 'help';
+
+/// The app's agent for the call engine's name: [helpAgentName] is the help agent, the default agent the main one.
+DemoAgent? agentOfCall(String? name) => name == null ? null : (name == helpAgentName ? DemoAgent.help : DemoAgent.main);
 
 class SdkGraineService implements GraineService {
   SdkGraineService._(this._main, this._help, this.publishableKey, this._baseUrl);
@@ -282,8 +288,11 @@ class SdkGraineService implements GraineService {
     final subs = <StreamSubscription<Object?>>[];
     out = StreamController<CallEvent>.broadcast(
       onListen: () {
-        subs.add(GraineCalls.instance.incomingCalls.listen((c) => out.add(CallEvent(c.callId, 'incoming', c.callerName, DateTime.now()))));
-        subs.add(GraineCalls.instance.outcomes.listen((o) => out.add(CallEvent(o.callId, o.wire, o.reason, DateTime.now()))));
+        // Each event says which agent the call is with (`agent`): a ring Graine sends comes in as the agent that booked it.
+        subs.add(GraineCalls.instance.incomingCalls
+            .listen((c) => out.add(CallEvent(c.callId, 'incoming', c.callerName, DateTime.now(), agent: agentOfCall(c.agent)))));
+        subs.add(GraineCalls.instance.outcomes
+            .listen((o) => out.add(CallEvent(o.callId, o.wire, o.reason, DateTime.now(), agent: agentOfCall(o.agent)))));
       },
       onCancel: () {
         for (final s in subs) {

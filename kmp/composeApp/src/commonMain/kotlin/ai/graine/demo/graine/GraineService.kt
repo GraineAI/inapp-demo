@@ -43,7 +43,7 @@ data class CallEvent(val callId: String, val event: String, val detail: String?,
  * the main thread.
  */
 interface GraineClient {
-    /** The agents configured: the main one always, the help desk when its key is set and the platform runs it. */
+    /** The agents configured: the main one always, the help desk when its key is set. */
     val agents: List<DemoAgent>
 
     // Who the user is, and memory (shared by every agent)
@@ -106,13 +106,16 @@ class GraineService private constructor() : GraineClient {
             val sdk = sdk(agent) ?: continue
             scope.launch { sdk.session.filterNotNull().collect { onSessionReady?.invoke() } }
         }
+        // Each ring and outcome says which agent the call is with (`agent`: the name it was configured under).
         scope.launch {
-            Graine.calls.incoming.collect { call -> onCallEvent?.invoke(CallEvent(call.callId, "incoming", if (call.hosted) "scheduled" else null)) }
+            Graine.calls.incoming.collect { call ->
+                onCallEvent?.invoke(CallEvent(call.callId, "incoming", if (call.hosted) "scheduled" else null, DemoAgent.ofSdkName(call.agent)))
+            }
         }
         scope.launch {
             Graine.calls.outcomes.collect { o ->
                 // The ring itself is the "incoming" line already.
-                if (o.outcome != GraineCallOutcome.Kind.RINGING) onCallEvent?.invoke(CallEvent(o.callId, o.outcome.wire, o.reason))
+                if (o.outcome != GraineCallOutcome.Kind.RINGING) onCallEvent?.invoke(CallEvent(o.callId, o.outcome.wire, o.reason, DemoAgent.ofSdkName(o.agent)))
             }
         }
     }
@@ -211,8 +214,8 @@ class GraineService private constructor() : GraineClient {
 
         /**
          * Configure the agents and the calls. Once per launch. The help desk is
-         * optional: without its key — or on a platform SDK that runs one agent —
-         * the Help screen says so and everything else works.
+         * optional: without its key — or if it cannot be started, which the log
+         * says — the Help screen says so and everything else works.
          */
         fun start(config: AppConfig, callName: String, appVersion: String, debug: Boolean): GraineService {
             instance?.let { return it }

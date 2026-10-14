@@ -20,6 +20,13 @@ void main() {
     expect(zoneLabel(DateTime(2026, 10, 15, 18), 'Asia/Kolkata', now), 'Asia/Kolkata · Tomorrow, 6:00 pm');
   });
 
+  test('call activity names the agent each call was with, when the call engine says', () {
+    final at = DateTime(2026, 10, 14, 18, 5);
+    expect(callEventLine(at: at, agentName: 'Billing & appointments help', kind: 'ended', detail: 'remote', callId: 'call_1f2e3d4c-aaaa'),
+        '6:05 pm · Billing & appointments help · ended (remote) · call_1f2e3d4');
+    expect(callEventLine(at: at, kind: 'missed', callId: 'c3'), '6:05 pm · missed · c3');
+  });
+
   test('the pickers stay on the 5-minute grid, inside the SDK bounds', () {
     expect(formatTime(roundUpToStep(DateTime(2026, 10, 14, 18, 15, 30), 5)), '6:20 pm');
     expect(formatTime(roundUpToStep(DateTime(2026, 10, 14, 18, 15), 5)), '6:15 pm');

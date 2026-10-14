@@ -69,7 +69,7 @@ class DemoState extends ChangeNotifier {
     _calls = service.callEvents.listen((e) {
       callLog.insert(0, e);
       if (callLog.length > 20) callLog.removeLast();
-      debugPrint('[Graine Demo] call ${e.callId}: ${e.kind}${e.detail != null ? ' (${e.detail})' : ''}');
+      debugPrint('[Graine Demo] call ${e.callId}${e.agent != null ? ' (${e.agent!.name} agent)' : ''}: ${e.kind}${e.detail != null ? ' (${e.detail})' : ''}');
       notifyListeners();
     });
     ready = true;

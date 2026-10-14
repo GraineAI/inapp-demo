@@ -117,9 +117,12 @@ function PackActions({ navigation }: { navigation: RootNavigation }) {
   return null;
 }
 
-/** Calls: configured for the current agent at launch and on every pack change, attached, outcomes logged. */
+/**
+ * Calls: configured for the current pack's agents (the main one and the help one) at launch and on every
+ * pack change, both agents attached, outcomes logged with the agent each call was with.
+ */
 function CallsBridge() {
-  const { pack, client, settings } = useDemo();
+  const { pack, client, helpClient, settings } = useDemo();
   useEffect(() => graine.onCallEvents(logCallEvent), []);
   useEffect(() => {
     let detach: () => void = () => {};
@@ -127,13 +130,13 @@ function CallsBridge() {
     graine
       .setUpCalls(pack, settings.callName ?? pack.call.callName)
       .then((ok) => {
-        if (ok && !cancelled) detach = graine.attachCalls(client);
+        if (ok && !cancelled) detach = graine.attachCalls(client, helpClient);
       })
       .catch((err) => console.warn("[Graine Demo] Calls could not be set up:", graine.describeError(err)));
     return () => {
       cancelled = true;
       detach();
     };
-  }, [pack, client, settings.callName]);
+  }, [pack, client, helpClient, settings.callName]);
   return null;
 }

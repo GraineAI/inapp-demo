@@ -10,8 +10,8 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useDemo } from "../state/DemoState";
 import { useCallLog } from "../state/callLog";
 import { describeError, useHelpCalls, useScheduling, useScreenContext, type ScheduledCall } from "../graine";
-import { deviceTimeZone, mergeAgentCalls, sourceLabel, statusChip, zoneLabel } from "../logic/scheduling";
-import { formatTime, formatWhen } from "../logic/time";
+import { callEventLine, deviceTimeZone, mergeAgentCalls, sourceLabel, statusChip, zoneLabel } from "../logic/scheduling";
+import { formatWhen } from "../logic/time";
 import type { TabParamList } from "../navigation";
 import { BookingSheet } from "./BookingSheet";
 import { Body, Button, Card, Chip, ErrorText, SectionLabel, styles, useColors } from "../ui/components";
@@ -98,7 +98,7 @@ export function CallsScreen() {
       <SectionLabel>Call activity on this phone</SectionLabel>
       {log.length === 0 ? <Body muted>Rings and their outcomes appear here.</Body> : null}
       {log.map((e, i) => (
-        <Body key={`${e.callId}-${i}`} muted>{`${formatTime(e.at)} · ${e.kind}${e.detail ? ` (${e.detail})` : ""} · ${e.callId.slice(0, 12)}`}</Body>
+        <Body key={`${e.callId}-${i}`} muted>{callEventLine(e, { main: pack.agents.main.name, help: pack.agents.help.name })}</Body>
       ))}
 
       <BookingSheet

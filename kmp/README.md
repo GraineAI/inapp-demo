@@ -29,16 +29,48 @@ and voice bar as composables).
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**Before the SDK versions are published**, build against SDK sources on your machine — in
-`local.properties`:
+**Maven Central does not have `ai.graine:inapp-kmp` 0.7.0 yet** (nor `ai.graine:inapp-android`, which its
+Android side builds on), so until it does, build against the SDK's sources — the public repositories
+`https://github.com/GraineAI/inapp-kmp` and `https://github.com/GraineAI/inapp-android`, tag `0.7.0`, side by
+side: the multiplatform SDK builds its Android side from the Android SDK in the folder `android` beside it.
 
-```properties
-graine.kmpSdkDir=../../sdk-kmp/sdk/kmp
+```sh
+# from the repository root
+git clone --branch 0.7.0 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.7.0 https://github.com/GraineAI/inapp-android ../graine-sdk/android
 ```
 
-(or `-Pgraine.kmpSdkDir=…`). Gradle then builds the Kotlin Multiplatform SDK, and the Android SDK beside it,
-from that checkout in place of the published artifacts. For iOS, also run `iosApp/use-local-sdk.sh`
-(GraineInApp from an iOS SDK checkout) and open the generated `iosApp/iosAppLocal.xcodeproj`.
+and in `local.properties`:
+
+```properties
+graine.kmpSdkDir=../../graine-sdk/kmp
+```
+
+(or `-Pgraine.kmpSdkDir=…`, or `GRAINE_KMP_SDK_DIR`). Gradle then builds the Kotlin Multiplatform SDK, and
+the Android SDK beside it, in place of the published artifacts; remove the line once Maven Central has them.
+The iOS app needs nothing more: its Gradle build phase reads the same `local.properties`, and `GraineInApp`
+comes from Swift Package Manager, which is live (`https://github.com/GraineAI/inapp-ios`, from 0.7.0).
+`iosApp/use-local-sdk.sh` (it generates `iosApp/iosAppLocal.xcodeproj`) is only for an iOS SDK that is not
+tagged yet.
+
+**Run** — on an Android emulator or phone, and on an iOS simulator:
+
+```sh
+# Android: an emulator running (Android Studio → Device Manager), or a phone with USB debugging on
+./gradlew :composeApp:installDebug
+adb shell am start -n com.example.grainedemo/ai.graine.demo.MainActivity   # your graine.applicationId
+
+# iOS simulator: the build phase runs Gradle, so JDK 17 or newer must be the java Xcode finds
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme GraineDemoKMP \
+  -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build
+open -a Simulator
+xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/GraineDemoKMP.app
+xcrun simctl launch booted com.example.grainedemo.kmp    # your PRODUCT_BUNDLE_IDENTIFIER
+```
+
+Any iOS 16+ simulator will do (`xcrun simctl list devices available`). On an iPhone: open
+`iosApp/iosApp.xcodeproj`, choose your iPhone and **Run** (your team is in `iosApp/Config.xcconfig`).
 
 ## What is where
 
@@ -60,8 +92,8 @@ Home, Chat and the Items screen talk to the main agent; the **Help** tab talks t
 `Graine.configure(config, name = "help")`, its own chat (`GraineChat(agent = "help")`), voice bar
 (`GraineAgentBar(agent = "help")`) and call (`Graine.calls.startCall(reason, agent = "help")`). The user
 signs in once and both agents know who they are; **Calls** lists the calls booked with either agent, and
-the booking sheet asks which agent should call. Where the platform's SDK runs one agent at a time, the
-Help tab says so and everything else works.
+the booking sheet asks which agent should call. Both platforms run both agents (`ai.graine:inapp-kmp`
+0.7.0 on Android and iOS alike), and **Call activity** names the agent of every ring and outcome.
 
 ## Calls on a real device
 
@@ -76,6 +108,7 @@ Help tab says so and everything else works.
 
 ## Memory, in a few minutes
 
-Sign in as the first user, tell the assistant one of the pack's `memoryExamples` in the chat, open a new
-chat and ask its question — it knows. **Memory** lists what it remembers; sign out and pick another user —
+Sign in as the first user, tell the assistant one of the pack's `memoryExamples` in the chat and close the
+app. Open it again — the chat continues where it was — tap **New conversation** in the chat's header and ask
+its question — it knows. **Memory** lists what it remembers; sign out and pick another user —
 it does not; switch back — it does; **Erase everything** — gone.

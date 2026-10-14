@@ -68,6 +68,12 @@ String formatTime(DateTime t) {
   return '$h:${d.minute.toString().padLeft(2, '0')} ${d.hour < 12 ? 'am' : 'pm'}';
 }
 
+/// One line of the call activity log: when, which agent the call was with (when the call engine said), what
+/// happened and the call's id — "6:05 pm · Asha · ended (remote) · call_1f2e3d4".
+String callEventLine({required DateTime at, String? agentName, required String kind, String? detail, required String callId}) =>
+    [formatTime(at), if (agentName != null) agentName, detail != null ? '$kind ($detail)' : kind, callId.length > 12 ? callId.substring(0, 12) : callId]
+        .join(' · ');
+
 /// "Today", "Tomorrow", "Yesterday", else "Wed 15 Oct".
 String formatDay(DateTime t, DateTime now) {
   final d = t.toLocal();

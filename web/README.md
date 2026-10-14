@@ -117,12 +117,13 @@ shows the pack's own sentences under **Try it**; for Graine Care:
 
 1. Sign in as **Riya Sharma**. Open the chat and tell Asha "I take metformin at 8 pm, after my
    evening walk." End the chat.
-2. Start a new chat and ask "What do I take in the evening?" — Asha answers "Metformin at 8 pm,
-   after your evening walk."
+2. Reload the page and open the chat: it continues where it was. Press **New conversation** in the
+   chat's header — the chat starts fresh, so what Asha knows now comes from memory — and ask "What
+   do I take in the evening?" — Asha answers "Metformin at 8 pm, after your evening walk."
 3. Open **Memory** and press **Refresh**: the sentence is listed.
 4. Profile → **Sign out**, sign in as **Arjun Mehta**, ask the same question — Asha does not know.
    Memory shows Arjun's own list, without Riya's sentence.
-5. Sign out, sign in as Riya again, ask again — Asha knows.
+5. Sign out, sign in as Riya again, press **New conversation** and ask again — Asha knows.
 6. Memory → **Erase everything Asha remembers** → **Erase**. The list is empty; a new chat does not
    know.
 7. Switch **Let Asha remember our conversations** off, tell Asha something new, start again — it is

@@ -63,9 +63,9 @@ final class GraineService: GraineClient {
 
         relay.sessionReady = { [weak self] in self?.onSessionReady?() }
         relay.callEvent = { [weak self] call in
-            guard let self = self else { return }
-            self.onCallEvent?(CallEvent(callId: call.callId, event: call.event, detail: call.detail, agent: self.agent(forAgentId: call.agentId)))
+            self?.onCallEvent?(CallEvent(callId: call.callId, event: call.event, detail: call.detail, agent: DemoAgent(sdkName: call.agentName)))
         }
+        relay.calls = main.calls
         main.addListener(relay)
         help?.addListener(relay)
         main.calls.addListener(relay)
@@ -88,14 +88,6 @@ final class GraineService: GraineClient {
             throw GraineServiceError(code: .invalidKey, message: "No publishable key is set for this agent.")
         }
         return graine
-    }
-
-    /// Which of the app's agents an incoming call is from: the help desk when its session's agent (or web-call twin) id matches.
-    private func agent(forAgentId id: String?) -> DemoAgent? {
-        guard let id = id else { return nil }
-        if let session = help?.session, session.agentId == id || session.webcallAgentId == id { return .help }
-        if let session = main.session, session.agentId == id || session.webcallAgentId == id { return .main }
-        return nil
     }
 
     private func publishCallScreen() {
@@ -246,12 +238,12 @@ final class GraineService: GraineClient {
     }
 }
 
-/// A native call event, before the app knows which of its agents it is with.
+/// A native call event, with the SDK's name for the agent the call is with ("default", "help").
 private struct RawCallEvent {
     let callId: String
     let event: String
     let detail: String?
-    let agentId: String?
+    let agentName: String?
 }
 
 /**
@@ -262,16 +254,20 @@ private struct RawCallEvent {
 private final class SDKRelay: NSObject, GraineListener, GraineCallsListener {
     var sessionReady: (@MainActor () -> Void)?
     var callEvent: (@MainActor (RawCallEvent) -> Void)?
-    /// The agent each ringing call is from, by call id, for the outcome that follows.
-    private var agentIds: [String: String] = [:]
+    /// The app's one call engine: `agent` names the agent the call in progress is with.
+    weak var calls: GraineCalls?
+    /// The agent each ringing call is with, by call id, for the outcomes that follow.
+    private var agentNames: [String: String] = [:]
 
     func onSessionReady(_ session: GraineSessionConfig) {
         Task { @MainActor in self.sessionReady?() }
     }
 
     func onIncomingCall(_ call: GraineIncomingCall) {
-        agentIds[call.callId] = call.agentId
-        let event = RawCallEvent(callId: call.callId, event: "incoming", detail: call.hosted ? "scheduled" : nil, agentId: call.agentId)
+        // The SDK routed the ring to the agent its push names (else the default one): the call's agent from now.
+        let agent = calls?.callId == call.callId ? calls?.agent : nil
+        agentNames[call.callId] = agent
+        let event = RawCallEvent(callId: call.callId, event: "incoming", detail: call.hosted ? "scheduled" : nil, agentName: agent)
         Task { @MainActor in self.callEvent?(event) }
     }
 
@@ -279,7 +275,9 @@ private final class SDKRelay: NSObject, GraineListener, GraineCallsListener {
         var detail: String?
         if case .ended(let why) = outcome { detail = why.rawValue }
         if case .failed(let why) = outcome { detail = why }
-        let event = RawCallEvent(callId: callId, event: outcome.wire, detail: detail, agentId: agentIds[callId])
+        // A ring's agent from when it rang; a call the person placed is the call in progress until it settles.
+        let agent = agentNames[callId] ?? (calls?.callId == callId ? calls?.agent : nil)
+        let event = RawCallEvent(callId: callId, event: outcome.wire, detail: detail, agentName: agent)
         Task { @MainActor in self.callEvent?(event) }
     }
 }

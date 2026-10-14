@@ -19,9 +19,10 @@ include(":app")
 
 /*
  * THE LOCAL-SDK SWITCH. The app depends on the published ai.graine:inapp-android:0.7.0. To build it
- * against SDK sources on this machine instead (a version not published yet), set in local.properties:
+ * against SDK sources on this machine instead (a version not on Maven Central yet), set in
+ * local.properties — for a checkout of https://github.com/GraineAI/inapp-android beside this repository:
  *
- *     graine.sdkDir=../../sdk-android/sdk/android
+ *     graine.sdkDir=../../inapp-android
  *
  * (or -Pgraine.sdkDir=… / GRAINE_ANDROID_SDK_DIR). Gradle then builds the SDK from that checkout as part
  * of this build and uses it in place of the published artifact. Remove the line to go back.
