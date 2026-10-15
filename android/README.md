@@ -68,7 +68,7 @@ Booking is the SDK's own booking sheet — the day, the time, the phone's time z
 drawn in the agent's design — so the app has no booking screen of its own. The pack's booking button
 (`call.bookLabel`, or the help desk's) calls `presentBooking(activity, reason)` with the pack's first reason,
 which starts the sheet's "What's it about?". The button is enabled while the agent's `bookingAvailable` is
-true; otherwise it stays on screen, disabled, with "Booking isn't available for this agent." After a booking,
+true; otherwise it stays on screen, disabled, with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID." After a booking,
 the **Calls** list is read again; there each call has its status and, while it can be, **Cancel**.
 
 ## Calls on a real device

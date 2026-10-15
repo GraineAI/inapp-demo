@@ -202,7 +202,7 @@ works on **real devices**, with the app installed from your own build:
       the pack's reason; **Book call** → "Booked — …" → **Done**; the call appears with **Scheduled** and
       **Cancel**; Cancel → **Cancelled**.
 - [ ] With Calls & scheduling → **Users, from your app** off, the booking button stays on screen, disabled,
-      with "Booking isn't available for this agent."
+      with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID."
 - [ ] A refused booking is explained in the sheet, in one line under **Book call** (for example a time outside
       the agent's calling hours).
 - [ ] Hosted ringing, as above.
@@ -243,7 +243,7 @@ asking: the chat starts fresh, and memory stays. Each pack has its own sentences
   or the key belongs to another agent.
 - **Memory stays empty** — Memory is off for the agent, *Who is the user?* is not the pack's field, the user
   turned memory off, or the user is already on two other devices (Devices per user).
-- **The booking button is disabled ("Booking isn't available for this agent")** — Calls & scheduling → Users,
+- **The booking button is disabled (the line under it says what to set)** — Calls & scheduling → Users,
   from your app is off, the workspace has no in-app calling for this platform (Workspace settings → In-app
   calling), or the person is not identified with the pack's field (**Who is the user?**).
 - **A booked call never rings** — In-app calling is not verified for this bundle ID or package, the phone is a

@@ -203,7 +203,7 @@ test("every real pack names its booking button and the reasons the booking sheet
   }
   const health = realPacks.find((p) => p.id === "health-coach");
   if (health) assert.equal(health.call.bookLabel, "Schedule a consultation call");
-  assert.equal(L.BOOKING_UNAVAILABLE, "Booking isn't available for this agent.");
+  assert.equal(L.BOOKING_UNAVAILABLE, "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID.");
 });
 
 test("times read as Today / Tomorrow / Yesterday, else the day", () => {

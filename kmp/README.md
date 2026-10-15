@@ -98,7 +98,7 @@ Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the 
 **Calls** opens the main agent's, the one on **Help** the help desk's, each with the pack's first reason
 filled in. A button is on only while the SDK's `bookingAvailable` is true for its agent (Graine rings this
 phone, the agent lets users book, and the user is identified with the agent's Identity field); otherwise it
-is off, with one line: "Booking isn't available for this agent". Both platforms run both agents
+is off, with one line: "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID". Both platforms run both agents
 (`ai.graine:inapp-kmp` 0.10.0 on Android and iOS alike), and **Call activity** names the agent of every
 ring and outcome.
 

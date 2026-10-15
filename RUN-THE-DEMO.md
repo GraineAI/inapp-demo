@@ -252,7 +252,7 @@ Normally build `iosApp/iosApp.xcodeproj` (Swift Package Manager fetches GraineIn
 **What to check**: sign in (a fictional user; the memory switch is yours), **Chat** → a starter → the agent answers;
 **Talk** → the voice bar connects and the agent greets you (an emulator's microphone is silent: you hear the
 greeting); **Calls** → the pack's booking button opens the SDK's own booking sheet when that agent can be booked
-here, or is off with "Booking isn't available for this agent" (`bookingAvailable`: Graine rings this phone, the
+here, or is off with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID." (`bookingAvailable`: Graine rings this phone, the
 agent lets users book, and the user is identified with the agent's **Who is the user?** field — the pack's).
 
 ## 5. The 10-minute demo
@@ -294,7 +294,7 @@ close the app, so memory has something to show. Keep the dashboard open on Asha'
    the user?** is not the pack's field (`patient_id`, `customer_id`, `shopper_id`), the person turned memory
    off at sign-in, or they are past **Devices per user**. And ask after **New conversation**: a conversation
    that continues knows what was said in it, memory or not.
-6. **The booking button is off ("Booking isn't available for this agent"), or the sheet says "Booking a call
+6. **The booking button is off ("Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID."), or the sheet says "Booking a call
    isn't available right now"** — Calls & scheduling → **Users, from your app** is off, Graine cannot ring
    this phone yet (Workspace settings → In-app calling has no credentials for this platform), or the person
    is not identified with the agent's **Who is the user?** trait. Inside the sheet, a refused time says why in

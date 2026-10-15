@@ -66,7 +66,7 @@ class Notice extends StatelessWidget {
 }
 
 /// Under a booking button while the SDK says its agent cannot be booked.
-const String bookingUnavailable = "Booking isn't available for this agent.";
+const String bookingUnavailable = "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID.";
 
 /// A booking button: enabled while the SDK says the agent can be booked ([available]); otherwise it stays on
 /// screen, disabled, with one line saying so. [onPressed] opens the SDK's booking sheet.

@@ -408,7 +408,7 @@ async function sdkTypes(page, origin) {
   // While the loader says this visitor cannot book, the button stays, disabled, and says so.
   await page.eval(`__graineFake.setUsersCanBook(false); true`);
   await page.eval(`__t.click("#calls-refresh")`);
-  await page.waitFor(`__t.$("#book-open").disabled && __t.text("#book-unavailable") === "Booking isn't available for this agent."`,
+  await page.waitFor(`__t.$("#book-open").disabled && __t.text("#book-unavailable") === "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID."`,
     "the button off, with one line saying why");
   await page.shot("sdk-booking-unavailable");
   await page.eval(`__graineFake.setUsersCanBook(true); true`);

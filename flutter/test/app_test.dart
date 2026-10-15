@@ -122,7 +122,7 @@ void main() {
     service.bookable[DemoAgent.main]!.value = false;
     await tester.pumpAndSettle();
     expect(tester.widget<FilledButton>(find.byKey(const Key('open-booking'))).onPressed, isNull);
-    expect(find.text("Booking isn't available for this agent."), findsOneWidget);
+    expect(find.text("Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID."), findsOneWidget);
     await tester.tap(find.byKey(const Key('open-booking')), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(service.bookingSheets, hasLength(1));

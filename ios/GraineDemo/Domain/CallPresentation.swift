@@ -19,7 +19,7 @@ enum Tone: Equatable {
 
 enum CallText {
     /// Under a booking button the SDK says cannot be used now (`bookingAvailable` is false).
-    static let bookingUnavailable = "Booking isn't available for this agent."
+    static let bookingUnavailable = "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID."
 
     static func label(_ status: GraineCallStatus) -> String {
         switch status {

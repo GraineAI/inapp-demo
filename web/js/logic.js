@@ -211,7 +211,7 @@ export function decideAction(pack, action, args, { userId, statuses } = {}) {
 // booking rule are the SDK's — booking is the widget's own sheet; this section only says how they read.
 
 /** Under a booking button while the loader says this visitor cannot book with its agent. */
-export const BOOKING_UNAVAILABLE = "Booking isn't available for this agent.";
+export const BOOKING_UNAVAILABLE = "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID.";
 
 /** Every status the platform reports, in the order the page explains them. */
 export const CALL_STATUSES = [
