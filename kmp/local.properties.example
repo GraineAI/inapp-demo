@@ -11,8 +11,8 @@ graine.baseUrl=https://www.graine.ai
 # In-app calling, and the package in composeApp/google-services.json, for Graine to ring this app.
 graine.applicationId=com.yourcompany.grainedemo.kmp
 
-# Until Maven Central has ai.graine:inapp-kmp 0.8.0: build against the SDK's sources — checkouts of
-# https://github.com/GraineAI/inapp-kmp and https://github.com/GraineAI/inapp-android (tag 0.8.0) in
+# Until Maven Central has ai.graine:inapp-kmp 0.9.0: build against the SDK's sources — checkouts of
+# https://github.com/GraineAI/inapp-kmp and https://github.com/GraineAI/inapp-android (tag 0.9.0) in
 # ../graine-sdk/kmp and ../graine-sdk/android beside this repository (see README.md); until Swift Package
-# Manager has the 0.8.0 tag, inapp-ios in ../graine-sdk/ios too, for iosApp/use-local-sdk.sh.
+# Manager has the 0.9.0 tag, inapp-ios in ../graine-sdk/ios too, for iosApp/use-local-sdk.sh.
 # graine.kmpSdkDir=../../graine-sdk/kmp

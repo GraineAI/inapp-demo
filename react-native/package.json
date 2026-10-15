@@ -12,8 +12,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@graineai/inapp-react-native": "^0.42.0",
-    "@graineai/inapp-react-native-calls": "^0.3.0",
+    "@graineai/inapp-react-native": "^0.43.0",
+    "@graineai/inapp-react-native-calls": "^0.4.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/native": "^7.1.8",

@@ -97,10 +97,10 @@ kotlin {
         commonMain {
             kotlin.srcDir(generatePacks)
             dependencies {
-                // The Graine in-app SDK, as published (0.8.0: the SDK's own booking sheet). The local-SDK switch in
+                // The Graine in-app SDK, as published (0.9.0: the SDK's own booking sheet). The local-SDK switch in
                 // settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
-                implementation("ai.graine:inapp-kmp:0.8.0")
-                implementation("ai.graine:inapp-kmp-compose:0.8.0")
+                implementation("ai.graine:inapp-kmp:0.9.0")
+                implementation("ai.graine:inapp-kmp-compose:0.9.0")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)

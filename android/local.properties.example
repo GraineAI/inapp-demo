@@ -11,6 +11,6 @@ graine.baseUrl=https://www.graine.ai
 # and the package in app/google-services.json, for Graine to ring this app.
 graine.applicationId=com.yourcompany.grainedemo
 
-# Until Maven Central has ai.graine:inapp-android:0.8.0: build against the SDK's sources, a checkout of
-# https://github.com/GraineAI/inapp-android (tag 0.8.0, once it is published) beside this repository.
+# Until Maven Central has ai.graine:inapp-android:0.9.0: build against the SDK's sources, a checkout of
+# https://github.com/GraineAI/inapp-android (tag 0.9.0, once it is published) beside this repository.
 # graine.sdkDir=../../inapp-android

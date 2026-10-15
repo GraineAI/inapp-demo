@@ -17,8 +17,8 @@ settings:
 packages:
   GraineInApp:
     url: https://github.com/GraineAI/inapp-ios
-    # 0.8.0: the booking sheet the shared code opens (presentBooking) is in the iOS SDK from this version.
-    from: 0.8.0
+    # 0.9.0: the booking sheet the shared code opens (presentBooking) is in the iOS SDK from this version.
+    from: 0.9.0
 targets:
   GraineDemoKMP:
     type: application
