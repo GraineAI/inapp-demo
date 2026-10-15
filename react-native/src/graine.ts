@@ -258,7 +258,7 @@ const HELP_AGENT = "help";
  * either, and a ring Graine sends comes in as the agent that booked it. With the workspace's push
  * credentials uploaded (Workspace settings → In-app calling), the SDK registers this device with
  * Graine for every agent itself and reports what became of every ring: no server of ours is
- * involved. Android hands its FCM token and pushes over natively — see plugins/with-graine-fcm.js.
+ * involved. On Android the SDK's own messaging service receives the FCM token and pushes natively.
  */
 export async function setUpCalls(pack: UseCasePack, callName: string): Promise<boolean> {
   if (!GraineCalls.isAvailable || !isConfigured(pack.id)) return false;

@@ -25,21 +25,21 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.10.0), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.10.1), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**Until Maven Central has `ai.graine:inapp-kmp` 0.10.0** (and `ai.graine:inapp-android`, which its Android side
-builds on), build against the SDK's sources — the public repositories, tag `0.10.0`, side by side: the
+**Until Maven Central has `ai.graine:inapp-kmp` 0.10.1** (and `ai.graine:inapp-android`, which its Android side
+builds on), build against the SDK's sources — the public repositories, tag `0.10.1`, side by side: the
 multiplatform SDK builds its Android side from the Android SDK in the folder `android` beside it. Until the
-`0.10.0` tag is on Swift Package Manager, the iOS app takes GraineInApp from a checkout too:
+`0.10.1` tag is on Swift Package Manager, the iOS app takes GraineInApp from a checkout too:
 
 ```sh
 # from the repository root
-git clone --branch 0.10.0 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.10.0 https://github.com/GraineAI/inapp-android ../graine-sdk/android
-git clone --branch 0.10.0 https://github.com/GraineAI/inapp-ios ../graine-sdk/ios
+git clone --branch 0.10.1 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.10.1 https://github.com/GraineAI/inapp-android ../graine-sdk/android
+git clone --branch 0.10.1 https://github.com/GraineAI/inapp-ios ../graine-sdk/ios
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -62,7 +62,7 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 adb shell am start -n com.example.grainedemo.kmp/ai.graine.demo.MainActivity   # your graine.applicationId
 
 # iOS simulator: the build phase runs Gradle, so JDK 17 or newer must be the java Xcode finds
-iosApp/use-local-sdk.sh            # until the 0.10.0 tag is on Swift Package Manager; then iosApp/iosApp.xcodeproj
+iosApp/use-local-sdk.sh            # until the 0.10.1 tag is on Swift Package Manager; then iosApp/iosApp.xcodeproj
 SIM='iPhone 17'                    # any iOS 16+ simulator: xcrun simctl list devices available
 xcodebuild -project iosApp/iosAppLocal.xcodeproj -scheme GraineDemoKMP \
   -destination "platform=iOS Simulator,name=$SIM" -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build
@@ -83,7 +83,7 @@ On an iPhone: open the same Xcode project, choose your iPhone and **Run** (your 
 | `…/ui/AppModel.kt` | The app's state and the agent's actions, run by effect in the pack's words |
 | `…/ui/*Screen.kt`, `DemoApp.kt` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Help · Call activity |
 | `…/platform/Platform.kt` | What differs per platform: keys, storage, back gesture, call readiness |
-| `composeApp/src/androidMain/` | `DemoApplication`, `MainActivity`, `DemoMessagingService` (FCM → the SDK), notification permission |
+| `composeApp/src/androidMain/` | `DemoApplication`, `MainActivity`, notification permission (pushes: the SDK's own messaging service) |
 | `composeApp/src/iosMain/` | `MainViewController` (the shared UI for SwiftUI), Info.plist keys, UserDefaults |
 | `iosApp/` | The iOS app shell (XcodeGen `project.yml`; `iosApp.xcodeproj` committed) |
 | `composeApp/src/commonTest/` | Tests against a fake SDK client: `./gradlew :composeApp:testDebugUnitTest` |
@@ -99,7 +99,7 @@ Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the 
 filled in. A button is on only while the SDK's `bookingAvailable` is true for its agent (Graine rings this
 phone, the agent lets users book, and the user is identified with the agent's Identity field); otherwise it
 is off, with one line: "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID". Both platforms run both agents
-(`ai.graine:inapp-kmp` 0.10.0 on Android and iOS alike), and **Call activity** names the agent of every
+(`ai.graine:inapp-kmp` 0.10.1 on Android and iOS alike), and **Call activity** names the agent of every
 ring and outcome.
 
 ## Calls on a real device

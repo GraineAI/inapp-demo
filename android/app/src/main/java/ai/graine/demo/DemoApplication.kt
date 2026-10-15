@@ -8,13 +8,13 @@ import ai.graine.demo.ui.AppModel
 import ai.graine.demo.ui.KeyValueStore
 import android.app.Application
 import android.content.Context
-import android.util.Log
-import com.google.firebase.FirebaseApp
-import com.google.firebase.messaging.FirebaseMessaging
 
 /**
  * Sets up the SDK and its calls on every launch — a push that wakes a closed
- * app rings only once this has run — and holds the app's state.
+ * app rings only once this has run — and holds the app's state. Pushes need no
+ * code here: with app/google-services.json in the build, the SDK's own messaging
+ * service receives the token and the agent's calls, and the SDK reads the token
+ * when it starts.
  */
 class DemoApplication : Application() {
     lateinit var model: AppModel
@@ -39,28 +39,9 @@ class DemoApplication : Application() {
             debug = BuildConfig.DEBUG,
         )
         model = AppModel(graine, config, packs, store)
-        forwardPushToken()
     }
 
     /** assets/usecases/<id>.json, bundled from demo/usecases by the build. */
     private fun readPack(id: String): String? =
         runCatching { assets.open("usecases/$id.json").bufferedReader().use { it.readText() } }.getOrNull()
-
-    /**
-     * Hand the current FCM token to the SDK too (onNewToken only fires when it changes). Without
-     * app/google-services.json there is no Firebase app: the demo runs, and nothing can ring it.
-     */
-    private fun forwardPushToken() {
-        if (FirebaseApp.getApps(this).isEmpty()) {
-            Log.i(TAG, "No google-services.json in this build: push ringing is off.")
-            return
-        }
-        FirebaseMessaging.getInstance().token
-            .addOnSuccessListener { token -> GraineService.onNewToken(this, token) }
-            .addOnFailureListener { e -> Log.w(TAG, "No FCM token: ${e.message}") }
-    }
-
-    companion object {
-        private const val TAG = "GraineDemo"
-    }
 }

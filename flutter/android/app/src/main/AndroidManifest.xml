@@ -32,14 +32,8 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- Hosted ringing: hands this install's FCM token and Graine's call pushes to the SDK, natively. -->
-        <service
-            android:name=".graine.GraineMessagingService"
-            android:exported="false">
-            <intent-filter android:priority="10">
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+        <!-- Hosted ringing needs nothing here: the Graine SDK's own messaging service, merged from the
+             plugin, hands this install's FCM token and Graine's call pushes to the SDK, natively. -->
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

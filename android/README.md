@@ -16,19 +16,20 @@ screen). All people and records are fictional.
    - `graine.helpPublishableKey` — optional: a second agent (the pack's help desk) for the **Help** tab.
      Without it, the Help tab says how to add one.
 2. For calls: copy your Firebase `google-services.json` to `app/` (git-ignored; see
-   `app/google-services.json.example`). Without it the app builds and runs; only push ringing is off.
+   `app/google-services.json.example`). The SDK registers for pushes itself — the app has no messaging
+   service of its own. Without it the app builds and runs; only push ringing is off.
 3. Recreate the agent from `../agent-setup/<pack>/` so its identity field, actions and call settings
    match the pack you demo.
 4. `./gradlew :app:installDebug`, or run the `app` configuration in Android Studio.
 
 The packs are bundled from `../usecases/*.json` at build time (task `bundleUseCases`); edit them there.
 
-**The app depends on `ai.graine:inapp-android:0.10.0`. Until Maven Central has it**, build against the
-SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.10.0` once it is
+**The app depends on `ai.graine:inapp-android:0.10.1`. Until Maven Central has it**, build against the
+SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.10.1` once it is
 published (or any checkout of the SDK's sources). Beside this repository:
 
 ```sh
-git clone --branch 0.10.0 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
+git clone --branch 0.10.1 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
 ```
 
 and in `local.properties`:
@@ -38,17 +39,16 @@ graine.sdkDir=../../inapp-android
 ```
 
 (or `-Pgraine.sdkDir=…`, or `GRAINE_ANDROID_SDK_DIR`). Gradle then builds the SDK from that checkout in place
-of the published artifact. Remove the line once Maven Central has 0.10.0.
+of the published artifact. Remove the line once Maven Central has 0.10.1.
 
 ## What is where
 
 | | |
 |---|---|
-| `app/src/main/java/ai/graine/demo/graine/GraineService.kt` | The one file that calls the SDK (identify, memory, screen context, actions, scheduling, voice, chat, calls, FCM) |
+| `app/src/main/java/ai/graine/demo/graine/GraineService.kt` | The one file that calls the SDK (identify, memory, screen context, actions, scheduling, voice, chat, calls) |
 | `…/domain/` | The pack model, the Items list, call presentation — no SDK rules re-implemented |
 | `…/ui/AppModel.kt` | The app's state and the agent's actions, run by effect in the pack's words |
 | `…/ui/*Screen.kt` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Call activity |
-| `…/DemoMessagingService.kt` | Hands the FCM token and every data message to the SDK first |
 | `…/notify/NotificationAccess.kt` | Notification permission (Android 13+) and full-screen calls (Android 14+) |
 | `app/src/test/` | Unit tests against a fake SDK client: `./gradlew testDebugUnitTest` |
 

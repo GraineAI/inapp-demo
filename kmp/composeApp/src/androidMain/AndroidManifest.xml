@@ -2,7 +2,8 @@
 <!--
   The SDK's own manifest adds what the agent and its calls need: INTERNET, RECORD_AUDIO,
   MODIFY_AUDIO_SETTINGS, POST_NOTIFICATIONS, USE_FULL_SCREEN_INTENT, the microphone foreground
-  service, the call screen and its receiver.
+  service, the call screen and its receiver, and the Firebase messaging service that hands the
+  push token and the agent's calls to the SDK (with composeApp/google-services.json in the build).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -25,13 +26,5 @@
             </intent-filter>
         </activity>
 
-        <!-- FCM: hands the token and every data message to the SDK first (the agent's calls ring through it). -->
-        <service
-            android:name=".DemoMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
     </application>
 </manifest>

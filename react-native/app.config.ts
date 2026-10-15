@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesFile = process.env.GRAINE_DEMO_GOOGLE_SERVICES_FILE || "./google-services.json";
   const hasGoogleServices = fs.existsSync(path.resolve(__dirname, googleServicesFile));
@@ -37,17 +38,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.POST_NOTIFICATIONS",
-        // The ringing call screen over the lock screen. with-graine-fcm keeps it if anything removes it.
+        // The ringing call screen over the lock screen.
         "android.permission.USE_FULL_SCREEN_INTENT",
       ],
       ...(hasGoogleServices ? { googleServicesFile } : {}),
     },
     plugins: [
       "expo-dev-client",
-      // The SDK's calls: microphone text, background audio/VoIP, the push entitlement, and WebRTC calls.
+      // The SDK's calls: microphone text, background audio/VoIP, the push entitlement, WebRTC calls, and — with
+      // android.googleServicesFile set — Firebase Cloud Messaging, which the SDK registers with itself.
       ["@graineai/inapp-react-native-calls", { webrtc: true }],
-      // Android hosted ringing: hands the FCM token and call pushes to the SDK, natively.
-      ["./plugins/with-graine-fcm", {}],
     ],
   };
 };

@@ -232,7 +232,7 @@ class GraineService private constructor() : GraineClient {
                 runCatching { Graine.configure(agentConfig(config.helpPublishableKey), name = DemoAgent.HELP.sdkName) }
                     .onFailure { Platform.log("The help agent is not available here: ${it.message}") }
             }
-            // iOS: receive the agents' calls as VoIP pushes (Android rings from DemoMessagingService).
+            // iOS: receive the agents' calls as VoIP pushes (Android: the SDK's own messaging service rings them).
             Graine.calls.enableVoIPPushes()
             return GraineService().also {
                 it.setCallName(callName)

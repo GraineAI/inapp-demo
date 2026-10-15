@@ -128,18 +128,18 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 ### Where the SDKs come from
 
-The committed manifests name the releases with the SDK's booking sheet: 0.10.0, React Native 0.44.0 and calls
+The committed manifests name the releases with the SDK's booking sheet: 0.10.1, React Native 0.44.1 and calls
 0.3.0. Until a registry has its version, build that app against the SDK's sources with its local-SDK switch —
 the sources of iOS, Android, Flutter and Kotlin Multiplatform are public repositories, tagged with each
 release:
 
 | App | Committed dependency | Registry | Live today | Until it is |
 |---|---|---|:-:|---|
-| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.10.0 | Swift Package Manager | yes | `ios/use-local-sdk.sh` → a checkout of `https://github.com/GraineAI/inapp-ios` ([`ios/README.md`](ios/README.md)) |
-| Android | `ai.graine:inapp-android:0.10.0` | Maven Central | yes | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `inapp-kmp-compose` 0.10.0 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` (Swift Package Manager) | Maven Central | yes | `graine.kmpSdkDir` → a checkout of `https://github.com/GraineAI/inapp-kmp`, with `inapp-android` beside it ([`kmp/README.md`](kmp/README.md)) |
-| Flutter | `graine_inapp: ^0.10.0` | pub.dev | yes | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
-| React Native | `@graineai/inapp-react-native` ^0.44.0, `@graineai/inapp-react-native-calls` ^0.5.0 | npm | yes | `scripts/use-local-sdks.sh local rn` → the React Native SDK's sources (below) |
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.10.1 | Swift Package Manager | yes | `ios/use-local-sdk.sh` → a checkout of `https://github.com/GraineAI/inapp-ios` ([`ios/README.md`](ios/README.md)) |
+| Android | `ai.graine:inapp-android:0.10.1` | Maven Central | yes | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `inapp-kmp-compose` 0.10.1 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` (Swift Package Manager) | Maven Central | yes | `graine.kmpSdkDir` → a checkout of `https://github.com/GraineAI/inapp-kmp`, with `inapp-android` beside it ([`kmp/README.md`](kmp/README.md)) |
+| Flutter | `graine_inapp: ^0.10.1` | pub.dev | yes | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
+| React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm | yes | `scripts/use-local-sdks.sh local rn` → the React Native SDK's sources (below) |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — | **yes** | — |
 
 The SDK's CocoaPods pod (`GraineInApp`) is not on trunk yet either; these demos do not use it.
@@ -147,7 +147,7 @@ The SDK's CocoaPods pod (`GraineInApp`) is not on trunk yet either; these demos 
 Flutter and React Native switch with one script, from the repository root:
 
 ```bash
-git clone --branch 0.10.0 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
+git clone --branch 0.10.1 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
 scripts/use-local-sdks.sh local flutter    # flutter/pubspec_overrides.yaml → ../inapp-flutter
 GRAINE_SDK_RN_DIR=/path/to/sdk scripts/use-local-sdks.sh local rn
                                           # the folder holding the React Native SDK's inapp/ and inapp-calls/
@@ -168,10 +168,12 @@ works on **real devices**, with the app installed from your own build:
    default `ai.graine.demo.rn`, Flutter `ai.graine.demo.flutter`; environment *Sandbox* for development builds)
    and your Firebase service-account JSON for the Android package. Wait until each shows **verified**.
 2. **Android**: put your Firebase `google-services.json` in `react-native/` (or set
-   `GRAINE_DEMO_GOOGLE_SERVICES_FILE`) and in `flutter/android/app/`, then rebuild. The apps hand the push
-   token and call pushes to the SDK natively (React Native: the `plugins/with-graine-fcm.js` config plugin;
-   Flutter: `GraineMessagingService.kt`). An app that already has a Firebase messaging service forwards from
-   that one instead — see the comment at the top of either file.
+   `GRAINE_DEMO_GOOGLE_SERVICES_FILE`) and in `flutter/android/app/`, then rebuild. That is all: the apps
+   have no messaging service of their own — the SDK registers for pushes itself (its own messaging service
+   receives the push token and the call pushes, natively). React Native gets Firebase Cloud Messaging from
+   the calls package's Expo plugin (calls 0.5.1+, listed in `app.config.ts`); Flutter declares it in
+   `flutter/android/app/build.gradle.kts`. An app that already has a Firebase messaging service forwards
+   from that one instead (`handlePush` and the push token, as the SDK's docs show).
 3. On the phone, sign in (allow the microphone and, on Android 13+, notifications), open **Calls →
    Schedule a consultation call**: the SDK's booking sheet opens, its "What's it about?" already filled with
    the pack's reason. Pick today and a time a few minutes ahead, tap **Book call**, then **Done**. The call

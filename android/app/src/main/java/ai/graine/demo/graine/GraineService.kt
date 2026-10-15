@@ -11,7 +11,6 @@ import ai.graine.inapp.GraineCall
 import ai.graine.inapp.GraineCallListener
 import ai.graine.inapp.GraineCallOutcome
 import ai.graine.inapp.GraineCallStatus
-import ai.graine.inapp.GraineCalls
 import ai.graine.inapp.GraineCallsConfig
 import ai.graine.inapp.GraineChatView
 import ai.graine.inapp.GraineConfig
@@ -288,15 +287,6 @@ class GraineService private constructor(private val main: GraineInApp, private v
         }
 
         fun get(): GraineService = instance ?: error("GraineService.start has not run (Application.onCreate)")
-
-        /**
-         * FCM's token for this install, from the messaging service. Kept by the SDK and registered with
-         * every agent's workspace that has Graine ring its users (Workspace settings → In-app calling).
-         */
-        fun onNewToken(context: Context, token: String) = GraineCalls.onNewToken(context, token)
-
-        /** True when the push was a call (the SDK rings it, with the agent the push names); false for the app's own messages. */
-        fun handlePush(context: Context, data: Map<String, String>): Boolean = GraineCalls.handlePush(context, data)
 
         private fun JSONObject.toMap(): Map<String, Any?> =
             keys().asSequence().associateWith { k -> opt(k).takeUnless { it == JSONObject.NULL } }

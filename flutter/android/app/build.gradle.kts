@@ -50,7 +50,8 @@ flutter {
 }
 
 dependencies {
-    // The messaging service that hands call pushes to the Graine SDK (graine/GraineMessagingService.kt).
+    // Firebase Cloud Messaging, for hosted ringing: the Graine SDK's own messaging service receives
+    // the token and the agent's calls, so the app has no messaging service of its own.
     implementation("com.google.firebase:firebase-messaging:24.1.2")
 }
 
