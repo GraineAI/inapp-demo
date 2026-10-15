@@ -44,6 +44,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       "expo-dev-client",
+      // The SDK's calls: microphone text, background audio/VoIP, the push entitlement, and WebRTC calls.
+      ["@graineai/inapp-react-native-calls", { webrtc: true }],
       // Android hosted ringing: hands the FCM token and call pushes to the SDK, natively.
       ["./plugins/with-graine-fcm", {}],
     ],

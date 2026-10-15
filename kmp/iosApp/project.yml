@@ -18,7 +18,11 @@ packages:
   GraineInApp:
     url: https://github.com/GraineAI/inapp-ios
     # 0.9.0: the booking sheet the shared code opens (presentBooking) is in the iOS SDK from this version.
-    from: 0.9.0
+    from: 0.10.0
+  # WebRTC calls: the module beside the SDK, always the same version.
+  GraineInAppRTC:
+    url: https://github.com/GraineAI/inapp-ios-rtc
+    from: 0.10.0
 targets:
   GraineDemoKMP:
     type: application
@@ -33,6 +37,8 @@ targets:
       # The iOS SDK the shared code calls (through its Objective-C facade); linked here, once.
       - package: GraineInApp
         product: GraineInApp
+      - package: GraineInAppRTC
+        product: GraineInAppRTC
     preBuildScripts:
       - name: Build the shared Kotlin code
         basedOnDependencyAnalysis: false

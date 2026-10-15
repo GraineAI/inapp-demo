@@ -21,6 +21,7 @@
 		51B80A0A54FF7061FA37D42B /* DemoScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDDDBB271B18BD6A5D69A24 /* DemoScreens.swift */; };
 		54D4F5375A57ECCEAA5EDDDF /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7056895217B2BA10FB24769 /* AppModelTests.swift */; };
 		55AABC5CF3951F263CFED74B /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8D05B091CF72CF0A247A56 /* HelpView.swift */; };
+		5D70E6F94B0475FE683EFB40 /* GraineInAppRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 712F803FC0E5AF9B635FCCC4 /* GraineInAppRTC */; };
 		5F9A21272F7D3D3386063DE6 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1A42B0FF88E02B3844E059 /* MemoryView.swift */; };
 		64AA863EB3670D529FF50760 /* GraineDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5AB17C17913986D645C91E /* GraineDemoApp.swift */; };
 		66F78752B6A60934E59FAC5E /* ItemsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */; };
@@ -96,6 +97,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DA4707D6DDEA9F1DC35F5380 /* GraineInApp in Frameworks */,
+				5D70E6F94B0475FE683EFB40 /* GraineInAppRTC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -251,6 +253,7 @@
 			name = GraineDemo;
 			packageProductDependencies = (
 				C2DB785B6018B93C4A5D1DB9 /* GraineInApp */,
+				712F803FC0E5AF9B635FCCC4 /* GraineInAppRTC */,
 			);
 			productName = GraineDemo;
 			productReference = B251A6A0B63DE79CFF254408 /* GraineDemo.app */;
@@ -300,6 +303,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B1C80D77BA7DA8A1AC70AEE9 /* XCRemoteSwiftPackageReference "inapp-ios" */,
+				E1B91B323086EABF5E06D834 /* XCRemoteSwiftPackageReference "inapp-ios-rtc" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6ACD56B3EED9D0783C99B99F /* Products */;
@@ -610,12 +614,25 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.0;
+				minimumVersion = 0.10.0;
+			};
+		};
+		E1B91B323086EABF5E06D834 /* XCRemoteSwiftPackageReference "inapp-ios-rtc" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GraineAI/inapp-ios-rtc";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.10.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		712F803FC0E5AF9B635FCCC4 /* GraineInAppRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E1B91B323086EABF5E06D834 /* XCRemoteSwiftPackageReference "inapp-ios-rtc" */;
+			productName = GraineInAppRTC;
+		};
 		C2DB785B6018B93C4A5D1DB9 /* GraineInApp */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B1C80D77BA7DA8A1AC70AEE9 /* XCRemoteSwiftPackageReference "inapp-ios" */;

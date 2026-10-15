@@ -24,10 +24,10 @@ The project is generated from `project.yml` with [XcodeGen](https://github.com/y
 needed only to change it.
 
 **The SDK comes from Swift Package Manager**: `GraineDemo.xcodeproj` takes `GraineInApp` from
-`https://github.com/GraineAI/inapp-ios`, from 0.9.0 (a public repository), and Xcode fetches the package on
+`https://github.com/GraineAI/inapp-ios`, from 0.10.0 (a public repository), and Xcode fetches the package on
 first open. (The SDK's CocoaPods pod is not on trunk yet; this demo does not use it.)
 
-**Until 0.9.0 is tagged there**, build against SDK sources on your machine with the local-SDK switch:
+**Until 0.10.0 is tagged there**, build against SDK sources on your machine with the local-SDK switch:
 
 ```sh
 ./use-local-sdk.sh                                  # sources at ../../inapp-ios: a checkout beside this repository

@@ -6,12 +6,11 @@
  *   @graineai/inapp-react-native-calls  calls like a phone call: CallKit / VoIP on iOS, a ringing call screen on Android
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PermissionsAndroid, Platform } from "react-native";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   GraineInAppClient,
-  requestMicrophonePermission,
   type AppActionResult,
   type GraineCallStatus,
   type GraineMemory,
@@ -387,15 +386,8 @@ export function onCallEvents(fn: (e: CallEvent) => void): () => void {
  */
 export async function requestPermissions(): Promise<void> {
   try {
-    await requestMicrophonePermission();
+    await GraineCalls.requestCallPermissions();   // the microphone, and notifications on Android 13+
   } catch {
-    /* the bar asks again when it needs it */
-  }
-  if (Platform.OS === "android" && Number(Platform.Version) >= 33) {
-    try {
-      await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-    } catch {
-      /* rings still arrive; the call notification is quieter */
-    }
+    /* a call that starts without the microphone asks again then */
   }
 }

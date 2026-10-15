@@ -23,12 +23,12 @@ screen). All people and records are fictional.
 
 The packs are bundled from `../usecases/*.json` at build time (task `bundleUseCases`); edit them there.
 
-**The app depends on `ai.graine:inapp-android:0.9.0`. Until Maven Central has it**, build against the
-SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.9.0` once it is
+**The app depends on `ai.graine:inapp-android:0.10.0`. Until Maven Central has it**, build against the
+SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.10.0` once it is
 published (or any checkout of the SDK's sources). Beside this repository:
 
 ```sh
-git clone --branch 0.9.0 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
+git clone --branch 0.10.0 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
 ```
 
 and in `local.properties`:
@@ -38,7 +38,7 @@ graine.sdkDir=../../inapp-android
 ```
 
 (or `-Pgraine.sdkDir=…`, or `GRAINE_ANDROID_SDK_DIR`). Gradle then builds the SDK from that checkout in place
-of the published artifact. Remove the line once Maven Central has 0.9.0.
+of the published artifact. Remove the line once Maven Central has 0.10.0.
 
 ## What is where
 

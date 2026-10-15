@@ -1,3 +1,4 @@
+import GraineInAppRTC
 import SwiftUI
 
 /**
@@ -7,6 +8,10 @@ import SwiftUI
  */
 @main
 struct GraineDemoApp: App {
+    init() {
+        GraineRTC.install()   // WebRTC calls: keeps the module in the build and registers it
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView().ignoresSafeArea()

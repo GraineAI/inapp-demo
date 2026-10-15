@@ -1,6 +1,9 @@
 # iOS 15: the Graine SDK's floor (CallKit, PushKit and the engine's web view).
 platform :ios, '15.0'
 
+# WebRTC calls: the Graine SDK adds its WebRTC module (GraineInAppRTC) when this is set.
+ENV['GRAINE_WEBRTC'] = '1'
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 

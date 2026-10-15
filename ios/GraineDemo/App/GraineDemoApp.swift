@@ -1,3 +1,4 @@
+import GraineInAppRTC
 import SwiftUI
 
 @main
@@ -5,6 +6,7 @@ struct GraineDemoApp: App {
     @StateObject private var model: AppModel
 
     init() {
+        GraineRTC.install()   // WebRTC calls: keeps the module in the build and registers it
         let config = AppConfig.current
         let packs = UseCasePacks.load()
         let pack = UseCasePacks.chosen(packs, defaults: .standard)

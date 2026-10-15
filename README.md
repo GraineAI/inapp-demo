@@ -128,18 +128,18 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 ### Where the SDKs come from
 
-The committed manifests name the releases with the SDK's booking sheet: 0.9.0, React Native 0.43.0 and calls
+The committed manifests name the releases with the SDK's booking sheet: 0.10.0, React Native 0.44.0 and calls
 0.3.0. Until a registry has its version, build that app against the SDK's sources with its local-SDK switch —
 the sources of iOS, Android, Flutter and Kotlin Multiplatform are public repositories, tagged with each
 release:
 
 | App | Committed dependency | Registry | Live today | Until it is |
 |---|---|---|:-:|---|
-| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.9.0 | Swift Package Manager | not yet | `ios/use-local-sdk.sh` → a checkout of `https://github.com/GraineAI/inapp-ios` ([`ios/README.md`](ios/README.md)) |
-| Android | `ai.graine:inapp-android:0.9.0` | Maven Central | not yet | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `inapp-kmp-compose` 0.7.0; iOS: `GraineInApp` (Swift Package Manager) | Maven Central | not yet (iOS SDK: yes) | `graine.kmpSdkDir` → a checkout of `https://github.com/GraineAI/inapp-kmp`, with `inapp-android` beside it ([`kmp/README.md`](kmp/README.md)) |
-| Flutter | `graine_inapp: ^0.9.0` | pub.dev | not yet | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
-| React Native | `@graineai/inapp-react-native` ^0.43.0, `@graineai/inapp-react-native-calls` ^0.4.0 | npm | not yet | `scripts/use-local-sdks.sh local rn` → the React Native SDK's sources (below) |
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.10.0 | Swift Package Manager | yes | `ios/use-local-sdk.sh` → a checkout of `https://github.com/GraineAI/inapp-ios` ([`ios/README.md`](ios/README.md)) |
+| Android | `ai.graine:inapp-android:0.10.0` | Maven Central | yes | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `inapp-kmp-compose` 0.10.0 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` (Swift Package Manager) | Maven Central | yes | `graine.kmpSdkDir` → a checkout of `https://github.com/GraineAI/inapp-kmp`, with `inapp-android` beside it ([`kmp/README.md`](kmp/README.md)) |
+| Flutter | `graine_inapp: ^0.10.0` | pub.dev | yes | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
+| React Native | `@graineai/inapp-react-native` ^0.44.0, `@graineai/inapp-react-native-calls` ^0.5.0 | npm | yes | `scripts/use-local-sdks.sh local rn` → the React Native SDK's sources (below) |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — | **yes** | — |
 
 The SDK's CocoaPods pod (`GraineInApp`) is not on trunk yet either; these demos do not use it.
@@ -147,7 +147,7 @@ The SDK's CocoaPods pod (`GraineInApp`) is not on trunk yet either; these demos 
 Flutter and React Native switch with one script, from the repository root:
 
 ```bash
-git clone --branch 0.9.0 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
+git clone --branch 0.10.0 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
 scripts/use-local-sdks.sh local flutter    # flutter/pubspec_overrides.yaml → ../inapp-flutter
 GRAINE_SDK_RN_DIR=/path/to/sdk scripts/use-local-sdks.sh local rn
                                           # the folder holding the React Native SDK's inapp/ and inapp-calls/
