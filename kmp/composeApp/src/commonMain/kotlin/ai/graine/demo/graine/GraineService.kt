@@ -114,6 +114,18 @@ class GraineService private constructor() : GraineClient {
                 onCallEvent?.invoke(CallEvent(call.callId, "incoming", if (call.hosted) "scheduled" else null, DemoAgent.ofSdkName(call.agent)))
             }
         }
+        // The audio path each call took — WebRTC, or the standard connection with the SDK's reason — once a call.
+        scope.launch {
+            var reported: String? = null
+            Graine.calls.state.collect { info ->
+                val id = info.callId ?: return@collect
+                val transport = info.transport ?: return@collect
+                if (reported == id) return@collect
+                reported = id
+                val detail = transport.wire + (info.transportFallbackReason?.let { ":$it" } ?: "")
+                onCallEvent?.invoke(CallEvent(id, "audio", detail, DemoAgent.ofSdkName(info.agent)))
+            }
+        }
         scope.launch {
             Graine.calls.outcomes.collect { o ->
                 // The ring itself is the "incoming" line already.

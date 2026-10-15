@@ -76,6 +76,12 @@ data class CallLog(val entries: List<CallLogEntry> = emptyList()) {
                 else -> "Ended"
             }
             "failed" -> if (!detail.isNullOrEmpty()) "Could not connect: $detail" else "Could not connect"
+            "audio" -> when {
+                detail == "webrtc" -> "Call audio: WebRTC"
+                detail != null && detail.startsWith("websocket") ->
+                    "Call audio: standard connection" + (detail.substringAfter(":", "").takeIf { it.isNotEmpty() }?.let { " ($it)" } ?: "")
+                else -> "Call audio: ${detail ?: "unknown"}"
+            }
             else -> event.replaceFirstChar { it.uppercase() }
         }
     }
