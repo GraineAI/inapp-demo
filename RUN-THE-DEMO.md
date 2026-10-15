@@ -139,13 +139,12 @@ adb shell am start -n com.example.grainedemo/ai.graine.demo.MainActivity   # you
 
 Node 18+, Xcode with CocoaPods, Android Studio with JDK 17; an Expo development build (not Expo Go). Copy
 `react-native/.env.example` to `react-native/.env` and set the keys (`EXPO_PUBLIC_GRAINE_PUBLISHABLE_KEY`,
-`EXPO_PUBLIC_GRAINE_HELP_KEY`, or one of each per pack). Until npm has 0.44.1 and 0.5.0, the switch packs the
-SDK's sources into git-ignored tarballs (`react-native/.local-sdk/`) and points `package.json` at them — run
-`scripts/use-local-sdks.sh published rn` before committing:
+`EXPO_PUBLIC_GRAINE_HELP_KEY`, or one of each per pack). `npm install` takes the published SDK 0.44.1 and calls
+0.5.1. (To build against the SDK's sources instead, `GRAINE_SDK_RN_DIR=/path/to/sdk scripts/use-local-sdks.sh
+local rn` packs them into git-ignored tarballs in `react-native/.local-sdk/` and points `package.json` at them;
+`scripts/use-local-sdks.sh published rn` switches back before you commit.)
 
 ```sh
-GRAINE_SDK_RN_DIR=/path/to/sdk scripts/use-local-sdks.sh local rn   # the folder holding inapp/ and inapp-calls/
-
 cd react-native
 npm install
 npx expo run:ios                     # the iOS simulator
@@ -232,22 +231,22 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 adb shell am start -n com.example.grainedemo.kmp/ai.graine.demo.MainActivity   # your graine.applicationId
 ```
 
-**iOS simulator** — still in `kmp/`; Xcode's first build phase runs Gradle with the same `local.properties`, so the
-same switch applies, and it needs JDK 17 or newer as the `java` it finds:
+**iOS simulator** — still in `kmp/`; Xcode's first build phase runs Gradle with the same `local.properties`, and it
+needs JDK 17 or newer as the `java` it finds:
 
 ```sh
-iosApp/use-local-sdk.sh            # GraineInApp from ../graine-sdk/ios: generates iosApp/iosAppLocal.xcodeproj
 SIM='iPhone 17'                    # any iOS 16+ simulator: xcrun simctl list devices available
-xcodebuild -project iosApp/iosAppLocal.xcodeproj -scheme GraineDemoKMP \
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme GraineDemoKMP \
   -destination "platform=iOS Simulator,name=$SIM" -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build
 xcrun simctl boot "$SIM"; open -a Simulator
 xcrun simctl install "$SIM" build/ios/Build/Products/Debug-iphonesimulator/GraineDemoKMP.app
 xcrun simctl launch "$SIM" com.example.grainedemo.kmp    # your PRODUCT_BUNDLE_IDENTIFIER
 ```
 
-Normally build `iosApp/iosApp.xcodeproj` (Swift Package Manager fetches GraineInApp 0.10.1) with no checkouts and no
-`graine.kmpSdkDir` — both SDKs come from the registries. On an iPhone: open the same project in Xcode, choose the iPhone,
-**Run**.
+`iosApp/iosApp.xcodeproj` takes GraineInApp 0.10.1 from Swift Package Manager — no checkouts, no `graine.kmpSdkDir`.
+With the optional source checkouts above, run `iosApp/use-local-sdk.sh` first and build the
+`iosApp/iosAppLocal.xcodeproj` it generates instead. On an iPhone: open `iosApp/iosApp.xcodeproj` in Xcode, choose
+the iPhone, **Run** (calls and rings need a real iPhone).
 
 **What to check**: sign in (a fictional user; the memory switch is yours), **Chat** → a starter → the agent answers;
 **Talk** → the voice bar connects and the agent greets you (an emulator's microphone is silent: you hear the

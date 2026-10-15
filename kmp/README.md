@@ -30,10 +30,10 @@ and voice bar as composables).
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**Until Maven Central has `ai.graine:inapp-kmp` 0.10.1** (and `ai.graine:inapp-android`, which its Android side
-builds on), build against the SDK's sources — the public repositories, tag `0.10.1`, side by side: the
-multiplatform SDK builds its Android side from the Android SDK in the folder `android` beside it. Until the
-`0.10.1` tag is on Swift Package Manager, the iOS app takes GraineInApp from a checkout too:
+**Optional: build against the SDK's sources** instead of the published artifacts (for example a fix that is not
+released yet) — the public repositories, tag `0.10.1`, side by side: the multiplatform SDK builds its Android
+side from the Android SDK in the folder `android` beside it, and the iOS app can take GraineInApp from a
+checkout too:
 
 ```sh
 # from the repository root
@@ -45,7 +45,7 @@ echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 
 (or `-Pgraine.kmpSdkDir=…`, or `GRAINE_KMP_SDK_DIR`). Gradle then builds the Kotlin Multiplatform SDK, and
 the Android SDK beside it, in place of the published artifacts, handing them `sdk.dir` from `local.properties`
-when `ANDROID_HOME` is not set; remove the line once Maven Central has them. The iOS app's Gradle phase reads the
+when `ANDROID_HOME` is not set; remove the line to go back to the published artifacts. The iOS app's Gradle phase reads the
 same `local.properties`; `iosApp/use-local-sdk.sh` generates `iosApp/iosAppLocal.xcodeproj`, the same app with
 GraineInApp from `../graine-sdk/ios` (`GRAINE_IOS_SDK_PATH` names another checkout).
 
@@ -62,9 +62,8 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 adb shell am start -n com.example.grainedemo.kmp/ai.graine.demo.MainActivity   # your graine.applicationId
 
 # iOS simulator: the build phase runs Gradle, so JDK 17 or newer must be the java Xcode finds
-iosApp/use-local-sdk.sh            # until the 0.10.1 tag is on Swift Package Manager; then iosApp/iosApp.xcodeproj
 SIM='iPhone 17'                    # any iOS 16+ simulator: xcrun simctl list devices available
-xcodebuild -project iosApp/iosAppLocal.xcodeproj -scheme GraineDemoKMP \
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme GraineDemoKMP \
   -destination "platform=iOS Simulator,name=$SIM" -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build
 xcrun simctl boot "$SIM"; open -a Simulator
 xcrun simctl install "$SIM" build/ios/Build/Products/Debug-iphonesimulator/GraineDemoKMP.app

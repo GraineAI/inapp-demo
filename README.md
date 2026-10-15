@@ -1,7 +1,13 @@
 # Graine Demo
 
-**Running it end to end — the dashboard, ringing, every platform, and a 10-minute demo script:
-[RUN-THE-DEMO.md](RUN-THE-DEMO.md).**
+**Start here.** This page: what the demo shows, what the SDK does for you, set up, run and test.
+[RUN-THE-DEMO.md](RUN-THE-DEMO.md): the dashboard, ringing, every platform step by step, and a 10-minute demo
+script. Kotlin Multiplatform: [kmp/README.md](kmp/README.md). The full guide, offline:
+[docs/integration-guide.pdf](docs/integration-guide.pdf). The documentation:
+[www.graine.ai/docs/in-app](https://www.graine.ai/docs/in-app).
+
+**This repository holds no keys, and the apps need no server of yours.** Each app holds only an agent's
+publishable key, read from a git-ignored file — see [Keys and security](#keys-and-security).
 
 One generic app, built for every platform the Graine in-app SDKs support, that shows everything they do:
 an assistant that knows who the user is and remembers them (only with their consent), sees the screen
@@ -66,6 +72,23 @@ All people, cards and orders are fictional.
    every screen and SDK call in shared code, the SDK's own chat, call screen and voice bar as composables.
 5. The help agent's key is optional: without it the Help screen says how to add one.
 
+## What the SDK does, and what your app does
+
+None of these apps contains call, push or audio code: the SDK does all of it. What each app adds is the setup
+below and the buttons that open the SDK's screens.
+
+| | The SDK does it | The app does it |
+|---|---|---|
+| **iPhone calls** | CallKit — the phone's own incoming-call screen (lock screen and closed app included), answer, decline, end, mute, speaker, Bluetooth — with the ringtone and icon from the agent's design; registers for VoIP pushes (PushKit) and gives the token to Graine; the call's audio session | Push Notifications and Background Modes (Audio, Voice over IP) capabilities, `NSMicrophoneUsageDescription`, `enableVoIPPushes()` at every launch. No AppDelegate code |
+| **Android calls** | The incoming call as a full-screen call notification that opens the SDK's call screen over the lock screen; the call's foreground service (type microphone) and audio; its own Firebase messaging service receives the call pushes and the token; its manifest brings the permissions and components | Firebase in the app (`google-services.json`, the Google services plugin, `firebase-messaging`); the SDK started in `Application.onCreate`, so a push can wake a closed app |
+| **Permissions** | Asks for the microphone, notifications (Android 13+) and the full-screen ring (Android 14+); `callSetupProblems` lists what is still missing, with the fix | Calls `requestCallPermissions()` once (these apps do it at sign-in) |
+| **Screens** | The chat, the voice bar, the call screen and the booking sheet, in the agent's design from the dashboard | Opens them from its buttons; while the app is open, shows the SDK's call screen during a call (`GraineCallScreen()` / `GraineCallView()` while `showsCallScreen`) |
+| **Calls on WebRTC** | Both directions, with a fallback inside the same call when a network blocks it | Adds the WebRTC module (`GraineInAppRTC`, `inapp-android-rtc`, or the React Native / Flutter build switch) |
+| **Who the user is** | Registers this phone for the signed-in user, releases it at sign-out; memory and conversations follow the user across phones | `identify(...)` after sign-in and at every launch, `identify(null)` at sign-out |
+
+The same split on every platform, with each one's exact setup, is in the [integration guide](https://www.graine.ai/docs/in-app/integration-guide)
+and [docs/integration-guide.pdf](docs/integration-guide.pdf).
+
 ## What you need
 
 - A Graine workspace with dashboard access.
@@ -90,12 +113,29 @@ All people, cards and orders are fictional.
 |---|---|---|
 | React Native | `react-native/.env` — `EXPO_PUBLIC_GRAINE_PUBLISHABLE_KEY` and `EXPO_PUBLIC_GRAINE_HELP_KEY`, or one key of each per pack | `react-native/.env.example` |
 | Flutter | `flutter/dart_defines.json` — `GRAINE_PUBLISHABLE_KEY` and `GRAINE_HELP_KEY`, or one key of each per pack | `flutter/dart_defines.example.json` |
-| iOS | `ios/Config.xcconfig` | `ios/Config.example.xcconfig` |
-| Android | `android/local.properties` | `android/local.properties.example` |
+| iOS | `ios/Config.xcconfig` — the keys, your Apple team and bundle ID | `ios/Config.example.xcconfig` |
+| Android | `android/local.properties` — the keys and your application id | `android/local.properties.example` |
+| Kotlin Multiplatform | `kmp/local.properties` (shared code and Android: the keys, your application id) and `kmp/iosApp/Config.xcconfig` (iOS: the same keys, your Apple team and bundle ID) | `kmp/local.properties.example`, `kmp/iosApp/Config.example.xcconfig` |
 | Website | `web/config.js` | `web/config.example.js` |
 
 Each pack is two agents (main and help). One main key for all three packs works for a quick look; give each
 pack its own keys to demo all three properly. The help key is optional.
+
+## Keys and security
+
+- **No keys are committed.** Every app reads its publishable key from the git-ignored file in the table above;
+  `.gitignore` also keeps out `google-services.json`, `GoogleService-Info.plist` and `*.p8`. No signing team is
+  committed either: set your own (`DEVELOPMENT_TEAM` in `Config.xcconfig`, or in Xcode).
+- **The publishable key (`pk_live_…`) is the only Graine credential an app holds.** It belongs to one agent,
+  works only where that agent's **Allowed domains** let it (`app://` for apps), and is made to ship inside your
+  app. Keep it out of public repositories all the same: whoever has it can talk to your agent, on your
+  workspace's credits. If one leaks, **Agent → Embed & Widgets → rotate the key**: the old key stops working at
+  once, so ship the new one in your app's next build.
+- **No secret goes in an app, and none is needed.** Chat, voice, calls, booking, memory and ringing all run on the
+  publishable key plus the signed-in user's ID that your app passes to the SDK.
+- **Push credentials** — the APNs `.p8` key and the Firebase service-account JSON — are uploaded only in the
+  dashboard (**Workspace settings → In-app calling**), where they are stored encrypted and never shown again.
+  They never go in an app or a repository.
 
 ## Run
 
@@ -124,27 +164,29 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 **Android** — `cd android && ./gradlew :app:installDebug` ([`android/README.md`](android/README.md)).
 
+**Kotlin Multiplatform** — Android: `cd kmp && ./gradlew :composeApp:installDebug`. iOS: open
+`kmp/iosApp/iosApp.xcodeproj`, choose your iPhone and run the **GraineDemoKMP** scheme
+([`kmp/README.md`](kmp/README.md)).
+
 **Website** — from `demo/`: `npx serve .`, then open `http://localhost:3000/web/` ([`web/README.md`](web/README.md)).
 
 ### Where the SDKs come from
 
-The committed manifests name the releases with the SDK's booking sheet: 0.10.1, React Native 0.44.1 and calls
-0.3.0. Until a registry has its version, build that app against the SDK's sources with its local-SDK switch —
-the sources of iOS, Android, Flutter and Kotlin Multiplatform are public repositories, tagged with each
-release:
+Every app uses the published release, **0.10.1** (React Native 0.44.1, calls 0.5.1). The sources of the iOS (and its
+WebRTC module), Android, Kotlin Multiplatform and Flutter SDKs are public repositories (MIT licence), tagged with each
+release.
 
-| App | Committed dependency | Registry | Live today | Until it is |
-|---|---|---|:-:|---|
-| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.10.1 | Swift Package Manager | yes | `ios/use-local-sdk.sh` → a checkout of `https://github.com/GraineAI/inapp-ios` ([`ios/README.md`](ios/README.md)) |
-| Android | `ai.graine:inapp-android:0.10.1` | Maven Central | yes | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `inapp-kmp-compose` 0.10.1 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` (Swift Package Manager) | Maven Central | yes | `graine.kmpSdkDir` → a checkout of `https://github.com/GraineAI/inapp-kmp`, with `inapp-android` beside it ([`kmp/README.md`](kmp/README.md)) |
-| Flutter | `graine_inapp: ^0.10.1` | pub.dev | yes | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
-| React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm | yes | `scripts/use-local-sdks.sh local rn` → the React Native SDK's sources (below) |
-| Website | the loader, `https://www.graine.ai/embed/v1.js` | — | **yes** | — |
+| App | Dependency | Registry |
+|---|---|---|
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.10.1 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
+| Android | `ai.graine:inapp-android:0.10.1` and `ai.graine:inapp-android-rtc:0.10.1` | Maven Central |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.10.1 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` 0.10.1, as above | Maven Central, Swift Package Manager |
+| Flutter | `graine_inapp: ^0.10.1` | pub.dev |
+| React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm |
+| Website | the loader, `https://www.graine.ai/embed/v1.js` | — |
 
-The SDK's CocoaPods pod (`GraineInApp`) is not on trunk yet either; these demos do not use it.
-
-Flutter and React Native switch with one script, from the repository root:
+To build against the SDK's sources instead (for example a fix that is not released yet), Flutter and React Native
+switch with one script, from the repository root:
 
 ```bash
 git clone --branch 0.10.1 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
@@ -156,8 +198,8 @@ node scripts/check-manifests.mjs          # fails while a manifest still points 
 ```
 
 Then `flutter pub get` in `flutter/` and `npm install` in `react-native/`. `GRAINE_SDK_FLUTTER_DIR` points the
-Flutter switch at another checkout. iOS has its own switch for an SDK that is not tagged yet
-(`ios/use-local-sdk.sh`); Android and Kotlin Multiplatform switch in their `local.properties`.
+Flutter switch at another checkout. iOS has its own switch (`ios/use-local-sdk.sh`); Android and Kotlin
+Multiplatform switch in their `local.properties`.
 
 ## Testing hosted ringing
 
@@ -253,6 +295,11 @@ asking: the chat starts fresh, and memory stays. Each pack has its own sentences
 - **Flutter keeps the previous use case** — that pack's agents have other keys; close and reopen the app.
 - **The Help screen asks for a key** — add the help agent's publishable key (see Set up), created from
   `agent-setup/<pack>/help-settings.md`.
+- **The assistant cannot hear you** — the microphone was not allowed. The apps ask through the SDK at sign-in;
+  turn it on under the phone's Settings → the app → Microphone. An emulator's microphone is silent: you hear
+  the agent, it hears nothing.
+- More, for every platform: [RUN-THE-DEMO.md → Troubleshooting](RUN-THE-DEMO.md#6-troubleshooting) and
+  [the documentation's testing page](https://www.graine.ai/docs/in-app/calling/testing).
 
 ## In this repository
 
@@ -264,5 +311,22 @@ asking: the chat starts fresh, and memory stays. Each pack has its own sentences
 | `flutter/` | Flutter app; every SDK call in `lib/graine_service.dart` |
 | `ios/` | SwiftUI app |
 | `android/` | Kotlin app |
+| `kmp/` | Kotlin Multiplatform (Compose Multiplatform) app for Android and iOS; every SDK call in shared code (`composeApp/src/commonMain`) |
 | `web/` | The website |
 | `scripts/` | Pack and kit checker (`check-usecases.mjs`), agent actions generator, SDK source switch |
+| `docs/` | The integration guide (`integration-guide.pdf`; online at [www.graine.ai/docs/in-app/integration-guide](https://www.graine.ai/docs/in-app/integration-guide)) and the screenshots |
+
+## Documentation and references
+
+| Topic | Where |
+|---|---|
+| In-app agents: overview, quickstart, set up from scratch | [Overview](https://www.graine.ai/docs/in-app) · [Quickstart](https://www.graine.ai/docs/in-app/quickstart) · [Set up everything from scratch](https://www.graine.ai/docs/in-app/setup-from-scratch) |
+| The integration guide, every platform | [Integration guide: apps and website](https://www.graine.ai/docs/in-app/integration-guide) |
+| Platforms | [Kotlin Multiplatform](https://www.graine.ai/docs/in-app/kotlin-multiplatform) · [iOS](https://www.graine.ai/docs/in-app/ios) · [Android](https://www.graine.ai/docs/in-app/android) · [Flutter](https://www.graine.ai/docs/in-app/flutter) · [React Native](https://www.graine.ai/docs/in-app/react-native) |
+| Who the user is, memory, variables | [Identity and users](https://www.graine.ai/docs/in-app/identity) · [Identify the user](https://www.graine.ai/docs/in-app/how-to/identity-and-memory) · [Memory](https://www.graine.ai/docs/in-app/memory) · [Variables](https://www.graine.ai/docs/in-app/variables) |
+| Calls | [In-app calling](https://www.graine.ai/docs/in-app/calling) · [How calls work](https://www.graine.ai/docs/in-app/calling/how-it-works) · [WhatsApp-style calls](https://www.graine.ai/docs/in-app/how-to/calls-from-the-app) · [Hosted ringing (push)](https://www.graine.ai/docs/in-app/calling/hosted) · [Scheduled calls](https://www.graine.ai/docs/in-app/calling/scheduled) · [Test and release](https://www.graine.ai/docs/in-app/calling/testing) |
+| Booking | [Booking from your app with the SDK's sheet](https://www.graine.ai/docs/in-app/how-to/booking-sheet) |
+| More than one agent | [Use more than one agent in your app](https://www.graine.ai/docs/in-app/multiple-agents) |
+| Store review, privacy, going live | [Permissions](https://www.graine.ai/docs/in-app/permissions) · [Privacy and security](https://www.graine.ai/docs/in-app/privacy) · [Going live](https://www.graine.ai/docs/in-app/go-live) |
+| Reference | [SDK reference](https://www.graine.ai/docs/in-app/api-reference) · [Changelog](https://www.graine.ai/docs/in-app/changelog) |
+| SDK sources | [inapp-ios](https://github.com/GraineAI/inapp-ios) · [inapp-ios-rtc](https://github.com/GraineAI/inapp-ios-rtc) · [inapp-android](https://github.com/GraineAI/inapp-android) · [inapp-kmp](https://github.com/GraineAI/inapp-kmp) · [inapp-flutter](https://github.com/GraineAI/inapp-flutter) |

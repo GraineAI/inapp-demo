@@ -25,9 +25,10 @@ needed only to change it.
 
 **The SDK comes from Swift Package Manager**: `GraineDemo.xcodeproj` takes `GraineInApp` from
 `https://github.com/GraineAI/inapp-ios`, from 0.10.1 (a public repository), and Xcode fetches the package on
-first open. (The SDK's CocoaPods pod is not on trunk yet; this demo does not use it.)
+first open. (The SDK is on CocoaPods too, as `GraineInApp`; this demo uses Swift Package Manager.)
 
-**Until 0.10.1 is tagged there**, build against SDK sources on your machine with the local-SDK switch:
+**To build against SDK sources on your machine instead** (for example a fix that is not released yet), use the
+local-SDK switch:
 
 ```sh
 ./use-local-sdk.sh                                  # sources at ../../inapp-ios: a checkout beside this repository
