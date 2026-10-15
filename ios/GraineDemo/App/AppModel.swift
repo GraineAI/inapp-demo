@@ -357,9 +357,7 @@ final class AppModel: ObservableObject {
      */
     func book(_ agent: DemoAgent = .main) async {
         guard user != nil else { return }
-        // Off: say what to set rather than doing nothing (the SDK keeps booking off until Graine can ring this
-        // phone and knows who is signed in).
-        guard canBook(agent) else { notice = CallText.bookingUnavailable; return }
+        // Always the SDK's own sheet: while booking is off for this phone, the sheet itself says why.
         guard let booked = await graine.presentBooking(reason: pack?.bookingReason(agent), agent: agent) else { return }
         calls.removeAll { $0.agent == agent && $0.call.id == booked.id }
         calls.append(AgentCall(agent: agent, call: booked))

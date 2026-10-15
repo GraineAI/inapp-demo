@@ -1,6 +1,6 @@
 /** A few plain building blocks, so every screen looks like one app. */
 import type { ReactNode } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useDemo } from "../state/DemoState";
 import type { ChipTone } from "../logic/scheduling";
 import { usePalette } from "./theme";
@@ -89,8 +89,8 @@ export const BOOKING_UNAVAILABLE = "Booking needs, in Graine UI: users may book 
 export function BookingButton({ label, available, onPress, kind }: { label: string; available: boolean; onPress: () => void; kind?: "primary" | "secondary" }) {
   return (
     <View>
-      {/* Always tappable: off, a tap says what to set (the SDK keeps booking off until Graine can ring this phone and knows who is signed in). */}
-      <Button label={label} kind={kind} onPress={available ? onPress : () => Alert.alert(label, BOOKING_UNAVAILABLE)} />
+      {/* Always the SDK's own sheet: while booking is off for this phone, the sheet itself says why. */}
+      <Button label={label} kind={kind} onPress={onPress} />
       {available ? null : <Body muted style={{ marginTop: 6 }}>{BOOKING_UNAVAILABLE}</Body>}
     </View>
   );

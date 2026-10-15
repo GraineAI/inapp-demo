@@ -107,7 +107,7 @@ void main() {
     expect(find.byKey(const Key('cancel-c1')), findsNothing);
   });
 
-  testWidgets('booking: closing the sheet books nothing; while the SDK says no, the button says why and a tap explains', (tester) async {
+  testWidgets("booking: closing the sheet books nothing; while the SDK says no, the line says why and a tap still opens the SDK's sheet", (tester) async {
     final (_, service) = await start(tester);
     await signInFirst(tester);
     await tester.tap(find.text('Calls'));
@@ -124,9 +124,8 @@ void main() {
     expect(tester.widget<FilledButton>(find.byKey(const Key('open-booking'))).onPressed, isNotNull);
     expect(find.text("Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID."), findsOneWidget);
     await tester.tap(find.byKey(const Key('open-booking')));
-    await tester.pump();
-    expect(service.bookingSheets, hasLength(1), reason: 'no sheet while the SDK says no');
-    expect(find.descendant(of: find.byType(SnackBar), matching: find.text(bookingUnavailable)), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(service.bookingSheets, hasLength(2), reason: "the SDK's sheet opens, and says why itself");
   });
 
   testWidgets("booking from Home: the pack's button opens the same sheet, then the next call shows", (tester) async {

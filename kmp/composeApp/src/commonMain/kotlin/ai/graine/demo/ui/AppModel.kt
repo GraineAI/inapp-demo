@@ -393,9 +393,7 @@ class AppModel(
     fun book(agent: DemoAgent = DemoAgent.MAIN) {
         val pack = pack ?: return
         if (user == null || bookingOpen) return
-        // Off: say what to set rather than doing nothing (the SDK keeps booking off until Graine can ring this
-        // phone and knows who is signed in).
-        if (!canBook(agent)) { notice = CallText.BOOKING_UNAVAILABLE; return }
+        // Always the SDK's own sheet: while booking is off for this phone, the sheet itself says why.
         bookingOpen = true
         scope.launch {
             val result = attempt { graine.presentBooking(pack.reasons(agent).firstOrNull(), agent) }

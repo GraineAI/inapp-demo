@@ -85,11 +85,8 @@ class BookingButton extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<bool>(
         valueListenable: available,
         builder: (context, on, _) {
-          // Always tappable: off, a tap says what to set (the SDK keeps booking off until Graine can ring this
-          // phone and knows who is signed in).
-          void press() => on
-              ? onPressed()
-              : ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text(bookingUnavailable)));
+          // Always the SDK's own sheet: while booking is off for this phone, the sheet itself says why.
+          void press() => onPressed();
           return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
             filled
                 ? FilledButton(key: buttonKey, onPressed: press, child: Text(label))

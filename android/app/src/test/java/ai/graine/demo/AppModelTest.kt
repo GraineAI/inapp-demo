@@ -359,12 +359,13 @@ class AppModelTest {
         assertTrue("nothing was booked, so the list is not read again", model.calls.isEmpty())
     }
 
-    @Test fun aBookingButtonThatIsOffOpensNoSheet() {
+    @Test fun aBookingButtonThatIsOffStillOpensTheSdksSheet() {
+        // The SDK's sheet says why booking is off; the app never swallows the tap.
         fake.bookable = mutableSetOf()
         model.activity = Activity()
         model.signIn(riya, true)
         model.book()
-        assertTrue(fake.bookingSheets.isEmpty())
+        assertEquals(1, fake.bookingSheets.size)
     }
 
     // ── scheduled calls (the main agent) ──

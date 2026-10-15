@@ -67,7 +67,7 @@ class AppModelTest {
     }
 
     @Test
-    fun theBookingButtonOpensTheSdksSheetOnlyWhenTheSdkSaysItCan() = runTest {
+    fun theBookingButtonAlwaysOpensTheSdksSheet() = runTest {
         val fake = FakeGraineClient().apply { agents = listOf(DemoAgent.MAIN, DemoAgent.HELP) }
         val (m, _) = model(fake)
         m.signIn(TestPack.pack.users[0], memory = true)
@@ -87,14 +87,15 @@ class AppModelTest {
         assertEquals(DemoAgent.HELP, fake.bookings.last().second)
         assertEquals(listOf("main:c1"), m.upcomingCalls.map { it.id })
         assertNull(m.notice)
-        // The SDK says no (booking off, Graine does not ring this phone, or nobody identified): off, and nothing opens.
+        // The SDK says no (booking off, Graine does not ring this phone, or nobody identified): the button still opens
+        // the SDK's sheet, which says why itself.
         fake.bookable[DemoAgent.MAIN] = false
         fake.onSessionReady?.invoke()
         assertFalse(m.canBook(DemoAgent.MAIN))
         assertTrue(m.canBook(DemoAgent.HELP), "each agent answers for itself")
         m.book()
         advanceUntilIdle()
-        assertEquals(2, fake.bookings.size)
+        assertEquals(3, fake.bookings.size, "the SDK's sheet opens and explains itself")
         // An agent that cannot be reached: the SDK's refusal in words.
         fake.bookingResult = Result.failure(GraineException(GraineErrorCode.Network, "offline"))
         m.book(DemoAgent.HELP)

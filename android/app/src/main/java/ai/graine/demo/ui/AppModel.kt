@@ -388,9 +388,7 @@ class AppModel(
     fun book(agent: DemoAgent = DemoAgent.MAIN) {
         val front = activity ?: return
         if (user == null) return
-        // Off: say what to set rather than doing nothing (the SDK keeps booking off until Graine can ring this
-        // phone and knows who is signed in).
-        if (!canBook(agent)) { notice = CallText.BOOKING_UNAVAILABLE; return }
+        // Always the SDK's own sheet: while booking is off for this phone, the sheet itself says why.
         graine.presentBooking(front, pack?.bookingReason(agent), agent) { booked ->
             if (booked == null) return@presentBooking
             calls = calls.filter { !(it.agent == agent && it.call.id == booked.id) } + AgentCall(agent, booked)
