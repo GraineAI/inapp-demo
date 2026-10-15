@@ -29,7 +29,7 @@ All people, cards and orders are fictional.
   <img src="docs/screenshots/ios-chat-check-in.webp" width="200" alt="The chat on iOS: the daily check-in card above the conversation">
   <img src="docs/screenshots/ios-scheduled-calls.webp" width="200" alt="Check-in calls on iOS: Scheduled with Cancel, Answered, Missed and No device">
 </p>
-<!-- SCREENSHOT: the booking sheet — reason chips, quick times, date and time picker, "Asia/Kolkata · Tomorrow, 6:00 pm" (Android) -->
+<!-- SCREENSHOT: the SDK's booking sheet — day chips, the time, "Asia/Kolkata · Thu 15 Oct, 6:00 PM", "What's it about?" filled with the pack's reason (Android) -->
 <img src="docs/screenshots/web-memory-erase.webp" width="820" alt="The website: what Asha remembers about you, with the erase confirmation">
 
 <sub>Taken with the offline demo (`scripts/offline-server.mjs`; for iOS see <a href="ios/README.md#offline-demo">ios/README.md</a>): no workspace and no key. More in <a href="docs/screenshots/">docs/screenshots</a>.</sub>
@@ -48,7 +48,7 @@ All people, cards and orders are fictional.
 | Screen context on every screen | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | App actions the assistant runs: open a screen, open an item, change an item's status | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Call the assistant (a phone-style call) | ✓ | ✓ | ✓ | ✓ | — | ✓ |
-| Book a call: reason, quick times, date and time pickers in 5-minute steps, the time zone shown | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Book a call — the SDK's booking sheet (day, time, the time zone, an optional note) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Scheduled calls with status chips (scheduled, ringing, answered, completed, declined, missed, expired, no device) and Cancel | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Hosted ringing — Graine rings the booked call | ✓ ³ | ✓ ³ | ✓ ³ | ✓ ³ | rings the user's phone app | ✓ ³ |
 | Call outcomes logged in the app, with the agent each call was with | ✓ | ✓ | ✓ | ✓ | — | ✓ |
@@ -128,27 +128,26 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 ### Where the SDKs come from
 
-The committed manifests name the published releases (0.7.0; React Native 0.41.0 and calls 0.2.0). Swift
-Package Manager and npm have them today; Maven Central, pub.dev and CocoaPods come next. Until a registry has
-its version, build that app against the SDK's sources with its local-SDK switch — the sources of iOS, Android,
-Flutter and Kotlin Multiplatform are public repositories tagged `0.7.0`:
+The committed manifests name the releases with the SDK's booking sheet: 0.8.0, React Native 0.42.0 and calls
+0.3.0. Until a registry has its version, build that app against the SDK's sources with its local-SDK switch —
+the sources of iOS, Android, Flutter and Kotlin Multiplatform are public repositories, tagged with each
+release:
 
 | App | Committed dependency | Registry | Live today | Until it is |
 |---|---|---|:-:|---|
-| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.7.0 | Swift Package Manager | **yes** | — |
-| Android | `ai.graine:inapp-android:0.7.0` | Maven Central | not yet | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios`, from 0.8.0 | Swift Package Manager | not yet | `ios/use-local-sdk.sh` → a checkout of `https://github.com/GraineAI/inapp-ios` ([`ios/README.md`](ios/README.md)) |
+| Android | `ai.graine:inapp-android:0.8.0` | Maven Central | not yet | `graine.sdkDir` → a checkout of `https://github.com/GraineAI/inapp-android` ([`android/README.md`](android/README.md)) |
 | Kotlin Multiplatform | `ai.graine:inapp-kmp` and `inapp-kmp-compose` 0.7.0; iOS: `GraineInApp` (Swift Package Manager) | Maven Central | not yet (iOS SDK: yes) | `graine.kmpSdkDir` → a checkout of `https://github.com/GraineAI/inapp-kmp`, with `inapp-android` beside it ([`kmp/README.md`](kmp/README.md)) |
-| Flutter | `graine_inapp: ^0.7.0` | pub.dev | not yet | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
-| React Native | `@graineai/inapp-react-native` ^0.41.0, `@graineai/inapp-react-native-calls` ^0.2.0 | npm | **yes** | — |
+| Flutter | `graine_inapp: ^0.8.0` | pub.dev | not yet | `scripts/use-local-sdks.sh local flutter` → a checkout of `https://github.com/GraineAI/inapp-flutter` |
+| React Native | `@graineai/inapp-react-native` ^0.42.0, `@graineai/inapp-react-native-calls` ^0.3.0 | npm | not yet | `scripts/use-local-sdks.sh local rn` → the React Native SDK's sources (below) |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — | **yes** | — |
 
 The SDK's CocoaPods pod (`GraineInApp`) is not on trunk yet either; these demos do not use it.
 
-Flutter switches with one script, from the repository root (React Native has the same switch, for an SDK
-version that is not on npm yet):
+Flutter and React Native switch with one script, from the repository root:
 
 ```bash
-git clone --branch 0.7.0 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
+git clone --branch 0.8.0 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
 scripts/use-local-sdks.sh local flutter    # flutter/pubspec_overrides.yaml → ../inapp-flutter
 GRAINE_SDK_RN_DIR=/path/to/sdk scripts/use-local-sdks.sh local rn
                                           # the folder holding the React Native SDK's inapp/ and inapp-calls/
@@ -174,8 +173,9 @@ works on **real devices**, with the app installed from your own build:
    Flutter: `GraineMessagingService.kt`). An app that already has a Firebase messaging service forwards from
    that one instead — see the comment at the top of either file.
 3. On the phone, sign in (allow the microphone and, on Android 13+, notifications), open **Calls →
-   Schedule a consultation call**, choose a reason and **In 15 minutes** (or the earliest time in the picker),
-   and **Book**. The call appears as **Scheduled** with **Cancel**.
+   Schedule a consultation call**: the SDK's booking sheet opens, its "What's it about?" already filled with
+   the pack's reason. Pick today and a time a few minutes ahead, tap **Book call**, then **Done**. The call
+   appears as **Scheduled** with **Cancel**.
 4. Lock the phone or close the app. At the booked time it rings like a phone call, named as set under Calls &
    scheduling (for example "Asha · Graine Care"). Answer: the assistant opens with the booking's reason.
 5. Back in the app, the call moves to **Answered**, then **Completed**; *Call activity on this phone* lists the
@@ -197,15 +197,20 @@ works on **real devices**, with the app installed from your own build:
 - [ ] Actions: "open my medicines" navigates; "I have taken my metformin" marks it **Taken today**; asking
       again says it is already done; another person's item is refused.
 - [ ] **Call Asha** places a phone-style call; the assistant knows the user called.
-- [ ] Booking: the reasons and quick times show; times outside what the agent allows are disabled; the date
-      and time pickers move in 5-minute steps inside the allowed window; the time zone is shown; the booked
-      call appears with **Scheduled** and **Cancel**; Cancel → **Cancelled**.
-- [ ] A refused booking is explained in plain words (for example a time outside the agent's calling hours).
+- [ ] Booking: the pack's booking button opens the SDK's booking sheet in the agent's design — day chips,
+      the time in 5-minute steps inside what the agent allows, the time zone, "What's it about?" filled with
+      the pack's reason; **Book call** → "Booked — …" → **Done**; the call appears with **Scheduled** and
+      **Cancel**; Cancel → **Cancelled**.
+- [ ] With Calls & scheduling → **Users, from your app** off, the booking button stays on screen, disabled,
+      with "Booking isn't available for this agent."
+- [ ] A refused booking is explained in the sheet, in one line under **Book call** (for example a time outside
+      the agent's calling hours).
 - [ ] Hosted ringing, as above.
 - [ ] Two agents: **Help** opens the help agent (for example *Billing & appointments help*) — it already
       knows who the user is (no second sign-in); its chat and voice are its own; opening Help ends the main
-      agent's voice and chat. Book a call from Help with one of its reasons → it appears under Scheduled
-      calls named after the help agent, next to the main agent's calls; Cancel works on either. *Call activity*
+      agent's voice and chat. Book a call from Help (its own sheet, starting with the help agent's reason) →
+      it appears under Scheduled calls named after the help agent, next to the main agent's calls; Cancel
+      works on either. *Call activity*
       names the agent of every ring and outcome.
 - [ ] Memory never crosses people — the script below.
 
@@ -238,7 +243,9 @@ asking: the chat starts fresh, and memory stays. Each pack has its own sentences
   or the key belongs to another agent.
 - **Memory stays empty** — Memory is off for the agent, *Who is the user?* is not the pack's field, the user
   turned memory off, or the user is already on two other devices (Devices per user).
-- **"Does not take bookings from the app"** — Calls & scheduling → Users, from your app is off.
+- **The booking button is disabled ("Booking isn't available for this agent")** — Calls & scheduling → Users,
+  from your app is off, the workspace has no in-app calling for this platform (Workspace settings → In-app
+  calling), or the person is not identified with the pack's field (**Who is the user?**).
 - **A booked call never rings** — In-app calling is not verified for this bundle ID or package, the phone is a
   simulator, or (Android) the build has no `google-services.json`.
 - **Flutter keeps the previous use case** — that pack's agents have other keys; close and reopen the app.

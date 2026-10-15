@@ -109,26 +109,12 @@ class PackAction {
   final List<PackActionArg> args;
 }
 
-/// A one-tap time: [inMinutes] from now, or a [day] (`today` / `tomorrow`) and a local [time] ("HH:MM").
-class QuickTime {
-  const QuickTime({required this.label, this.inMinutes, this.day, this.time});
-
-  factory QuickTime.fromJson(Map<String, dynamic> j) =>
-      QuickTime(label: j['label'] as String, inMinutes: j['inMinutes'] as int?, day: j['day'] as String?, time: j['time'] as String?);
-
-  final String label;
-  final int? inMinutes;
-  final String? day;
-  final String? time;
-}
-
 class PackCall {
   const PackCall({
     required this.callName,
     required this.title,
     required this.bookLabel,
     required this.reasons,
-    required this.quickTimes,
     required this.placeReason,
   });
 
@@ -137,16 +123,21 @@ class PackCall {
         title: j['title'] as String,
         bookLabel: j['bookLabel'] as String,
         reasons: [for (final r in j['reasons'] as List<dynamic>) r as String],
-        quickTimes: [for (final q in j['quickTimes'] as List<dynamic>) QuickTime.fromJson(q as Map<String, dynamic>)],
         placeReason: j['placeReason'] as String,
       );
 
   final String callName;
   final String title;
+
+  /// The button that opens the SDK's booking sheet: "Schedule a consultation call".
   final String bookLabel;
+
+  /// What a booking is about: the first starts the sheet's "What's it about?" line, which the person may change.
   final List<String> reasons;
-  final List<QuickTime> quickTimes;
   final String placeReason;
+
+  /// What the booking sheet's "What's it about?" starts with.
+  String? get bookingReason => reasons.firstOrNull;
 }
 
 class HomeCard {
@@ -196,6 +187,9 @@ class PackAgent {
   final String? placeReason;
   final String? bookLabel;
   final List<String> reasons;
+
+  /// What the booking sheet's "What's it about?" starts with, when this agent has reasons of its own.
+  String? get bookingReason => reasons.firstOrNull;
 }
 
 class UseCasePack {

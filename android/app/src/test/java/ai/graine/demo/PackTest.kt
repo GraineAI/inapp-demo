@@ -43,11 +43,10 @@ class BundledPackTest {
             for (card in pack.home.cards) assertNotNull("${pack.id}: card ${card.id}", DemoScreen.parse(card.target, pack))
             assertTrue(pack.id, pack.call.bookLabel.isNotBlank())
             assertTrue(pack.id, pack.call.reasons.size in 2..4 && pack.call.reasons.all { it.length <= 120 })
-            assertTrue(pack.id, pack.call.quickTimes.isNotEmpty())
             // Every shipped pack names both agents; the main one repeats the pack's own name.
             assertEquals(pack.id, pack.agentName, pack.profile(DemoAgent.MAIN)?.name)
             assertNotNull(pack.id, pack.profile(DemoAgent.HELP))
-            assertTrue(pack.id, pack.reasons(DemoAgent.HELP).isNotEmpty())
+            assertTrue(pack.id, pack.bookingReason(DemoAgent.MAIN) != null && pack.bookingReason(DemoAgent.HELP) != null)
         }
     }
 
@@ -78,10 +77,8 @@ class PackModelTest {
 
     @Test fun bookingFieldsRead() {
         assertEquals("Schedule a consultation call", pack.call.bookLabel)
-        assertEquals(listOf("In 15 minutes", "Tomorrow 10:00", "Today 19:00"), pack.call.quickTimes.map { it.label })
-        assertEquals(15, pack.call.quickTimes[0].inMinutes)
-        assertEquals("tomorrow", pack.call.quickTimes[1].day)
-        assertEquals("10:00", pack.call.quickTimes[1].time)
+        // The booking sheet starts with the pack's first reason.
+        assertEquals("Weekly check-in", pack.bookingReason(DemoAgent.MAIN))
     }
 
     @Test fun theTwoAgentsComeFromThePackOrFallBack() {
@@ -103,6 +100,7 @@ class PackModelTest {
         // The help desk books and calls with its own words; the main agent with the pack's.
         assertEquals("Book a call with billing", two.bookLabel(DemoAgent.HELP))
         assertEquals(listOf("Billing question", "Change an appointment"), two.reasons(DemoAgent.HELP))
+        assertEquals("Billing question", two.bookingReason(DemoAgent.HELP))
         assertEquals("billing_question", two.placeReason(DemoAgent.HELP))
         assertEquals("Schedule a consultation call", two.bookLabel(DemoAgent.MAIN))
         assertEquals("patient_question", two.placeReason(DemoAgent.MAIN))

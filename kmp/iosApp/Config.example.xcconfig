@@ -5,7 +5,7 @@ DEVELOPMENT_TEAM = ABCDE12345
 
 // Your bundle id. It must match the iOS app registered under Workspace settings → In-app calling
 // for Graine to ring this app (its VoIP topic is <bundle id>.voip).
-PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.grainedemo
+PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.grainedemo.kmp
 
 // The agent's publishable key (Agent → Embed & Widgets). Add app:// to the agent's Allowed domains.
 GRAINE_PUBLISHABLE_KEY = pk_live_replace_me

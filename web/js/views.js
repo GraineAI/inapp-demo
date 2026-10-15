@@ -119,74 +119,28 @@ function callRow(ctx, call, { showAgent = true } = {}) {
 }
 
 /**
- * The booking card: what rings where, the agent's booking button, and the panel it opens — the
- * pack's quick times, the picker inside the SDK's window, one of the agent's reasons. The same
- * card books with the main agent on Scheduled calls and with the help agent in Help.
+ * The booking card: what rings where, and the agent's booking button, which opens the widget's own
+ * booking sheet (the day, the time, the time zone and an optional note, in the agent's design). The
+ * button is enabled while the loader says this visitor can book (`bookable`); otherwise it stays on the
+ * page, disabled, with one line saying why. The same card books with the main agent on Scheduled calls
+ * and with the help agent in Help.
  *
- *   spec: { agentName, callName, bookLabel, reasons, quickTimes, gap }
+ *   spec: { agentName, callName, bookLabel, gap }
  */
 function bookingCard(ctx, spec) {
-  const { pack, user, booking, rules, now } = ctx;
-  const reasons = Array.isArray(spec.reasons) ? spec.reasons : [];
-  const quick = L.quickTimeOptions(spec.quickTimes, now, rules);
-  const when = L.fromLocalInputValue(booking.when);
-  const label = spec.bookLabel || "Book a call";
-  const panelOpen = booking.open && !spec.gap;
-
-  const form = h("form", {
-    id: "book-form", class: "form book-panel", novalidate: true, "aria-label": label,
-    onSubmit: (e) => { e.preventDefault(); ctx.on.book(); },
-  },
-    quick.length ? h("fieldset", { class: "field" },
-      h("legend", { class: "field-label" }, "When"),
-      h("div", { class: "chips chips-tight" }, quick.map((q) => h("button", {
-        type: "button", class: "chip chip-button", "data-quick": String(q.index),
-        "aria-pressed": booking.quick === q.index ? "true" : "false", disabled: q.disabled,
-        title: q.at ? L.formatWhen(q.at, now) : null,
-        onClick: () => ctx.on.pickQuick(q.index),
-      }, q.label)))) : null,
-    h("div", { class: "field" },
-      h("label", { for: "book-when", class: "field-label" }, "Date and time"),
-      h("input", {
-        id: "book-when", type: "datetime-local", class: "input", value: booking.when, step: "300",
-        // The picker shows the SDK's window, in 5-minute steps; the SDK checks the time again when booking.
-        min: L.toLocalInputValue(L.ceilToStep(rules ? rules.earliest(now) : now, 5)),
-        max: rules ? L.toLocalInputValue(rules.latest(now)) : null,
-        required: true, "aria-describedby": "book-zone",
-        onInput: (e) => ctx.on.bookingInput({ when: e.target.value }),
-        onChange: (e) => ctx.on.bookingInput({ when: e.target.value }),
-      }),
-      h("p", { class: "help", id: "book-zone" }, L.zoneLine(now, when, rules))),
-    reasons.length ? h("fieldset", { class: "field" },
-      h("legend", { class: "field-label" }, "Reason"),
-      h("div", { class: "chips chips-tight" }, reasons.map((r, i) => h("label", {
-        class: `chip chip-choice${r === booking.reason ? " is-chosen" : ""}`, for: `book-reason-${i}`,
-      },
-        h("input", {
-          type: "radio", name: "book-reason", id: `book-reason-${i}`, value: r, checked: r === booking.reason,
-          onChange: () => ctx.on.bookingReason(r),
-        }),
-        h("span", null, r))))) : null,
-    booking.error ? h("p", { class: "issue", role: "alert", id: "book-error" }, booking.error) : null,
-    h("div", { class: "actions-row" },
-      button(booking.sending ? "Booking…" : "Book the call", {
-        variant: "primary", type: "submit", id: "book-submit", iconName: "phone", disabled: booking.sending,
-      }),
-      button("Close", { variant: "link", id: "book-close", onClick: ctx.on.toggleBooking })));
-
+  const { pack, user, bookable } = ctx;
+  const off = !!spec.gap || !bookable;
   return card(null,
     h("p", { class: "note", id: "rings-phone" }, icon("info", 16), h("span", null,
       `${spec.agentName} calls ${L.firstName(user.name)} on their phone, not in this browser: the call rings the ` +
       `${pack.appTitle} app on the phone where ${L.firstName(user.name)} is signed in, as “${spec.callName}”. ` +
       "A browser cannot receive calls. With no phone signed in, the call ends as “No device”.")),
     h("div", { class: "actions-row" },
-      button(label, {
-        variant: panelOpen ? "secondary" : "primary", iconName: "phone", id: "book-open",
-        "aria-expanded": panelOpen ? "true" : "false", "aria-controls": panelOpen ? "book-form" : null,
-        disabled: !!spec.gap, onClick: ctx.on.toggleBooking,
+      button(spec.bookLabel || "Book a call", {
+        variant: "primary", iconName: "phone", id: "book-open", disabled: off,
+        "aria-describedby": off && !spec.gap ? "book-unavailable" : null, onClick: ctx.on.book,
       })),
-    issue(spec.gap),
-    panelOpen ? form : null);
+    spec.gap ? issue(spec.gap) : bookable ? null : h("p", { class: "help", id: "book-unavailable" }, L.BOOKING_UNAVAILABLE));
 }
 
 function callList(ctx, title, items, empty, options) {
@@ -358,10 +312,9 @@ export function itemsView(ctx) {
 // ── Scheduled calls ─────────────────────────────────────────────────────────
 
 export function callsView(ctx) {
-  const { pack, calls, rules } = ctx;
+  const { pack, calls } = ctx;
   const gap = assistantGap(ctx, "scheduledCalls");
-  // The SDK's rules decide whether booking is open; the server decides when they are not known.
-  const bookGap = assistantGap(ctx, "scheduleCall") || (rules && !rules.usersCanBook ? L.messageFor("scheduling_off") : null);
+  const bookGap = assistantGap(ctx, "openBooking");
   const { upcoming, past } = L.orderCalls(calls.list);
   const help = ctx.agents.help;
 
@@ -370,10 +323,8 @@ export function callsView(ctx) {
       help && ctx.helpConfigured ? `Calls with ${ctx.agents.main.name} and with ${help.name}, each named.` : null),
     bookingCard(ctx, {
       agentName: ctx.agents.main.name,
-      callName: (rules && rules.callName) || pack.call.callName,
+      callName: pack.call.callName,
       bookLabel: pack.call.bookLabel,
-      reasons: pack.call.reasons,
-      quickTimes: pack.call.quickTimes,
       gap: bookGap,
     }),
     h("div", { class: "list-tools" },
@@ -399,7 +350,7 @@ export function callsView(ctx) {
  * in config.js it says how to add one.
  */
 export function helpView(ctx) {
-  const { pack, calls, rules, assistant } = ctx;
+  const { pack, calls, assistant } = ctx;
   const help = ctx.agents.help;
   const main = ctx.agents.main;
   if (!help) {
@@ -423,9 +374,8 @@ export function helpView(ctx) {
   const switchGap = !assistant.canSwitch
     ? `The Graine loader on this page cannot switch to ${help.name} yet, so the assistant here is still ${main.name}. See the notice at the top of the page.`
     : null;
-  const bookGap = switchGap || assistantGap(ctx, "scheduleCall")
-    || (switching ? `Switching the assistant to ${help.name}…` : null)
-    || (rules && !rules.usersCanBook ? L.messageFor("scheduling_off") : null);
+  const bookGap = switchGap || assistantGap(ctx, "openBooking")
+    || (switching ? `Switching the assistant to ${help.name}…` : null);
   const mine = L.orderCalls(calls.list.filter((c) => c.agent === "help"));
 
   return h("div", { class: "view view-narrow" },
@@ -443,10 +393,8 @@ export function helpView(ctx) {
         h("button", { type: "button", class: "chip chip-button", disabled: !!switchGap, onClick: () => ctx.on.starter(s) }, s)))),
     bookingCard(ctx, {
       agentName: help.name,
-      callName: (!switching && rules && rules.callName) || help.callName,
+      callName: help.callName,
       bookLabel: help.bookLabel,
-      reasons: help.reasons,
-      quickTimes: pack.call.quickTimes,
       gap: bookGap,
     }),
     calls.helpError ? issue(`Calls with ${help.name}: ${calls.helpError}`) : null,

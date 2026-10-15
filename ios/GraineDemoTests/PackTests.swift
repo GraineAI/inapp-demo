@@ -38,7 +38,8 @@ final class BundledPackTests: XCTestCase {
             // Every shipped pack names both agents; the main one repeats the pack's own name.
             XCTAssertEqual(pack.profile(.main)?.name, pack.agentName, pack.id)
             XCTAssertNotNil(pack.profile(.help), pack.id)
-            XCTAssertFalse(pack.reasons(.help).isEmpty, pack.id)
+            XCTAssertNotNil(pack.bookingReason(.main), pack.id)
+            XCTAssertNotNil(pack.bookingReason(.help), pack.id)
         }
     }
 
@@ -90,6 +91,9 @@ final class PackModelTests: XCTestCase {
         XCTAssertEqual(two.placeReason(.help), "billing_question")
         XCTAssertEqual(two.bookLabel(.main), "Schedule a consultation call")
         XCTAssertEqual(two.reasons(.main), ["Weekly check-in", "Medicine review"])
+        // The booking sheet starts with each agent's first reason.
+        XCTAssertEqual(two.bookingReason(.help), "Billing question")
+        XCTAssertEqual(two.bookingReason(.main), "Weekly check-in")
         XCTAssertEqual(two.placeReason(.main), "patient_question")
         // Without the block, the help desk falls back to the pack's.
         XCTAssertEqual(pack.bookLabel(.help), "Schedule a consultation call")

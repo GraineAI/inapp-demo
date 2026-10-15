@@ -20,17 +20,18 @@ void main() {
     expect(packIds.first, defaultPackId);
   });
 
-  test('every pack parses, with the booking fields the sheet needs', () {
+  test('every pack parses, with its booking buttons and reasons', () {
     for (final id in packIds) {
       final pack = UseCasePack.fromJson(jsonDecode(File('assets/usecases/$id.json').readAsStringSync()) as Map<String, dynamic>);
       expect(pack.id, id);
       expect(pack.users, hasLength(3));
       expect(pack.call.bookLabel, isNotEmpty);
       expect(pack.call.reasons.length, inInclusiveRange(2, 4));
-      expect(pack.call.quickTimes, isNotEmpty);
+      expect(pack.call.bookingReason, pack.call.reasons.first);
       expect(pack.mainAgent.name, pack.agentName);
       expect(pack.helpAgent.name, isNot(pack.agentName));
       expect(pack.helpAgent.reasons.length, inInclusiveRange(2, 4));
+      expect(pack.helpAgent.bookingReason, pack.helpAgent.reasons.first);
       expect(pack.helpAgent.bookLabel, isNotNull);
       for (final u in pack.users) {
         expect(pack.rowsFor(u.id), isNotEmpty, reason: '${u.id} has rows');

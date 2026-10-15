@@ -20,8 +20,8 @@ struct CallEvent: Equatable {
 
 /**
  * EVERYTHING THE APP ASKS OF THE GRAINE SDK. The scheduling and memory types
- * are the SDK's own (`GraineScheduledCall`, `GraineSchedulingRules`,
- * `GraineMemory`, `GraineServiceError`): booking rules, local pre-checks and
+ * are the SDK's own (`GraineScheduledCall`, `GraineMemory`,
+ * `GraineServiceError`): booking — the sheet, its rules and its checks — and
  * status logic live in the SDK, and the app only presents them.
  *
  * Two agents: what belongs to one agent (its chat, voice, calls, actions and
@@ -52,8 +52,10 @@ protocol GraineClient: AnyObject {
     func unregisterActions()
 
     // Scheduled calls, per agent
-    func schedulingRules(_ agent: DemoAgent) -> GraineSchedulingRules
-    func scheduleCall(at date: Date, reason: String?, agent: DemoAgent) async throws -> GraineScheduledCall
+    /// The agent can be booked from the app now (the SDK's `bookingAvailable`). Read again after sign-in and when a session arrives.
+    func bookingAvailable(_ agent: DemoAgent) -> Bool
+    /// The SDK's booking sheet for the agent, its "What's it about?" starting with `reason`: the call booked, or nil when closed without booking.
+    func presentBooking(reason: String?, agent: DemoAgent) async -> GraineScheduledCall?
     func scheduledCalls(agent: DemoAgent) async throws -> [GraineScheduledCall]
     /// The call's status afterwards (cancelled).
     func cancelScheduledCall(id: String, agent: DemoAgent) async throws -> GraineCallStatus

@@ -41,22 +41,15 @@ final class CallTextTests: XCTestCase {
         XCTAssertNil(CallText.next([GraineScheduledCall(id: "x", at: nil, status: .scheduled)]))
     }
 
-    func testSuggestedTimeIsAtLeastHalfAnHourOutAndNeverBeforeTheEarliest() {
-        XCTAssertEqual(CallText.suggestedTime(now: now, rules: GraineSchedulingRules(usersCanBook: true)), TestClock.at(10, 45))
-        XCTAssertEqual(CallText.suggestedTime(now: now, rules: GraineSchedulingRules(usersCanBook: true, minLeadMinutes: 120)), TestClock.at(12, 15))
-        XCTAssertEqual(CallText.suggestedTime(now: TestClock.at(9, 30), rules: GraineSchedulingRules(usersCanBook: true)), TestClock.at(10, 0))
-    }
-
     func testRefusalsInWords() {
-        let rules = GraineSchedulingRules(usersCanBook: true, minLeadMinutes: 15, maxDaysAhead: 7, maxPendingPerUser: 2)
         func say(_ code: GraineErrorCode, _ message: String = "x") -> String {
-            CallText.message(GraineServiceError(code: code, message: message), rules: rules)
+            CallText.message(GraineServiceError(code: code, message: message))
         }
-        XCTAssertEqual(say(.tooSoon), "Choose a time at least 15 minutes from now.")
-        XCTAssertEqual(say(.tooFar), "Choose a time within the next 7 days.")
-        XCTAssertEqual(say(.tooManyPending), "You already have 2 upcoming calls. Cancel one to book another.")
-        XCTAssertEqual(say(.schedulingOff), "Booking calls from the app is turned off for this assistant.")
-        XCTAssertTrue(say(.outsideWindow).contains("calling hours"))
+        XCTAssertEqual(say(.notFound), "That call no longer exists. Pull to refresh.")
+        XCTAssertEqual(say(.identityRequired), "Sign in to use this.")
+        XCTAssertEqual(say(.network), "No connection. Check your network and try again.")
+        // A booking's refusals are the SDK's booking sheet's to word; anywhere else, the SDK's sentence.
+        XCTAssertEqual(say(.outsideWindow, "Outside calling hours."), "Outside calling hours.")
         // A code without words of its own: the SDK's sentence.
         XCTAssertEqual(say(.unavailable, "Try again shortly."), "Try again shortly.")
         XCTAssertEqual(say(.unknown("new_code"), " "), "Something went wrong. Try again.")

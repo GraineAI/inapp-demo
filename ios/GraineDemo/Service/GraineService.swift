@@ -150,13 +150,13 @@ final class GraineService: GraineClient {
 
     // MARK: - Scheduled calls
 
-    func schedulingRules(_ agent: DemoAgent) -> GraineSchedulingRules {
-        sdk(agent)?.schedulingRules ?? GraineSchedulingRules()
+    func bookingAvailable(_ agent: DemoAgent) -> Bool {
+        sdk(agent)?.bookingAvailable ?? false
     }
 
-    func scheduleCall(at date: Date, reason: String?, agent: DemoAgent) async throws -> GraineScheduledCall {
-        // The SDK checks the rules (booking on, earliest, latest) before it sends anything.
-        try await required(agent).scheduleCall(at: date, reason: reason)
+    func presentBooking(reason: String?, agent: DemoAgent) async -> GraineScheduledCall? {
+        // The SDK draws the sheet over whatever is on screen, in the agent's design, and books it.
+        await sdk(agent)?.presentBooking(reason: reason)
     }
 
     func scheduledCalls(agent: DemoAgent) async throws -> [GraineScheduledCall] {

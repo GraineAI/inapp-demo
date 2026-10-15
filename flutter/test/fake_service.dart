@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:graine_demo/graine_service.dart';
 import 'package:graine_demo/usecases.dart';
@@ -26,9 +27,16 @@ class FakeGraineService implements GraineService {
   ];
   int forgets = 0;
   final Map<DemoAgent, List<GraineScheduledCall>> calls = <DemoAgent, List<GraineScheduledCall>>{DemoAgent.main: [], DemoAgent.help: []};
-  final List<(DateTime at, String? reason, DemoAgent agent)> bookings = <(DateTime, String?, DemoAgent)>[];
   final List<(String reason, DemoAgent agent)> placed = <(String, DemoAgent)>[];
-  GraineException? failNextBooking;
+
+  /// Whether each agent can be booked now, as the SDK would say; a test flips them.
+  final Map<DemoAgent, ValueNotifier<bool>> bookable = {DemoAgent.main: ValueNotifier<bool>(true), DemoAgent.help: ValueNotifier<bool>(true)};
+
+  /// Every booking sheet opened: the reason it started with, and the agent.
+  final List<(String? reason, DemoAgent agent)> bookingSheets = <(String?, DemoAgent)>[];
+
+  /// The sheet books this (and Graine then lists it); null: the person closes it without booking.
+  DateTime? bookAt = DateTime.now().add(const Duration(days: 1));
   GraineSchedulingRules rules = const GraineSchedulingRules(usersCanBook: true, minLeadMinutes: 5, maxDaysAhead: 14, callName: 'Asha · Graine Care');
 
   @override
@@ -64,13 +72,13 @@ class FakeGraineService implements GraineService {
   GraineSchedulingRules rulesOf(DemoAgent agent) => rules;
 
   @override
-  Future<GraineScheduledCall> scheduleCall(DateTime at, String? reason, {DemoAgent agent = DemoAgent.main}) async {
-    final fail = failNextBooking;
-    if (fail != null) {
-      failNextBooking = null;
-      throw fail;
-    }
-    bookings.add((at, reason, agent));
+  ValueListenable<bool> bookingAvailable(DemoAgent agent) => bookable[agent]!;
+
+  @override
+  Future<GraineScheduledCall?> openBooking(BuildContext context, {String? reason, DemoAgent agent = DemoAgent.main}) async {
+    bookingSheets.add((reason, agent));
+    final at = bookAt;
+    if (at == null) return null;
     final list = calls[agent]!;
     final call = GraineScheduledCall(
         id: '${agent == DemoAgent.help ? 'h' : 'c'}${list.length + 1}', at: at.toUtc(), reason: reason, source: GraineCallSource.app, sourceName: 'sdk');
@@ -141,7 +149,4 @@ class FakeGraineService implements GraineService {
 
   @override
   Future<void> requestPermissions() async {}
-
-  @override
-  String get timeZoneLabel => 'Asia/Kolkata';
 }

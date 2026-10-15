@@ -1,5 +1,6 @@
 package ai.graine.demo.ui
 
+import ai.graine.demo.domain.CallText
 import ai.graine.demo.domain.DemoAgent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,10 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +33,7 @@ import androidx.compose.ui.unit.dp
 fun HelpScreen(model: AppModel) {
     val profile = model.profile(DemoAgent.HELP)
     val name = profile?.name ?: "Help"
-    var booking by remember { mutableStateOf(false) }
+    LaunchedEffect(model.user?.id) { model.refreshBooking() }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -67,14 +65,17 @@ fun HelpScreen(model: AppModel) {
                 }
             }
             DemoCard("Book a call") {
+                val canBook = model.canBook(DemoAgent.HELP)
                 Text(
-                    "$name can call you at a time you choose. Its calls are listed with ${model.agentName}'s on the Calls tab.",
+                    if (canBook) "$name can call you at a time you choose. Its calls are listed with ${model.agentName}'s on the Calls tab."
+                    else CallText.BOOKING_UNAVAILABLE,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("help_book_hint"),
                 )
                 TextButton(
-                    onClick = { booking = true },
-                    enabled = model.rulesFor(DemoAgent.HELP).usersCanBook,
+                    onClick = { model.book(DemoAgent.HELP) },
+                    enabled = canBook && !model.bookingOpen,
                     modifier = Modifier.testTag("help_book"),
                 ) { Text(model.pack?.bookLabel(DemoAgent.HELP) ?: "Schedule a call") }
             }
@@ -95,6 +96,4 @@ fun HelpScreen(model: AppModel) {
         }
         Spacer(Modifier.height(72.dp))
     }
-
-    if (booking) BookingSheet(model, DemoAgent.HELP) { booking = false }
 }

@@ -23,12 +23,12 @@ screen). All people and records are fictional.
 
 The packs are bundled from `../usecases/*.json` at build time (task `bundleUseCases`); edit them there.
 
-**Maven Central does not have `ai.graine:inapp-android:0.7.0` yet**, so until it does, build against the
-SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.7.0`. Beside this
-repository:
+**The app depends on `ai.graine:inapp-android:0.8.0`. Until Maven Central has it**, build against the
+SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.8.0` once it is
+published (or any checkout of the SDK's sources). Beside this repository:
 
 ```sh
-git clone --branch 0.7.0 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
+git clone --branch 0.8.0 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
 ```
 
 and in `local.properties`:
@@ -38,14 +38,14 @@ graine.sdkDir=../../inapp-android
 ```
 
 (or `-Pgraine.sdkDir=…`, or `GRAINE_ANDROID_SDK_DIR`). Gradle then builds the SDK from that checkout in place
-of the published artifact. Remove the line once Maven Central has 0.7.0.
+of the published artifact. Remove the line once Maven Central has 0.8.0.
 
 ## What is where
 
 | | |
 |---|---|
 | `app/src/main/java/ai/graine/demo/graine/GraineService.kt` | The one file that calls the SDK (identify, memory, screen context, actions, scheduling, voice, chat, calls, FCM) |
-| `…/domain/` | The pack model, the Items list, call and booking presentation — no SDK rules re-implemented |
+| `…/domain/` | The pack model, the Items list, call presentation — no SDK rules re-implemented |
 | `…/ui/AppModel.kt` | The app's state and the agent's actions, run by effect in the pack's words |
 | `…/ui/*Screen.kt` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Call activity |
 | `…/DemoMessagingService.kt` | Hands the FCM token and every data message to the SDK first |
@@ -57,9 +57,19 @@ of the published artifact. Remove the line once Maven Central has 0.7.0.
 Home, Chat and the Items screen talk to the main agent; the **Help** tab talks to the help desk — its own
 chat (`GraineChatView.source = GraineInApp.get("help").chat`), voice bar (`GraineAgentBarView.graine`) and
 phone-style call (`calls.startCall(…, agent = "help")`). The user signs in once and both agents know who
-they are; **Calls** lists the calls booked with either agent, each with the agent's name, and the booking
-sheet asks which agent should call. `GraineService.kt` initialises the help desk with
+they are; **Calls** lists the calls booked with either agent, each with the agent's name. Each agent is
+booked with its own button: the pack's booking button on **Calls** books the main agent, the help desk's on
+**Help** books the help desk. `GraineService.kt` initialises the help desk with
 `GraineInApp.init(app, config, "help")`.
+
+## Booking a call
+
+Booking is the SDK's own booking sheet — the day, the time, the phone's time zone and an optional note,
+drawn in the agent's design — so the app has no booking screen of its own. The pack's booking button
+(`call.bookLabel`, or the help desk's) calls `presentBooking(activity, reason)` with the pack's first reason,
+which starts the sheet's "What's it about?". The button is enabled while the agent's `bookingAvailable` is
+true; otherwise it stays on screen, disabled, with "Booking isn't available for this agent." After a booking,
+the **Calls** list is read again; there each call has its status and, while it can be, **Cancel**.
 
 ## Calls on a real device
 
@@ -68,8 +78,8 @@ sheet asks which agent should call. `GraineService.kt` initialises the help desk
    when the app starts and FCM hands it a token.
 2. Allow notifications when asked (Android 13+). On Android 14+, Home shows **Calls on this phone** if
    full-screen calls are off: **Open settings** goes straight to the switch.
-3. Sign in as one of the pack's users, open **Calls**, tap the pack's booking button and book a call a few
-   minutes ahead (the quick times help). Lock the phone: it rings full-screen with the pack's call name.
+3. Sign in as one of the pack's users, open **Calls**, tap the pack's booking button and, in the booking
+   sheet, book a call a few minutes ahead. Lock the phone: it rings full-screen with the pack's call name.
    Answer, talk, hang up; **Call activity** shows what the SDK reported, and the call's status chip changes.
 4. **Call** on Home places a call the other way: the user calls the assistant.
 

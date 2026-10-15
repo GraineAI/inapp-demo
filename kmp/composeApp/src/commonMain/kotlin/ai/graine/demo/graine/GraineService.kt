@@ -18,23 +18,21 @@ import ai.graine.inapp.kmp.GraineField
 import ai.graine.inapp.kmp.GraineFieldStatus
 import ai.graine.inapp.kmp.GraineMemory
 import ai.graine.inapp.kmp.GraineScheduledCall
-import ai.graine.inapp.kmp.GraineSchedulingRules
 import ai.graine.inapp.kmp.GraineScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
 
 /** What the SDK reported about a native call: placed, incoming, answered, declined, missed, ended or failed. [agent]: whose call, when known. */
 data class CallEvent(val callId: String, val event: String, val detail: String?, val agent: DemoAgent? = null)
 
 /**
  * EVERYTHING THE APP ASKS OF THE GRAINE SDK. The scheduling and memory types
- * are the SDK's own (GraineScheduledCall, GraineSchedulingRules, GraineMemory,
- * GraineException): booking rules, local pre-checks and status logic live in
- * the SDK, and the app only presents them.
+ * are the SDK's own (GraineScheduledCall, GraineMemory, GraineException): the
+ * booking sheet, its rules and refusals, and status logic live in the SDK, and
+ * the app only presents what it returns.
  *
  * Two agents: what belongs to one agent (its chat, voice, actions and
  * scheduled calls) takes [DemoAgent]; what the SDK shares between them (who
@@ -62,10 +60,11 @@ interface GraineClient {
     fun registerAction(name: String, agent: DemoAgent, handler: (Map<String, Any?>) -> DemoActionResult)
     fun unregisterActions()
 
-    // Scheduled calls, per agent
-    fun schedulingRules(agent: DemoAgent): GraineSchedulingRules
-    /** The SDK refuses a time outside that agent's rules before anything is sent. */
-    suspend fun scheduleCall(at: Instant, reason: String?, agent: DemoAgent): GraineScheduledCall
+    // Booking and scheduled calls, per agent
+    /** The SDK's own rule: Graine rings this phone, the agent lets users book, and the user is identified. Read as it is now. */
+    fun bookingAvailable(agent: DemoAgent): Boolean
+    /** The SDK's booking sheet, in the agent's design, with [reason] filled in. The booked call, or null when closed without booking. */
+    suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall?
     suspend fun scheduledCalls(agent: DemoAgent): List<GraineScheduledCall>
     /** The call's status afterwards (cancelled). */
     suspend fun cancelScheduledCall(id: String, agent: DemoAgent): GraineCallStatus
@@ -174,12 +173,13 @@ class GraineService private constructor() : GraineClient {
         registered.clear()
     }
 
-    // ── scheduled calls ─────────────────────────────────────────────────────
+    // ── booking and scheduled calls ─────────────────────────────────────────
 
-    override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = sdk(agent)?.schedulingRules ?: GraineSchedulingRules()
+    override fun bookingAvailable(agent: DemoAgent): Boolean = sdk(agent)?.bookingAvailable ?: false
 
-    override suspend fun scheduleCall(at: Instant, reason: String?, agent: DemoAgent): GraineScheduledCall =
-        (sdk(agent) ?: throw noAgent()).scheduleCall(at, reason)
+    // The day, the time, the time zone, "What's it about?" and its refusals are the sheet's own.
+    override suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall? =
+        (sdk(agent) ?: throw noAgent()).presentBooking(reason)
 
     override suspend fun scheduledCalls(agent: DemoAgent): List<GraineScheduledCall> = (sdk(agent) ?: throw noAgent()).scheduledCalls()
 

@@ -25,8 +25,8 @@ final class OfflineGraineClient: GraineClient {
     func setScreen(_ context: DemoScreenContext?) {}
     func registerAction(_ name: String, agent: DemoAgent, handler: @escaping @MainActor ([String: Any]) -> DemoActionResult) {}
     func unregisterActions() {}
-    func schedulingRules(_ agent: DemoAgent) -> GraineSchedulingRules { GraineSchedulingRules() }
-    func scheduleCall(at date: Date, reason: String?, agent: DemoAgent) async throws -> GraineScheduledCall { throw offline }
+    func bookingAvailable(_ agent: DemoAgent) -> Bool { false }
+    func presentBooking(reason: String?, agent: DemoAgent) async -> GraineScheduledCall? { nil }
     func scheduledCalls(agent: DemoAgent) async throws -> [GraineScheduledCall] { throw offline }
     func cancelScheduledCall(id: String, agent: DemoAgent) async throws -> GraineCallStatus { throw offline }
     func attachVoiceEngine() {}

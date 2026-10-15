@@ -7,12 +7,13 @@
  *                    help: { agentId: "offline-help", publishableKey: "pk_test_offline_help" } };
  *
  * Everything lives in this page's memory; nothing is sent anywhere. It answers in the SDK types
- * (WIRE.md → "SDK types"): booked calls with isUpcoming / canCancel, `schedulingRules` with
- * earliest() / latest() (the platform's defaults: 5 minutes to 14 days ahead, 3 upcoming per
- * person), local checks in scheduleCall before the "server" ones. Calling load() again with
- * another agent switches the page's agent (MULTI-AGENT.md → Website): the widget is replaced, who
- * is signed in stays. Each agent keeps its own calls and memories; the public calls routes
- * (calls/list, calls/cancel) are answered here too, for the agent that is not on the page.
+ * (WIRE.md → "SDK types"): booked calls with isUpcoming / canCancel; `bookingAvailable` (the agent
+ * lets visitors book and someone is identified) and `openBooking({ reason })`, which draws a small
+ * booking sheet in its panel — a time 30 minutes out, "What's it about?" and Book call — where the
+ * real widget draws its own. Calling load() again with another agent switches the page's agent
+ * (MULTI-AGENT.md → Website): the widget is replaced, who is signed in stays. Each agent keeps its
+ * own calls and memories; the public calls routes (calls/list, calls/cancel) are answered here too,
+ * for the agent that is not on the page.
  *
  * Its panel shows what the page tells the assistant, runs the page's actions and "remembers" what
  * you type. `window.__graineFake` is for the headless check; no real loader has it.
@@ -37,7 +38,8 @@
   var firstKey = null; // the first agent loaded: the main one
   var widget = null;   // { panel, launcher } while mounted
   var started = false;
-  var RULES = { usersCanBook: true, minLeadMinutes: 5, maxDaysAhead: 14, maxPendingPerUser: 3 };
+  var RULES = { usersCanBook: true, maxPendingPerUser: 3 };
+  var bookingAsk = null; // { resolve } while the sheet openBooking() opened is up
 
   function fail(code, message, status) {
     var e = new Error(message);
@@ -175,7 +177,47 @@
     drawPanel();
   }
 
+  // ── The booking sheet (what the real widget draws in its panel) ───────────
+
+  /** The sheet openBooking() opened is over: with the call booked there, or null. */
+  function settleBooking(call) {
+    var ask = bookingAsk;
+    bookingAsk = null;
+    var sheet = widget && widget.panel.querySelector("[data-fake=booking]");
+    if (sheet) sheet.remove();
+    if (ask) ask.resolve(call);
+  }
+
+  function drawBooking(reason) {
+    var panel = widget.panel;
+    var at = new Date(Math.ceil((Date.now() + 30 * 60 * 1000) / (5 * 60 * 1000)) * 5 * 60 * 1000);
+    var sheet = el("section", { "data-fake": "booking", "aria-label": "Book a call (offline preview)" });
+    sheet.style.cssText = "margin:0 0 12px;padding:12px;border:1px solid #d0d5dd;border-radius:10px";
+    var note = el("input", { "data-fake": "booking-reason", "aria-label": "What's it about? (optional)", maxlength: "120" });
+    note.value = reason || "";
+    var line = el("p", { "data-fake": "booking-error", style: "margin:6px 0 0;color:#b42318" }, "");
+    var book = el("button", { type: "button", "data-fake": "booking-book" }, "Book call");
+    var close = el("button", { type: "button", "data-fake": "booking-close" }, "Close");
+    book.addEventListener("click", function () {
+      var b = here(), list = (calls[b] = calls[b] || []);
+      // The "server's" check, worded in the sheet as the widget words it.
+      if (pending(list) >= RULES.maxPendingPerUser) { line.textContent = "You already have 3 calls booked — cancel one first"; return; }
+      var call = { id: "call_" + (++seq), at: at.toISOString(), status: "scheduled", source: "sdk", reason: note.value.trim() || null };
+      list.push(call);
+      log.push(["booked", { at: call.at, reason: call.reason }, current && current.agentId]);
+      settleBooking(sdkCall(call));
+    });
+    close.addEventListener("click", function () { settleBooking(null); });
+    sheet.append(
+      el("p", { style: "margin:0 0 6px;font-weight:600" }, "Book a call"),
+      el("p", { "data-fake": "booking-time", style: "margin:0 0 6px" }, "At " + at.toLocaleString()),
+      note, book, close, line);
+    panel.prepend(sheet);
+    panel.style.display = "block";
+  }
+
   function unmount() {
+    settleBooking(null);   // the agent is leaving the page: a sheet still open ends unbooked
     if (widget) { widget.panel.remove(); widget.launcher.remove(); }
     widget = null;
     started = false;
@@ -222,17 +264,8 @@
     switchesAgents: true,
     get installId() { return INSTALL_ID; },
 
-    /** From the session: booking is off until it has answered (the SDK types' rule). */
-    get schedulingRules() {
-      var r = started ? RULES : { usersCanBook: false, minLeadMinutes: 5, maxDaysAhead: 14, maxPendingPerUser: 3 };
-      return {
-        usersCanBook: r.usersCanBook, minLeadMinutes: r.minLeadMinutes, maxDaysAhead: r.maxDaysAhead,
-        maxPendingPerUser: r.maxPendingPerUser, ringTimeoutSeconds: 45, callName: null, hostedRinging: true,
-        platforms: ["ios", "android"],
-        earliest: function (now) { return new Date((now || new Date()).getTime() + r.minLeadMinutes * 60 * 1000); },
-        latest: function (now) { return new Date((now || new Date()).getTime() + r.maxDaysAhead * 24 * 3600 * 1000); },
-      };
-    },
+    /** Off until the session has answered (the widget mounted); then the agent lets visitors book and someone is identified. */
+    get bookingAvailable() { return started && RULES.usersCanBook && identity !== null; },
 
     load: function (opts) {
       loads.push({ agentId: opts && opts.agentId });
@@ -274,21 +307,15 @@
         return { id: m.id, text: m.text, createdAt: m.createdAt ? new Date(m.createdAt) : null, updatedAt: m.updatedAt ? new Date(m.updatedAt) : null };
       }));
     },
-    scheduleCall: function (request) {
-      log.push(["scheduleCall", JSON.parse(JSON.stringify(request)), current && current.agentId]);
-      var at = new Date(request && request.at);
-      if (isNaN(at.getTime())) return fail("invalid_request", "`at` must be a Date, an ISO-8601 time or a timestamp.");
-      // Local checks first, against the rules, before anything would be sent.
-      var rules = window.GraineAgent.schedulingRules, now = new Date();
-      if (!rules.usersCanBook) return fail("scheduling_off", "This agent does not take bookings.");
-      if (at < rules.earliest(now)) return fail("too_soon", "That time is before schedulingRules.earliest().");
-      if (at > rules.latest(now)) return fail("too_far", "That time is after schedulingRules.latest().");
-      // Then the "server's".
-      var b = here(), list = (calls[b] = calls[b] || []);
-      if (pending(list) >= RULES.maxPendingPerUser) return fail("too_many_pending", "You already have 3 upcoming calls. Cancel one to book another.");
-      var call = { id: "call_" + (++seq), at: at.toISOString(), status: "scheduled", source: "sdk", reason: (request.reason || null) };
-      list.push(call);
-      return Promise.resolve(sdkCall(call));
+    /** The booking sheet, in the panel: resolves with the call booked there, or null when it is closed. One at a time. */
+    openBooking: function (options) {
+      var reason = options && typeof options.reason === "string" ? options.reason.trim().slice(0, 120) : "";
+      log.push(["openBooking", { reason: reason || null }, current && current.agentId]);
+      settleBooking(null);
+      return new Promise(function (resolve) {
+        bookingAsk = { resolve: resolve };
+        if (widget) drawBooking(reason); else settleBooking(null);
+      });
     },
     scheduledCalls: function () {
       log.push(["scheduledCalls", current && current.agentId]);
@@ -325,6 +352,8 @@
     seedMemories: function (value, texts, key) {
       texts.slice().reverse().forEach(function (t) { remember(key || firstKey, value, t); });
     },
+    /** The agent's "Users, from your app" switch: off, nobody can book from here. */
+    setUsersCanBook: function (on) { RULES.usersCanBook = !!on; },
     seedCalls: function (value, list, key) {
       var b = bucket(key || firstKey, value);
       calls[b] = (calls[b] || []).concat(list.map(function (c) {

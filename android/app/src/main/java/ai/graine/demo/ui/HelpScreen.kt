@@ -1,5 +1,6 @@
 package ai.graine.demo.ui
 
+import ai.graine.demo.domain.CallText
 import ai.graine.demo.domain.DemoAgent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,10 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +32,6 @@ import androidx.compose.ui.unit.dp
 fun HelpScreen(model: AppModel) {
     val profile = model.profile(DemoAgent.HELP)
     val name = profile?.name ?: "Help"
-    var booking by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -72,11 +68,21 @@ fun HelpScreen(model: AppModel) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Booked with the help desk's own agent, in the SDK's sheet.
+                val canBook = model.canBook(DemoAgent.HELP)
                 TextButton(
-                    onClick = { booking = true },
-                    enabled = model.rulesFor(DemoAgent.HELP).usersCanBook,
+                    onClick = { model.book(DemoAgent.HELP) },
+                    enabled = canBook,
                     modifier = Modifier.testTag("help_book"),
-                ) { Text(model.pack?.bookLabel(DemoAgent.HELP) ?: "Schedule a call") }
+                ) { Text(model.pack?.bookLabel(DemoAgent.HELP) ?: "Book a call") }
+                if (!canBook) {
+                    Text(
+                        CallText.BOOKING_UNAVAILABLE,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("help_booking_unavailable"),
+                    )
+                }
             }
             Text(
                 "Signed in once: $name knows who you are, and ${model.agentName} does too.",
@@ -94,6 +100,4 @@ fun HelpScreen(model: AppModel) {
         }
         Spacer(Modifier.height(72.dp))
     }
-
-    if (booking) BookingSheet(model, DemoAgent.HELP) { booking = false }
 }

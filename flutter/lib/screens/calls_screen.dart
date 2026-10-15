@@ -4,11 +4,11 @@ import '../graine_service.dart';
 import '../logic/presentation.dart';
 import '../state.dart';
 import '../ui.dart';
-import 'booking_sheet.dart';
 
 /// Scheduled calls: what is booked with either agent and what became of each ring (status chips, the agent's
-/// name, Cancel where the SDK says canCancel), the booking sheet, and the call engine's own log of rings and
-/// outcomes. The calls, their rules and every check come from the SDK; this screen only presents them.
+/// name, Cancel where the SDK says canCancel), the pack's booking button (the SDK's booking sheet), and the
+/// call engine's own log of rings and outcomes. The calls, their rules and every check come from the SDK;
+/// this screen only presents them.
 class CallsScreen extends StatefulWidget {
   const CallsScreen({super.key, required this.active});
 
@@ -48,18 +48,18 @@ class _CallsScreenState extends State<CallsScreen> {
       final merged = mergeAgentCalls<GraineScheduledCall>(main, help, at: (c) => c.at, upcoming: (c) => c.isUpcoming);
       if (mounted) setState(() { _calls = merged; _loadError = null; });
     } catch (e) {
-      if (mounted) setState(() => _loadError = describeError(e, state.pack, state.service.rulesOf(DemoAgent.main)));
+      if (mounted) setState(() => _loadError = describeError(e, state.pack));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  /// The pack's booking button: the SDK's booking sheet, starting with the pack's reason; then the list again.
   Future<void> _book(DemoState state) async {
     setState(() { _message = null; _error = null; });
-    final call = await showBookingSheet(context);
+    final call = await state.service.openBooking(context, reason: state.pack.call.bookingReason);
     if (call == null || !mounted) return;
-    final at = call.at;
-    setState(() => _message = at == null ? 'Booked.' : 'Booked: ${zoneLabel(at, state.service.timeZoneLabel, DateTime.now())}.');
+    setState(() => _message = 'Call with ${state.pack.agentName} booked for ${formatWhen(call.at, DateTime.now())}.');
     await _load();
   }
 
@@ -71,7 +71,7 @@ class _CallsScreenState extends State<CallsScreen> {
       if (mounted) setState(() => _message = 'Call ${statusChip(status.wire).label.toLowerCase()}.');
       await _load();
     } catch (e) {
-      if (mounted) setState(() => _error = describeError(e, state.pack, state.service.rulesOf(agent)));
+      if (mounted) setState(() => _error = describeError(e, state.pack));
     }
   }
 
@@ -98,7 +98,12 @@ class _CallsScreenState extends State<CallsScreen> {
             Text('${pack.agentName} calls this phone at the time you book. It rings like a phone call, even when the app is closed.',
                 style: theme.textTheme.bodyMedium),
             const SizedBox(height: 12),
-            FilledButton(key: const Key('open-booking'), onPressed: () => _book(state), child: Text(pack.call.bookLabel)),
+            BookingButton(
+              buttonKey: const Key('open-booking'),
+              label: pack.call.bookLabel,
+              available: state.service.bookingAvailable(DemoAgent.main),
+              onPressed: () => _book(state),
+            ),
             if (_message != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_message!, key: const Key('calls-message'))),
             if (_error != null) ErrorText(_error!),
             const SectionLabel('Upcoming'),

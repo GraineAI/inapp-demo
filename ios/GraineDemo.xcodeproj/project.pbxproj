@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		016D838DF8D89716EB525CB2 /* ChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A85861443B4BEE49785E66C /* ChatScreen.swift */; };
 		0D8927356E6284518D6EE7FB /* PackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DB23F28558FF91DBBE0239 /* PackTests.swift */; };
-		0F1E396664497C5FD3BE19F6 /* Booking.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2DBCEB2F63C26FF65B5C13A /* Booking.swift */; };
 		12AFD5E53499A52455873705 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2D9A4F6685D1F711E4F611 /* HomeView.swift */; };
 		1A14B8B2D889C80545B3FD79 /* GraineService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9EF033BDB460243A471D01 /* GraineService.swift */; };
 		1C98430D466902CBF64B1232 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E9650E997787CCFC183F5F /* ProfileView.swift */; };
@@ -25,7 +24,6 @@
 		5F9A21272F7D3D3386063DE6 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1A42B0FF88E02B3844E059 /* MemoryView.swift */; };
 		64AA863EB3670D529FF50760 /* GraineDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5AB17C17913986D645C91E /* GraineDemoApp.swift */; };
 		66F78752B6A60934E59FAC5E /* ItemsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */; };
-		7A2CD3A6DF8BF50BDBDD55D5 /* BookingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F34C81A15AA58D843F8469 /* BookingTests.swift */; };
 		9A705855C9520B1D038F259B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 059A14E0E851E5703D4E08EE /* RootView.swift */; };
 		9EA37EE97184A0F9FE23A27F /* UseCasePack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */; };
 		A388A7B82AAD75537EBEADC2 /* TestPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14AD8F42B3B833E36F79726 /* TestPack.swift */; };
@@ -61,7 +59,6 @@
 		12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UseCasePack.swift; sourceTree = "<group>"; };
 		12E9650E997787CCFC183F5F /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeGraineClient.swift; sourceTree = "<group>"; };
-		19F34C81A15AA58D843F8469 /* BookingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookingTests.swift; sourceTree = "<group>"; };
 		1A9EF033BDB460243A471D01 /* GraineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraineService.swift; sourceTree = "<group>"; };
 		1D8D05B091CF72CF0A247A56 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		2C4BECBB0340824ADB0364BE /* CallPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallPresentation.swift; sourceTree = "<group>"; };
@@ -84,7 +81,6 @@
 		BD2D9A4F6685D1F711E4F611 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C14AD8F42B3B833E36F79726 /* TestPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestPack.swift; sourceTree = "<group>"; };
 		C7B9A81DFBDD56BA44595F25 /* TestClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestClock.swift; sourceTree = "<group>"; };
-		D2DBCEB2F63C26FF65B5C13A /* Booking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Booking.swift; sourceTree = "<group>"; };
 		D7056895217B2BA10FB24769 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		DE597B4E99CACACF746AAE06 /* CallTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallTextTests.swift; sourceTree = "<group>"; };
 		DEC1FD8F885E03DD06EDC7E4 /* CallLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallLogView.swift; sourceTree = "<group>"; };
@@ -204,7 +200,6 @@
 			isa = PBXGroup;
 			children = (
 				094D57CAF2FFDD55BB57856B /* AppConfig.swift */,
-				D2DBCEB2F63C26FF65B5C13A /* Booking.swift */,
 				950AAFE1489AFA6CAAE2D52F /* CallLog.swift */,
 				2C4BECBB0340824ADB0364BE /* CallPresentation.swift */,
 				AC3F6103F2EECDF926D16106 /* DemoAgent.swift */,
@@ -220,7 +215,6 @@
 			isa = PBXGroup;
 			children = (
 				D7056895217B2BA10FB24769 /* AppModelTests.swift */,
-				19F34C81A15AA58D843F8469 /* BookingTests.swift */,
 				DE597B4E99CACACF746AAE06 /* CallTextTests.swift */,
 				1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */,
 				77DB23F28558FF91DBBE0239 /* PackTests.swift */,
@@ -336,7 +330,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				54D4F5375A57ECCEAA5EDDDF /* AppModelTests.swift in Sources */,
-				7A2CD3A6DF8BF50BDBDD55D5 /* BookingTests.swift in Sources */,
 				CBBF52FA4DA3D9C0A772CC75 /* CallTextTests.swift in Sources */,
 				CF4A8C372679E58427B04ED0 /* FakeGraineClient.swift in Sources */,
 				0D8927356E6284518D6EE7FB /* PackTests.swift in Sources */,
@@ -351,7 +344,6 @@
 			files = (
 				C901F4B41889F3AA57B95B3E /* AppConfig.swift in Sources */,
 				454A5D6D639DD6917444AAA4 /* AppModel.swift in Sources */,
-				0F1E396664497C5FD3BE19F6 /* Booking.swift in Sources */,
 				DC8B330278FC199F3323BD39 /* CallLog.swift in Sources */,
 				30FCD86394EED3C3CCE3CC32 /* CallLogView.swift in Sources */,
 				E6CF79A84A63AD1881504538 /* CallPresentation.swift in Sources */,
@@ -618,7 +610,7 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.7.0;
+				minimumVersion = 0.8.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

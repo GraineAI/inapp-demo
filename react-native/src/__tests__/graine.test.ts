@@ -154,9 +154,9 @@ describe("the agent's settings", () => {
 
 describe("errors in plain words", () => {
   it("turns the SDK's error codes into sentences", () => {
-    const err = new sdk.GraineError("too_soon", "server text");
-    expect(graine.describeError(err, { minLeadMinutes: 10 })).toBe("Pick a time at least 10 minutes from now.");
-    expect(graine.describeError(new sdk.GraineError("outside_window", "x"), { agentName: "Asha" })).toBe("That time is outside Asha's calling hours. Pick another time.");
+    expect(graine.describeError(new sdk.GraineError("not_found", "x"))).toBe("That no longer exists.");
+    // A booking's refusals are the SDK's booking sheet's to word; anywhere else, the SDK's sentence.
+    expect(graine.describeError(new sdk.GraineError("outside_window", "Outside calling hours."), { agentName: "Asha" })).toBe("Outside calling hours.");
     expect(graine.describeError(new sdk.GraineError("rate_limited", "x", 429, 30))).toBe("Too many requests. Try again in 30 seconds.");
     expect(graine.describeError(new sdk.GraineError("device_limit", "x"), { agentName: "Asha" })).toContain("not one of yours for Asha");
     expect(graine.describeError(new Error("boom"))).toBe("boom");

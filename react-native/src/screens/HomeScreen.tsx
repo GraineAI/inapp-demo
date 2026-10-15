@@ -9,7 +9,7 @@ import { callsAvailable, describeError, placeCall, useAgentSurface, useHelpCalls
 import { mergeAgentCalls } from "../logic/scheduling";
 import { memoryChip } from "../logic/memory";
 import { formatWhen } from "../logic/time";
-import { Body, Button, Card, Chip, ErrorText, Notice, SectionLabel, styles, Title, useColors } from "../ui/components";
+import { Body, BookingButton, Button, Card, Chip, ErrorText, Notice, SectionLabel, styles, Title, useColors } from "../ui/components";
 import type { TabParamList } from "../navigation";
 
 export function HomeScreen() {
@@ -18,7 +18,7 @@ export function HomeScreen() {
   const voice = useVoice();
   const { surfaces } = useAgentSurface();
   const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
-  const { calls, loading, refresh } = useScheduling();
+  const { calls, loading, refresh, bookingAvailable, openBooking } = useScheduling();
   const helpCalls = useHelpCalls();
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +47,13 @@ export function HomeScreen() {
     } catch (err) {
       setError(describeError(err, { agentName: pack.agentName }));
     }
+  };
+
+  /** The pack's booking button: the SDK's booking sheet, starting with the pack's reason; then the next call again. */
+  const book = async () => {
+    setError(null);
+    const booked = await openBooking({ reason: pack.call.reasons[0] });
+    if (booked) void refresh();
   };
 
   const firstName = user?.name.split(" ")[0] ?? "";
@@ -84,7 +91,7 @@ export function HomeScreen() {
         <Button label={`Talk to ${pack.agentName}`} onPress={voice.open} disabled={!voice.available} />
         <Button label="Chat" kind="secondary" onPress={() => navigation.navigate("chat")} disabled={!surfaces.includes("chat")} />
         <Button label={`Call ${pack.agentName}`} kind="secondary" onPress={call} disabled={!canCall} />
-        <Button label={pack.call.bookLabel} kind="secondary" onPress={() => navigation.navigate("calls", { book: true })} />
+        <BookingButton label={pack.call.bookLabel} kind="secondary" available={bookingAvailable} onPress={() => void book()} />
         <Button label={`Help · ${pack.agents.help.name}`} kind="secondary" onPress={() => navigation.getParent()?.navigate("help")} />
       </View>
       {!canCall ? <Body muted>Calls need a development build with the calls package (not Expo Go).</Body> : null}

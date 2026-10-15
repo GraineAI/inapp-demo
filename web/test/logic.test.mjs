@@ -191,108 +191,19 @@ test("calls are grouped by the SDK's isUpcoming: soonest first, the rest most re
   assert.equal(L.nextCall([{ id: "x", status: "scheduled", isUpcoming: true, at: null }]), null);
 });
 
-test("a booking carries the visitor's wall clock and offset", () => {
-  inZone("Asia/Kolkata", () => {
-    const d = L.fromLocalInputValue("2026-10-14T18:00");
-    assert.equal(L.toOffsetIso(d), "2026-10-14T18:00:00+05:30");
-    assert.equal(d.toISOString(), "2026-10-14T12:30:00.000Z");
-    assert.equal(L.toLocalInputValue(d), "2026-10-14T18:00");
-    assert.equal(L.toUtcIso(d), "2026-10-14T12:30:00Z");
-    assert.match(L.timeZoneLabel(d), /^Asia\/(Kolkata|Calcutta) \(GMT\+5:30\)$/);
-  });
-  inZone("America/New_York", () => {
-    assert.equal(L.toOffsetIso(L.fromLocalInputValue("2026-07-01T09:15")), "2026-07-01T09:15:00-04:00");
-    assert.equal(L.toOffsetIso(L.fromLocalInputValue("2026-12-01T09:15")), "2026-12-01T09:15:00-05:00");
-  });
-  assert.equal(L.fromLocalInputValue("2026-02-30T10:00"), null);
-  assert.equal(L.fromLocalInputValue("tomorrow"), null);
-  assert.equal(L.fromLocalInputValue(""), null);
+test("the screen context carries a time as ISO-8601 in UTC", () => {
+  assert.equal(L.toUtcIso(new Date("2026-10-14T12:30:00.123Z")), "2026-10-14T12:30:00Z");
 });
 
-test("the booking form opens 30 minutes out, on a quarter hour, inside the SDK's window", () => {
-  const now = new Date("2026-10-14T12:07:31Z");
-  assert.equal(L.suggestedCallTime(now).toISOString(), "2026-10-14T12:45:00.000Z");
-  assert.equal(L.suggestedCallTime(new Date("2026-10-14T12:00:00Z")).toISOString(), "2026-10-14T12:30:00.000Z");
-  const rules = (lead, days) => ({
-    minLeadMinutes: lead, maxDaysAhead: days, maxPendingPerUser: 3,
-    earliest: (n) => new Date(n.getTime() + lead * 60e3), latest: (n) => new Date(n.getTime() + days * 864e5),
-  });
-  assert.equal(L.suggestedCallTime(now, rules(120, 14)).toISOString(), "2026-10-14T14:15:00.000Z");
-  assert.equal(L.suggestedCallTime(now, rules(5, 14)).toISOString(), "2026-10-14T12:45:00.000Z");
-  const tight = { ...rules(5, 1), latest: (n) => new Date(n.getTime() + 20 * 60e3) };
-  assert.equal(L.suggestedCallTime(now, tight).toISOString(), "2026-10-14T12:27:31.000Z");
-  assert.equal(L.bookingWindowWords(rules(5, 14)), "Between 5 minutes and 14 days from now");
-  assert.equal(L.bookingWindowWords(rules(1, 1)), "Between 1 minute and 1 day from now");
-  assert.equal(L.bookingWindowWords(null), "");
-});
-
-test("quick times: minutes from now, or today / tomorrow at a local time", () => {
-  inZone("Asia/Kolkata", () => {
-    const now = new Date("2026-10-14T12:07:31Z");   // 17:37:31 in Kolkata
-    assert.equal(L.quickTimeAt({ label: "In 20 minutes", inMinutes: 20 }, now).toISOString(), "2026-10-14T12:28:00.000Z", "rounded up to the minute");
-    assert.equal(L.toOffsetIso(L.quickTimeAt({ label: "x", day: "today", time: "19:00" }, now)), "2026-10-14T19:00:00+05:30");
-    assert.equal(L.toOffsetIso(L.quickTimeAt({ label: "x", day: "tomorrow", time: "09:30" }, now)), "2026-10-15T09:30:00+05:30");
-    assert.equal(L.quickTimeAt({ label: "x", day: "someday", time: "09:30" }, now), null);
-    assert.equal(L.quickTimeAt({ label: "x", day: "today", time: "25:00" }, now), null);
-    assert.equal(L.quickTimeAt({ label: "x", inMinutes: 0 }, now), null);
-    assert.equal(L.quickTimeAt(null, now), null);
-  });
-});
-
-test("quick-time chips are disabled when past or outside the SDK's window", () => {
-  inZone("Asia/Kolkata", () => {
-    const rules = (lead, days) => ({
-      minLeadMinutes: lead, maxDaysAhead: days,
-      earliest: (n) => new Date(n.getTime() + lead * 60e3), latest: (n) => new Date(n.getTime() + days * 864e5),
-    });
-    const quick = sample.call.quickTimes;
-    const at = (iso) => new Date(iso);
-    const view = (now, r) => L.quickTimeOptions(quick, now, r).map((q) => [q.label, q.disabled]);
-    // 17:37 in Kolkata: all three are ahead and inside a 5-minute / 14-day window; the broken one is shown disabled.
-    assert.deepEqual(view(at("2026-10-14T12:07:31Z"), rules(5, 14)),
-      [["In 20 minutes", false], ["Today 19:00", false], ["Tomorrow 09:30", false], ["Broken", true]]);
-    // 18:58: today's 19:00 is inside the 5-minute notice — disabled.
-    assert.deepEqual(view(at("2026-10-14T13:28:00Z"), rules(5, 14)).slice(0, 3),
-      [["In 20 minutes", false], ["Today 19:00", true], ["Tomorrow 09:30", false]]);
-    // A 30-minute notice rules out "In 20 minutes"; a window shorter than tomorrow rules that out.
-    assert.deepEqual(view(at("2026-10-14T12:07:31Z"), { ...rules(30, 14), latest: (n) => new Date(n.getTime() + 6 * 3600e3) }).slice(0, 3),
-      [["In 20 minutes", true], ["Today 19:00", false], ["Tomorrow 09:30", true]]);
-    // Without the rules only the past is known to be out: 20:00 has passed today's 19:00.
-    assert.deepEqual(view(at("2026-10-14T14:30:00Z"), null).slice(0, 3),
-      [["In 20 minutes", false], ["Today 19:00", true], ["Tomorrow 09:30", false]]);
-    const opts = L.quickTimeOptions(quick, at("2026-10-14T12:07:31Z"), null);
-    assert.deepEqual(opts.map((q) => [q.index, q.relative]), [[0, true], [1, false], [2, false], [3, false]]);
-    assert.deepEqual(L.quickTimeOptions(undefined, new Date(), null), []);
-    assert.deepEqual(L.quickTimeOptions([{ inMinutes: 5 }], new Date(), null), [], "no label, no chip");
-  });
-});
-
-test("the picker's line: time zone, the chosen time, the SDK's window; 5-minute steps", () => {
-  inZone("Asia/Kolkata", () => {
-    const now = new Date("2026-10-14T06:00:00Z");
-    const rules = { minLeadMinutes: 5, maxDaysAhead: 14 };
-    // The chosen time is written in the visitor's own locale, as everywhere on the page.
-    const when = new Date("2026-10-14T12:30:00Z");
-    assert.equal(L.zoneLine(now, when, rules),
-      `Your time zone: ${L.timeZoneLabel(now)} · ${L.formatWhen(when, now)}. Between 5 minutes and 14 days from now.`);
-    assert.match(L.formatWhen(when, now), /^Today, (18:00|0?6:00\s?PM)$/i);
-    assert.match(L.zoneLine(now, null, null), /^Your time zone: Asia\/(Kolkata|Calcutta) \(GMT\+5:30\)\.$/);
-    assert.equal(L.ceilToStep(new Date("2026-10-14T12:07:31Z"), 5).toISOString(), "2026-10-14T12:10:00.000Z");
-    assert.equal(L.ceilToStep(new Date("2026-10-14T12:10:00Z"), 5).toISOString(), "2026-10-14T12:10:00.000Z");
-  });
-});
-
-test("every real pack names its booking button, 2–4 reasons and quick times that resolve", () => {
-  const now = new Date();
+test("every real pack names its booking button and the reasons the booking sheet starts with", () => {
   for (const pack of realPacks) {
     assert.ok(typeof pack.call.bookLabel === "string" && pack.call.bookLabel, `${pack.id} bookLabel`);
     assert.ok(pack.call.reasons.length >= 2 && pack.call.reasons.length <= 4, `${pack.id} reasons`);
-    const quick = L.quickTimeOptions(pack.call.quickTimes, now, null);
-    assert.equal(quick.length, pack.call.quickTimes.length, `${pack.id}: every quick time is a chip`);
-    for (const q of quick) assert.ok(q.at instanceof Date, `${pack.id}: "${q.label}" resolves to a time`);
+    assert.ok(pack.call.reasons.every((r) => r.length <= 120), `${pack.id}: each reason fits the sheet's 120 characters`);
   }
   const health = realPacks.find((p) => p.id === "health-coach");
   if (health) assert.equal(health.call.bookLabel, "Schedule a consultation call");
+  assert.equal(L.BOOKING_UNAVAILABLE, "Booking isn't available for this agent.");
 });
 
 test("times read as Today / Tomorrow / Yesterday, else the day", () => {
@@ -308,14 +219,9 @@ test("times read as Today / Tomorrow / Yesterday, else the day", () => {
   });
 });
 
-test("errors in words, with the SDK's limits when the page has them", () => {
-  const rules = { minLeadMinutes: 10, maxDaysAhead: 7, maxPendingPerUser: 2 };
-  assert.equal(L.messageFor("too_soon", "sdk sentence", rules), "Choose a time at least 10 minutes from now.");
-  assert.equal(L.messageFor("too_far", "sdk sentence", rules), "Choose a time within the next 7 days.");
-  assert.equal(L.messageFor("too_many_pending", "", rules), "You already have 2 upcoming calls. Cancel one to book another.");
-  assert.equal(L.messageFor("too_soon", "Choose a time at least 5 minutes from now."), "Choose a time at least 5 minutes from now.");
-  assert.equal(L.messageFor("too_soon", ""), "That time is too soon. Choose a later time.");
-  assert.match(L.messageFor("scheduling_off"), /turned off/);
+test("errors in words; any other code reads as the SDK's own sentence", () => {
+  // A booking's refusals are the widget's booking sheet's to word; anywhere else, the SDK's sentence.
+  assert.equal(L.messageFor("outside_window", "Outside calling hours."), "Outside calling hours.");
   assert.equal(L.messageFor("identity_required", "anything"), "Sign in to use this.");
   assert.match(L.messageFor("origin_refused"), /Allowed domains/);
   assert.equal(L.messageFor("mystery", "Server said this."), "Server said this.");

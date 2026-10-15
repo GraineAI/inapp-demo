@@ -1,16 +1,13 @@
 /**
- * The booking sheet's own logic — presentation only: status words and colours, who booked, the pack's
- * quick times as moments, the range the pickers offer inside the SDK's bounds on a 5-minute grid, and
- * the time zone line. The booking rules are the SDK's.
+ * Booked calls as the app shows them — presentation only: times, status words and colours, who booked,
+ * both agents' calls in one list, the call log. Booking itself is the SDK's booking sheet.
  */
-import { callEventLine, inRange, mergeAgentCalls, pickerRange, quickTimeAt, roundUpToStep, snapToRange, sourceLabel, statusChip, zoneLabel } from "../logic/scheduling";
+import { callEventLine, mergeAgentCalls, sourceLabel, statusChip } from "../logic/scheduling";
 import { formatDay, formatTime, formatWhen } from "../logic/time";
 import { PACKS } from "../usecases";
 
-// Wednesday 14 October 2026, 18:10:30 local time; the SDK's bounds for 5 minutes' notice and 14 days.
+// Wednesday 14 October 2026, 18:10:30 local time.
 const NOW = new Date(2026, 9, 14, 18, 10, 30);
-const EARLIEST = new Date(NOW.getTime() + 5 * 60_000);
-const LATEST = new Date(NOW.getTime() + 14 * 86_400_000);
 
 describe("times as the app shows them", () => {
   it("formats times and days in plain words", () => {
@@ -24,45 +21,15 @@ describe("times as the app shows them", () => {
     expect(formatWhen(new Date(2026, 9, 15, 9, 0), NOW)).toBe("Tomorrow, 9:00 am");
     expect(formatWhen(null, NOW)).toBe("Time not set");
   });
-
-  it("says which time zone a booking is in", () => {
-    expect(zoneLabel(new Date(2026, 9, 15, 18, 0), "Asia/Kolkata", NOW)).toBe("Asia/Kolkata · Tomorrow, 6:00 pm");
-  });
 });
 
-describe("the pickers, inside the SDK's earliest and latest", () => {
-  it("rounds up to the 5-minute grid", () => {
-    expect(formatTime(roundUpToStep(new Date(2026, 9, 14, 18, 15, 30), 5))).toBe("6:20 pm");
-    expect(formatTime(roundUpToStep(new Date(2026, 9, 14, 18, 15, 0), 5))).toBe("6:15 pm");
-  });
-
-  it("offers the earliest on the grid through the latest, and nothing when that is empty", () => {
-    const range = pickerRange(EARLIEST, LATEST)!;
-    expect(formatTime(range.min)).toBe("6:20 pm");
-    expect(range.max).toEqual(LATEST);
-    expect(pickerRange(LATEST, EARLIEST)).toBeNull();
-  });
-
-  it("keeps a picked time on the grid and inside the range", () => {
-    const range = pickerRange(EARLIEST, LATEST)!;
-    expect(snapToRange(new Date(2026, 9, 14, 9, 0), range)).toEqual(range.min);
-    expect(formatTime(snapToRange(new Date(2026, 9, 16, 9, 2), range))).toBe("9:05 am");
-    expect(snapToRange(new Date(2026, 10, 30, 9, 0), range).getTime()).toBeLessThanOrEqual(LATEST.getTime());
-    expect(snapToRange(new Date(2026, 10, 30, 9, 0), range).getMinutes() % 5).toBe(0);
-  });
-
-  it("turns each pack's quick times into moments, and marks those outside the range", () => {
-    const range = pickerRange(EARLIEST, LATEST);
-    const at = (label: string, q: { inMinutes?: number; day?: "today" | "tomorrow"; time?: string }) => quickTimeAt({ label, ...q }, NOW);
-    expect(formatWhen(at("In 15 minutes", { inMinutes: 15 }), NOW)).toBe("Today, 6:26 pm");
-    expect(formatWhen(at("Tomorrow 10:00", { day: "tomorrow", time: "10:00" }), NOW)).toBe("Tomorrow, 10:00 am");
-    const earlyToday = at("Today 09:00", { day: "today", time: "09:00" });
-    expect(inRange(earlyToday, range)).toBe(false);
-    expect(inRange(at("Today 19:00", { day: "today", time: "19:00" }), range)).toBe(true);
+describe("each pack's booking button", () => {
+  it("names the button and the reason the SDK's booking sheet starts with", () => {
     for (const pack of PACKS) {
-      for (const q of pack.call.quickTimes) expect(quickTimeAt(q, NOW).getTime()).not.toBeNaN();
       expect(pack.call.bookLabel.length).toBeGreaterThan(0);
       expect(pack.call.reasons.length).toBeGreaterThanOrEqual(2);
+      expect(pack.agents.help.bookLabel.length).toBeGreaterThan(0);
+      expect(pack.agents.help.reasons.length).toBeGreaterThanOrEqual(2);
     }
   });
 });

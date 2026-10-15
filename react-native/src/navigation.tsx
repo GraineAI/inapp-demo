@@ -19,7 +19,7 @@ import { MemoryScreen } from "./screens/MemoryScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { HelpScreen } from "./screens/HelpScreen";
 
-export type TabParamList = { home: undefined; chat: undefined; items: undefined; calls: { book?: boolean } | undefined; profile: undefined };
+export type TabParamList = { home: undefined; chat: undefined; items: undefined; calls: undefined; profile: undefined };
 export type RootStackParamList = { sign_in: undefined; main: NavigatorScreenParams<TabParamList>; memory: undefined; help: undefined };
 export type RootNavigation = NavigationContainerRefWithCurrent<RootStackParamList>;
 

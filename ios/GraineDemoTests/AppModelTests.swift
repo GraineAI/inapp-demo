@@ -371,71 +371,73 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(model.callsError, "No connection. Check your network and try again.")
     }
 
-    func testBookingWithTheHelpDeskGoesToItAndUsesItsRules() async {
+    func testTheHelpDeskBooksWithItsOwnAgent() async {
         withHelp()
-        fake.rules[.help] = GraineSchedulingRules(usersCanBook: true, minLeadMinutes: 30, maxDaysAhead: 3)
-        fake.scheduleResult = .success(GraineScheduledCall(id: "h9", at: TestClock.at(18), status: .scheduled, source: .app))
+        let booked = GraineScheduledCall(id: "h9", at: TestClock.at(18), status: .scheduled, source: .app)
+        fake.bookingResult = booked
+        fake.listResults[.help] = .success([booked])
         model.signIn(riya, memory: true)
-        XCTAssertEqual(model.bookingRange(for: .help).lowerBound, TestClock.at(10, 0))
-        let message = await model.scheduleCall(at: TestClock.at(18), reason: "Medicine review", agent: .help)
-        XCTAssertNil(message)
-        XCTAssertEqual(fake.scheduled.first?.2, .help)
-        XCTAssertTrue(model.notice?.hasPrefix("Call with") == true)
-
-        fake.scheduleResult = .failure(GraineServiceError(code: .tooSoon, message: "x"))
-        let refused = await model.scheduleCall(at: TestClock.at(9, 40), reason: nil, agent: .help)
-        XCTAssertEqual(refused, "Choose a time at least 30 minutes from now.")
+        await model.book(.help)
+        XCTAssertEqual(fake.bookingSheets.map(\.1), [.help])
+        XCTAssertEqual(model.calls.map(\.id), ["help:h9"])
+        XCTAssertTrue(model.notice?.hasPrefix("Call with Help booked for") == true)
     }
 
-    // MARK: - Scheduled calls (the main agent)
+    // MARK: - Booking (the SDK's sheet)
 
-    func testTheSDKsLocalRefusalIsShownInWords() async {
-        // The app does not check the time itself: the SDK refuses before anything is sent.
-        fake.rules[.main] = GraineSchedulingRules(usersCanBook: true, minLeadMinutes: 10)
-        fake.scheduleResult = .failure(GraineServiceError(code: .tooSoon, message: "Too soon."))
+    func testBookingIsOfferedOnlyWhereTheSDKSaysItIsAvailable() {
+        withHelp()
+        fake.bookable = [.main]
         model.signIn(riya, memory: true)
-        let message = await model.scheduleCall(at: TestClock.at(9, 32), reason: "Weekly check-in")
-        XCTAssertEqual(message, "Choose a time at least 10 minutes from now.")
-        XCTAssertEqual(fake.scheduled.count, 1)
-    }
-
-    func testBookingRangeComesFromTheSDKsRules() {
-        fake.rules[.main] = GraineSchedulingRules(usersCanBook: true, minLeadMinutes: 10, maxDaysAhead: 2)
-        model.signIn(riya, memory: true)
+        XCTAssertTrue(model.canBook(.main))
+        XCTAssertFalse(model.canBook(.help))
+        // An agent's session arriving later can change it.
+        fake.bookable = [.main, .help]
         fake.onSessionReady?()
-        XCTAssertEqual(model.bookingRange().lowerBound, TestClock.at(9, 40))
-        XCTAssertEqual(model.bookingRange().upperBound, TestClock.at(9, 30, day: 16))
-        XCTAssertEqual(model.suggestedCallTime(), TestClock.at(10, 0))
+        XCTAssertTrue(model.canBook(.help))
+        // Signed out, nobody can be booked: the buttons follow.
+        fake.bookable = []
+        model.signOut()
+        XCTAssertFalse(model.canBook(.main))
+        XCTAssertFalse(model.canBook(.help))
     }
 
-    func testBookingSendsThePacksReason() async {
-        fake.scheduleResult = .success(GraineScheduledCall(id: "c42", at: TestClock.at(18), status: .scheduled, source: .app, reason: "Medicine review"))
+    func testTheBookingButtonOpensTheSDKsSheetWithThePacksReasonThenReadsTheListAgain() async {
+        let booked = GraineScheduledCall(id: "c42", at: TestClock.at(18), status: .scheduled, source: .app, reason: "Weekly check-in")
         model.signIn(riya, memory: true)
-        let message = await model.scheduleCall(at: TestClock.at(18), reason: "Medicine review")
-        XCTAssertNil(message)
-        XCTAssertEqual(fake.scheduled.first?.0, TestClock.at(18))
-        XCTAssertEqual(fake.scheduled.first?.1, "Medicine review")
-        XCTAssertEqual(fake.scheduled.first?.2, .main)
-        XCTAssertEqual(model.calls.map(\.call.id), ["c42"])
+        await Task.yield() // the sign-in's own read of the (empty) list
+        fake.bookingResult = booked
+        // Graine now lists the new call and one booked elsewhere meanwhile: only a fresh read shows both.
+        fake.listResults[.main] = .success([booked, GraineScheduledCall(id: "c7", at: TestClock.at(20), status: .scheduled)])
+        await model.book(.main)
+        XCTAssertEqual(fake.bookingSheets.map(\.0), ["Weekly check-in"])
+        XCTAssertEqual(fake.bookingSheets.map(\.1), [.main])
+        XCTAssertEqual(model.upcomingCalls.map(\.call.id), ["c42", "c7"])
         XCTAssertEqual(model.nextCall?.call.id, "c42")
+        XCTAssertTrue(model.notice?.hasPrefix("Call with Asha booked for") == true)
         model.open(.home)
         XCTAssertEqual(fake.lastScreen?.fields.first { $0.name == "next_call" }?.value, "2026-10-14T12:30:00Z")
     }
 
-    func testTheServersRefusalIsShownInWords() async {
-        fake.scheduleResult = .failure(GraineServiceError(code: .outsideWindow, message: "Outside calling hours."))
+    func testClosingTheSheetWithoutBookingChangesNothing() async {
+        fake.bookingResult = nil
         model.signIn(riya, memory: true)
-        let message = await model.scheduleCall(at: TestClock.at(23), reason: nil)
-        XCTAssertEqual(message, "That time is outside the assistant's calling hours. Choose another time.")
+        await Task.yield()
+        fake.listResults[.main] = .success([GraineScheduledCall(id: "c7", at: TestClock.at(20), status: .scheduled)])
+        await model.book(.main)
+        XCTAssertEqual(fake.bookingSheets.count, 1)
+        XCTAssertNil(model.notice)
+        XCTAssertTrue(model.calls.isEmpty, "nothing was booked, so the list is not read again")
     }
 
-    func testTheServersPendingLimitIsShownWithTheRules() async {
-        fake.rules[.main] = GraineSchedulingRules(usersCanBook: true, maxPendingPerUser: 1)
-        fake.scheduleResult = .failure(GraineServiceError(code: .tooManyPending, message: "x"))
+    func testABookingButtonThatIsOffOpensNoSheet() async {
+        fake.bookable = []
         model.signIn(riya, memory: true)
-        let message = await model.scheduleCall(at: TestClock.at(18), reason: nil)
-        XCTAssertEqual(message, "You already have 1 upcoming calls. Cancel one to book another.")
+        await model.book(.main)
+        XCTAssertTrue(fake.bookingSheets.isEmpty)
     }
+
+    // MARK: - Scheduled calls (the main agent)
 
     func testRefreshAndCancel() async {
         fake.listResults[.main] = .success([

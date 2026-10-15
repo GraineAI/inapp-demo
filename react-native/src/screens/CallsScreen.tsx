@@ -1,31 +1,26 @@
 /**
  * Scheduled calls: what is booked and what became of each ring (status chips, Cancel where the SDK
- * says canCancel), the booking sheet, and the call engine's own log of rings and outcomes. The calls,
- * their rules and every check come from the SDK (useScheduling); this screen only presents them.
+ * says canCancel), the pack's booking button (the SDK's booking sheet), and the call engine's own log of
+ * rings and outcomes. The calls, their rules and every check come from the SDK (useScheduling); this
+ * screen only presents them.
  */
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
-import { useFocusEffect, useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
-import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { useFocusEffect } from "@react-navigation/native";
 import { useDemo } from "../state/DemoState";
 import { useCallLog } from "../state/callLog";
 import { describeError, useHelpCalls, useScheduling, useScreenContext, type ScheduledCall } from "../graine";
-import { callEventLine, deviceTimeZone, mergeAgentCalls, sourceLabel, statusChip, zoneLabel } from "../logic/scheduling";
+import { callEventLine, mergeAgentCalls, sourceLabel, statusChip } from "../logic/scheduling";
 import { formatWhen } from "../logic/time";
-import type { TabParamList } from "../navigation";
-import { BookingSheet } from "./BookingSheet";
-import { Body, Button, Card, Chip, ErrorText, SectionLabel, styles, useColors } from "../ui/components";
+import { Body, BookingButton, Button, Card, Chip, ErrorText, SectionLabel, styles, useColors } from "../ui/components";
 
 export function CallsScreen() {
   const { pack } = useDemo();
   const c = useColors();
   const log = useCallLog();
-  const route = useRoute<RouteProp<TabParamList, "calls">>();
-  const navigation = useNavigation<BottomTabNavigationProp<TabParamList, "calls">>();
-  const { rules, calls, schedule, cancel, refresh, loading, error: loadError } = useScheduling();
+  const { calls, cancel, refresh, loading, error: loadError, bookingAvailable, openBooking } = useScheduling();
   // The help agent's bookings live with that agent: read with its client and listed beside the main agent's.
   const helpCalls = useHelpCalls();
-  const [sheet, setSheet] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const now = new Date();
@@ -34,19 +29,14 @@ export function CallsScreen() {
     useCallback(() => {
       void refresh();
       void helpCalls.refresh();
-      // Home's booking button lands here with the sheet open.
-      if (route.params?.book) {
-        setSheet(true);
-        navigation.setParams({ book: undefined });
-      }
-    }, [refresh, helpCalls.refresh, route.params?.book, navigation]),
+    }, [refresh, helpCalls.refresh]),
   );
 
   const merged = mergeAgentCalls(calls, helpCalls.calls);
   const upcoming = merged.filter((x) => x.call.isUpcoming);
   const past = merged.filter((x) => !x.call.isUpcoming);
   const agentName = (agent: "main" | "help") => (agent === "main" ? pack.agents.main.name : pack.agents.help.name);
-  const ctx = { agentName: pack.agentName, minLeadMinutes: rules.minLeadMinutes, maxDaysAhead: rules.maxDaysAhead, maxPendingPerUser: rules.maxPendingPerUser };
+  const ctx = { agentName: pack.agentName };
 
   useScreenContext({
     screen: "calls",
@@ -66,9 +56,14 @@ export function CallsScreen() {
     }
   };
 
-  const booked = (call: ScheduledCall) => {
+  /** The pack's booking button: the SDK's booking sheet, starting with the pack's reason; then the list again. */
+  const book = async () => {
     setError(null);
-    setMessage(call.at ? `Booked: ${zoneLabel(call.at, deviceTimeZone(), new Date())}.` : "Booked.");
+    setMessage(null);
+    const call = await openBooking({ reason: pack.call.reasons[0] });
+    if (!call) return;
+    setMessage(`Call with ${pack.agents.main.name} booked for ${formatWhen(call.at, new Date())}.`);
+    void refresh();
   };
 
   return (
@@ -79,7 +74,7 @@ export function CallsScreen() {
     >
       <Body muted>{`${pack.agentName} calls this phone at the time you book. It rings like a phone call, even when the app is closed.`}</Body>
       <View style={{ marginTop: 12 }}>
-        <Button label={pack.call.bookLabel} onPress={() => { setMessage(null); setSheet(true); }} />
+        <BookingButton label={pack.call.bookLabel} available={bookingAvailable} onPress={() => void book()} />
       </View>
       {message ? <Body style={{ marginTop: 8 }}>{message}</Body> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
@@ -100,15 +95,6 @@ export function CallsScreen() {
       {log.map((e, i) => (
         <Body key={`${e.callId}-${i}`} muted>{callEventLine(e, { main: pack.agents.main.name, help: pack.agents.help.name })}</Body>
       ))}
-
-      <BookingSheet
-        visible={sheet}
-        agent={{ name: pack.agents.main.name, bookLabel: pack.call.bookLabel, reasons: pack.call.reasons }}
-        rules={rules}
-        schedule={schedule}
-        onClose={() => setSheet(false)}
-        onBooked={booked}
-      />
     </ScrollView>
   );
 }

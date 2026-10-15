@@ -190,27 +190,6 @@
       "General question",
       "Follow up on a ticket"
     ],
-    "quickTimes": [
-      {
-        "label": "In 20 minutes",
-        "inMinutes": 20
-      },
-      {
-        "label": "Today 19:00",
-        "day": "today",
-        "time": "19:00"
-      },
-      {
-        "label": "Tomorrow 09:30",
-        "day": "tomorrow",
-        "time": "09:30"
-      },
-      {
-        "label": "Broken",
-        "day": "someday",
-        "time": "25:00"
-      }
-    ],
     "placeReason": "member_question"
   },
   "memoryExamples": [

@@ -1,24 +1,17 @@
 /**
  * The sentence a person sees for each error code the in-app routes answer with (and the few that
- * happen before a route answers). Plain, and about what to do next.
+ * happen before a route answers). Plain, and about what to do next. A booking's refusals are worded
+ * by the SDK's booking sheet; any code without words here reads as the SDK's own sentence.
  */
 
 export interface ErrorContext {
   agentName?: string;
-  minLeadMinutes?: number;
-  maxDaysAhead?: number;
-  maxPendingPerUser?: number;
   retryAfterSeconds?: number | null;
 }
 
 export function messageFor(code: string | null | undefined, fallback: string | null | undefined, ctx: ErrorContext = {}): string {
   const agent = ctx.agentName || "The assistant";
   switch (code) {
-    case "scheduling_off": return `${agent} does not take bookings from the app.`;
-    case "too_soon": return `Pick a time at least ${ctx.minLeadMinutes ?? 5} minutes from now.`;
-    case "too_far": return `Pick a time within the next ${ctx.maxDaysAhead ?? 14} days.`;
-    case "outside_window": return `That time is outside ${agent}'s calling hours. Pick another time.`;
-    case "too_many_pending": return `You already have ${ctx.maxPendingPerUser ?? 3} calls booked. Cancel one to book another.`;
     case "rate_limited":
       return ctx.retryAfterSeconds ? `Too many requests. Try again in ${ctx.retryAfterSeconds} seconds.` : "Too many requests. Try again in a minute.";
     case "identity_required": return "Sign in first.";

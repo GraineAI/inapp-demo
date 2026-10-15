@@ -65,8 +65,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var calls: [AgentCall] = []
     @Published private(set) var callsLoading = false
     @Published var callsError: String?
-    /// The main agent's booking rules (each agent's come from `rules(for:)`).
-    @Published private(set) var rules = GraineSchedulingRules()
+    /// The agents that can be booked from the app now (the SDK's `bookingAvailable`): their booking buttons are enabled.
+    @Published private(set) var bookable: Set<DemoAgent> = []
     @Published private(set) var memories: [GraineMemory] = []
     @Published private(set) var memoriesLoading = false
     @Published var memoriesError: String?
@@ -96,7 +96,7 @@ final class AppModel: ObservableObject {
         graine.onCallEvent = { [weak self] event in self?.record(event) }
         graine.onCallScreenChange = { [weak self] shown in self?.callScreenVisible = shown }
         registerActions()
-        rules = graine.schedulingRules(.main)
+        refreshBookable()
         agentMemoryEnabled = graine.agentMemoryEnabled
         describeScreen()
     }
@@ -148,6 +148,7 @@ final class AppModel: ObservableObject {
         memories = []
         callsError = nil
         memoriesError = nil
+        refreshBookable()
         describeScreen()
         Task { await refreshCalls() }
     }
@@ -167,6 +168,7 @@ final class AppModel: ObservableObject {
         callsPath = []
         tab = .home
         notice = nil
+        refreshBookable()
         describeScreen()
     }
 
@@ -308,24 +310,15 @@ final class AppModel: ObservableObject {
 
     // MARK: - Scheduled calls
 
-    /// An agent's booking rules, from its session.
-    func rules(for agent: DemoAgent) -> GraineSchedulingRules {
-        agent == .main ? rules : graine.schedulingRules(agent)
+    /// The agent's booking button is enabled: the SDK says it can be booked from the app now.
+    func canBook(_ agent: DemoAgent) -> Bool {
+        bookable.contains(agent)
     }
 
     /// The next call that will ring, from any agent.
     var nextCall: AgentCall? {
         calls.filter { $0.call.isUpcoming && $0.call.at != nil }
             .min { ($0.call.at ?? .distantFuture) < ($1.call.at ?? .distantFuture) }
-    }
-
-    func suggestedCallTime(for agent: DemoAgent = .main) -> Date {
-        CallText.suggestedTime(now: now(), rules: rules(for: agent))
-    }
-
-    /// The times the pickers offer for an agent: its SDK bounds, on the 5-minute grid.
-    func bookingRange(for agent: DemoAgent = .main) -> ClosedRange<Date> {
-        Booking.range(now: now(), rules: rules(for: agent), calendar: calendar)
     }
 
     /// Upcoming calls of every agent, soonest first, then the rest, most recent first.
@@ -356,22 +349,20 @@ final class AppModel: ObservableObject {
         describeScreen()
     }
 
-    /// Book a call with one of the pack's reasons, with `agent`. Nil when booked; otherwise why not, in words.
-    /// The SDK refuses a time outside the rules before anything is sent, and the server refuses the rest.
-    func scheduleCall(at date: Date, reason: String?, agent: DemoAgent = .main) async -> String? {
-        if agent == .main { rules = graine.schedulingRules(.main) }
-        let agentRules = rules(for: agent)
-        do {
-            let booked = try await graine.scheduleCall(at: date, reason: reason, agent: agent)
-            calls.removeAll { $0.agent == agent && $0.call.id == booked.id }
-            calls.append(AgentCall(agent: agent, call: booked))
-            notice = "Call with \(name(of: agent)) booked for \(DemoFormat.time(booked.at ?? date, now: now(), calendar: calendar))."
-            describeScreen()
-            Task { await refreshCalls() }
-            return nil
-        } catch {
-            return CallText.message(error, rules: agentRules)
-        }
+    /**
+     * The pack's booking button: the SDK's booking sheet for `agent`, its
+     * "What's it about?" starting with the pack's reason. The day, the time,
+     * the rules and any refusal are the sheet's; a call booked in it joins the
+     * list at once, and the list is read again.
+     */
+    func book(_ agent: DemoAgent = .main) async {
+        guard user != nil, canBook(agent) else { return }
+        guard let booked = await graine.presentBooking(reason: pack?.bookingReason(agent), agent: agent) else { return }
+        calls.removeAll { $0.agent == agent && $0.call.id == booked.id }
+        calls.append(AgentCall(agent: agent, call: booked))
+        notice = "Call with \(name(of: agent)) booked for \(DemoFormat.time(booked.at, now: now(), calendar: calendar))."
+        describeScreen()
+        await refreshCalls()
     }
 
     func cancelCall(_ call: AgentCall) async {
@@ -380,7 +371,7 @@ final class AppModel: ObservableObject {
             notice = status == .cancelled ? "Call cancelled." : "The call is \(CallText.label(status).lowercased())."
             await refreshCalls()
         } catch {
-            notice = CallText.message(error, rules: rules(for: call.agent))
+            notice = CallText.message(error)
         }
     }
 
@@ -539,9 +530,14 @@ final class AppModel: ObservableObject {
     }
 
     private func sessionArrived() {
-        rules = graine.schedulingRules(.main)
+        refreshBookable()
         agentMemoryEnabled = graine.agentMemoryEnabled
         describeScreen()
+    }
+
+    /// Whether each agent can be booked changes with its session and with who is signed in: read it again then.
+    private func refreshBookable() {
+        bookable = Set(graine.agents.filter { graine.bookingAvailable($0) })
     }
 
     private func sessionKey(_ pack: UseCasePack, _ user: UseCasePack.User) -> String {
@@ -549,6 +545,6 @@ final class AppModel: ObservableObject {
     }
 
     private func words(_ error: Error) -> String {
-        CallText.message(error, rules: rules)
+        CallText.message(error)
     }
 }

@@ -79,6 +79,22 @@ export function Button({
   );
 }
 
+/** Under a booking button while the SDK says its agent cannot be booked. */
+export const BOOKING_UNAVAILABLE = "Booking isn't available for this agent.";
+
+/**
+ * A booking button: enabled while the SDK says the agent can be booked (`available`); otherwise it stays on
+ * screen, disabled, with one line saying so. `onPress` opens the SDK's booking sheet.
+ */
+export function BookingButton({ label, available, onPress, kind }: { label: string; available: boolean; onPress: () => void; kind?: "primary" | "secondary" }) {
+  return (
+    <View>
+      <Button label={label} kind={kind} onPress={onPress} disabled={!available} />
+      {available ? null : <Body muted style={{ marginTop: 6 }}>{BOOKING_UNAVAILABLE}</Body>}
+    </View>
+  );
+}
+
 export function ToggleRow({ label, detail, value, onChange, disabled }: { label: string; detail?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const c = useColors();
   return (

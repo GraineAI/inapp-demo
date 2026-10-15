@@ -1,6 +1,5 @@
 package ai.graine.demo
 
-import ai.graine.demo.domain.Booking
 import ai.graine.demo.domain.CallLog
 import ai.graine.demo.domain.CallLogEntry
 import ai.graine.demo.domain.CallText
@@ -12,7 +11,6 @@ import ai.graine.demo.domain.RowMatch
 import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.domain.UseCasePacks
 import ai.graine.inapp.kmp.GraineCallStatus
-import ai.graine.inapp.kmp.GraineSchedulingRules
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -57,25 +55,6 @@ class PackTest {
     }
 
     private fun UseCasePack.rows() = items.rows
-
-    @Test
-    fun quickTimesLandOnTheGridInTheDevicesZone() {
-        val now = TestClock.at(12, 3)
-        val quick = TestPack.pack.call.quickTimes
-        assertEquals(TestClock.at(12, 20), Booking.resolve(quick[0], now, TestClock.zone), "15 minutes on, rounded up to 5")
-        assertEquals(TestClock.at(10, 0, day = 15), Booking.resolve(quick[1], now, TestClock.zone))
-        assertEquals(TestClock.at(19, 0), Booking.resolve(quick[2], now, TestClock.zone))
-        val rules = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 30, maxDaysAhead = 7)
-        val range = Booking.range(now, rules)
-        assertEquals(TestClock.at(12, 35), range.first)
-        assertTrue(Booking.isBookable(TestClock.at(19, 0), now, rules))
-        assertTrue(!Booking.isBookable(TestClock.at(12, 20), now, rules))
-        assertEquals(TestClock.at(18, 5), Booking.snapped(TestClock.at(18, 7)))
-        assertEquals(TestClock.at(18, 10), Booking.snapped(TestClock.at(18, 8)))
-        assertEquals(TestClock.at(9, 30, day = 15), Booking.combine(Booking.utcDayOf(TestClock.at(23, 50, day = 15), TestClock.zone), 9, 30, TestClock.zone))
-        assertEquals(9 to 30, Booking.hourMinute(TestClock.at(9, 30), TestClock.zone))
-        assertEquals("Asia/Kolkata · 6:00 pm", Booking.zoneLabel(TestClock.at(18), TestClock.zone))
-    }
 
     @Test
     fun theSdksAgentNamesAreTheAppsAgents() {

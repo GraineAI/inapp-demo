@@ -40,8 +40,6 @@ const state = {
   statuses: {},
   calls: emptyList(),
   memories: emptyList(),
-  /** The booking panel: open, the picker's value, the quick time it came from, the reason. */
-  booking: { open: false, when: "", quick: null, reason: "", error: "", sending: false },
   signIn: { userId: null, memory: true },
   busy: { memory: false, erase: false, cancel: null },
   theme: "system",
@@ -187,15 +185,14 @@ function viewContext() {
     statuses: state.user ? statusesFor(state.user.id) : {},
     calls: state.calls,
     memories: state.memories,
-    booking: state.booking,
     signIn: state.signIn,
     busy: state.busy,
     theme: state.theme,
     now: new Date(),
-    // The SDK's booking rules for the agent on the page (null until it has started): only the
-    // booking screens draw them, and only once the page shows the agent that screen books with.
-    rules: state.user && graine.agent === screenAgent(state.route) && (state.route === "calls" || state.route === "help")
-      ? graine.schedulingRules() : null,
+    // Whether the visitor can book with the agent on the page (false until it has started): only the
+    // booking screens ask, and only once the page shows the agent that screen books with.
+    bookable: !!state.user && graine.agent === screenAgent(state.route) && (state.route === "calls" || state.route === "help")
+      && graine.bookingAvailable(),
     agents: { main: L.agentInfo(state.pack, "main"), help: L.agentInfo(state.pack, "help") },
     helpConfigured: graine.hasAgent("help"),
     assistant: {
@@ -288,7 +285,6 @@ function switchTo(name) {
 }
 
 function enter(screen) {
-  state.booking = freshBooking(screen);
   switchTo(screenAgent(screen));
   if (screen === "calls" || screen === "home" || screen === "help") refreshCalls();
   if (screen === "memory") refreshMemories();
@@ -321,26 +317,17 @@ function rememberedConsent(userId) {
   return typeof v === "boolean" ? v : true;
 }
 
-/** The reasons a screen offers when booking: the help agent's in Help, the pack's elsewhere. */
-function reasonsFor(screen) {
+/** What the booking sheet's "What's it about?" starts with: the help agent's first reason in Help, the pack's elsewhere. */
+function bookingReason(screen) {
   const help = L.agentInfo(state.pack, "help");
   const list = screen === "help" && help ? help.reasons : state.pack.call.reasons;
-  return Array.isArray(list) ? list : [];
-}
-
-function firstReason(screen = state.route) {
-  return reasonsFor(screen)[0] || "";
-}
-
-function freshBooking(screen) {
-  return { open: false, when: "", quick: null, reason: firstReason(screen), error: "", sending: false };
+  return (Array.isArray(list) && list[0]) || "";
 }
 
 function resetPersonData() {
   state.calls = emptyList();
   state.memories = emptyList();
   state.openRowId = null;
-  state.booking = freshBooking(state.route);
   state.busy = { memory: false, erase: false, cancel: null };
 }
 
@@ -512,77 +499,25 @@ const handlers = {
     else if (result.status !== "ok") toast(result.message);
   },
 
-  /** The booking button: open the panel (on a suggested time inside the SDK's window), or close it. */
-  toggleBooking() {
-    const b = state.booking;
-    b.open = !b.open;
-    b.error = "";
-    if (b.open && !L.fromLocalInputValue(b.when)) {
-      b.when = L.toLocalInputValue(L.suggestedCallTime(new Date(), graine.schedulingRules()));
-      b.quick = null;
-    }
-    render();
-    const target = b.open
-      ? document.querySelector("#book-form [data-quick]:not([disabled])") || document.getElementById("book-when")
-      : document.getElementById("book-open");
-    if (target) target.focus();
-  },
-
-  /** A quick-time chip: its time goes into the picker. */
-  pickQuick(index) {
-    const quick = (state.pack.call.quickTimes || [])[index];
-    const at = L.quickTimeAt(quick, new Date());
-    if (!at) return;
-    Object.assign(state.booking, { when: L.toLocalInputValue(at), quick: index, error: "" });
-    render();
-  },
-
-  bookingReason(reason) {
-    Object.assign(state.booking, { reason, error: "" });
-    render();
-  },
-
-  /** Typing in the picker. No redraw (the input already shows it): the line under it, the chips and any refusal follow. */
-  bookingInput(change) {
-    const hadError = !!state.booking.error;
-    Object.assign(state.booking, change, { error: "", quick: "when" in change ? null : state.booking.quick });
-    if (hadError) {
-      const old = document.getElementById("book-error");
-      if (old) old.remove();
-    }
-    for (const chip of document.querySelectorAll("#book-form [data-quick]")) chip.setAttribute("aria-pressed", "false");
-    const zone = document.getElementById("book-zone");
-    if (zone) zone.textContent = L.zoneLine(new Date(), L.fromLocalInputValue(state.booking.when), graine.schedulingRules());
-  },
-
   /**
-   * Book a call. The SDK checks the time against the agent's rules before it
-   * sends anything, and the server checks again; the page only says what came back.
+   * The pack's booking button: the widget's own booking sheet for the agent this screen talks to,
+   * its "What's it about?" starting with the pack's reason. The sheet checks the time and words any
+   * refusal itself; a call booked there joins the list, which is then read again.
    */
   async book() {
-    const b = state.booking;
     const agent = screenAgent(state.route);
-    // A relative quick time ("In 15 minutes") counts from the moment of booking, not of the tap.
-    const quick = b.quick !== null ? (state.pack.call.quickTimes || [])[b.quick] : null;
-    const when = quick && Number.isInteger(quick.inMinutes) ? L.quickTimeAt(quick, new Date()) : L.fromLocalInputValue(b.when);
-    if (!when) { b.error = "Choose a date and time."; render(); return; }
-    b.sending = true;
-    b.error = "";
-    render();
     try {
       await state.identifying;
       // The booking goes to the agent on the page, so it must be this screen's.
       if (graine.agent !== agent) await graine.useAgent(agent);
-      const call = await graine.scheduleCall({ at: L.toOffsetIso(when), reason: b.reason || firstReason() });
-      toast(`Call booked for ${L.formatWhen((call && call.at) || when, new Date())}.`);
-      state.booking = { open: false, when: "", quick: null, reason: b.reason, error: "", sending: false };
-      if (call) state.calls.list = [...state.calls.list.filter((c) => c.id !== call.id), { ...call, agent }];
+      const call = await graine.openBooking({ reason: bookingReason(state.route) });
+      if (!call) return;
+      toast(`Call booked for ${L.formatWhen(call.at, new Date())}.`);
+      state.calls.list = [...state.calls.list.filter((c) => c.id !== call.id), { ...call, agent }];
       render();
       refreshCalls();
     } catch (e) {
-      b.sending = false;
-      b.error = L.messageFor(e.code, e.message, graine.schedulingRules());
-      render();
+      quietly(e);
     }
   },
 
@@ -601,7 +536,7 @@ const handlers = {
       await graine.cancelScheduledCallOf(call.agent || "main", call.id, state.user.id);
       toast("Call cancelled.");
     } catch (e) {
-      toast(L.messageFor(e.code, e.message, graine.schedulingRules()));
+      toast(L.messageFor(e.code, e.message));
     }
     state.busy.cancel = null;
     await refreshCalls();
@@ -683,7 +618,6 @@ async function boot() {
   }
   store.set(KEYS.pack, state.pack.id);
   applyPackChrome(state.pack);
-  state.booking.reason = firstReason();
 
   // Actions before start(): the first screen the assistant sees already lists them.
   registerActions(state.pack);

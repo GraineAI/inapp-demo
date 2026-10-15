@@ -9,7 +9,7 @@
  *   unconfigured  no config.js: the "not configured" notice, and no loader is requested.
  *   released      a stand-in for the released loader (test/loader-1.1-stub.js): the "needs a newer
  *                 loader" notice names each missing method; actions, screen context and open() work.
- *   sdk-types     a stand-in with identity, memory and scheduling in the SDK types
+ *   sdk-types     a stand-in with identity, memory, scheduling and the booking sheet in the SDK types
  *                 (test/fake-loader.js): the whole demo, end to end, at phone width and in dark mode.
  *   every pack    each use-case pack signs in and draws every screen.
  *
@@ -158,25 +158,8 @@ function helpers() {
     h1: () => norm((document.querySelector("main h1") || {}).textContent),
     toast: () => { const e = document.getElementById("toast"); return e && !e.hidden ? norm(e.textContent) : ""; },
     notice: (key) => { const e = document.querySelector(`[data-notice="${key}"]`); return e ? norm(e.textContent) : null; },
-    /** A datetime-local value `ms` from now, in the page's own zone. */
-    localIn: (ms) => {
-      const d = new Date(Date.now() + ms);
-      const p = (n) => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-    },
-    /** "YYYY-MM-DDTHH:MM" for today + `days` at `hhmm`, in the page's own zone. */
-    dayAt: (days, hhmm) => {
-      const n = new Date();
-      const d = new Date(n.getFullYear(), n.getMonth(), n.getDate() + days);
-      const p = (x) => String(x).padStart(2, "0");
-      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${hhmm}`;
-    },
-    setWhen: (value) => {
-      const i = document.getElementById("book-when");
-      i.value = value;
-      i.dispatchEvent(new Event("input", { bubbles: true }));
-      return i.value;
-    },
+    /** The stand-in widget's booking sheet, when one is open (in the panel of `agent`, when named). */
+    sheet: (agent) => document.querySelector(`[data-fake=panel]${agent ? `[data-agent="${agent}"]` : ""} [data-fake=booking]`),
     /** Duplicate ids, unnamed buttons, unlabelled fields — on the page, not in a stand-in's panel. */
     audit: () => {
       const mine = (e) => !e.closest("[data-fake], [data-stub]");
@@ -328,8 +311,10 @@ async function released(page, origin) {
   await go(page, "calls", "Check-in calls");
   await page.waitFor(`/GraineAgent\\.scheduledCalls\\(\\)/.test(__t.notice("unsupported"))`, "scheduledCalls() in the notice");
   n = await page.eval(`__t.notice("unsupported")`);
-  check(/GraineAgent\.schedulingRules —/.test(n), "schedulingRules is named as a property", n);
-  check(await page.eval(`__t.$("#book-open").disabled`), "booking is disabled on a loader without scheduleCall");
+  check(/GraineAgent\.openBooking\(\) —/.test(n) && /GraineAgent\.bookingAvailable —/.test(n),
+    "openBooking() and the bookingAvailable property are named", n);
+  check(await page.eval(`__t.$("#book-open").disabled && /does not have openBooking\\(\\)/.test(__t.text(".issue"))`),
+    "booking is disabled on a loader without the booking sheet, and says why");
   await page.shot("released-calls-notice");
 
   await page.eval(`__t.click("#memory-chip") || true`).catch(() => {});
@@ -398,56 +383,37 @@ async function sdkTypes(page, origin) {
   r = await run("open_screen", { screen: "settings" });
   check(r.status === "refused" && r.message === 'There is no screen called "settings". Screens: home, chat, medicines, calls, memory, profile.', "an unknown screen is refused", js(r));
 
-  // Scheduled calls: book, a refusal in words, statuses, cancel.
+  // Scheduled calls: the pack's button opens the widget's own booking sheet; statuses; cancel.
   r = await run("open_screen", { screen: "calls" });
   await page.waitFor(`__t.h1() === "Check-in calls"`, "Check-in calls");
   check(/rings the Graine Care app on the phone/.test(await page.eval(`__t.text("#rings-phone")`)), "the page says the call rings the phone app");
   check((await page.eval(`__t.text("#book-open")`)) === "Schedule a consultation call", "the booking button is the pack's bookLabel");
-  check((await page.eval(`__t.$("#book-open").getAttribute("aria-expanded")`)) === "false" && !(await page.eval(`!!__t.$("#book-form")`)),
-    "the booking panel starts closed");
+  await page.waitFor(`!__t.$("#book-open").disabled`, "the booking button on while booking is available");
+  check(!(await page.eval(`!!__t.$("#book-unavailable")`)), "no unavailable line while booking is available");
   await page.eval(`__t.click("#book-open")`);
-  await page.waitFor(`!!__t.$("#book-form") && __t.$("#book-open").getAttribute("aria-expanded") === "true"`, "the booking panel to open");
-  await page.waitFor(`/Between 5 minutes and 14 days from now\./.test(__t.text("#book-zone"))`, "the picker's window from schedulingRules");
-  check(/^Your time zone: \S+ \(GMT[+-][\d:]+\) · /.test(await page.eval(`__t.text("#book-zone")`)), "the visitor's time zone and the chosen time are shown");
-  const bounds = await page.eval(`(() => {
-    const i = __t.$("#book-when"), min = new Date(i.min), max = new Date(i.max), now = Date.now();
-    return { step: i.step, minOk: min.getTime() >= now + 4 * 60e3 && min.getMinutes() % 5 === 0 && min.getTime() <= now + 11 * 60e3,
-      maxOk: Math.abs(max.getTime() - (now + 14 * 864e5)) < 120e3 };
-  })()`);
-  check(bounds.step === "300" && bounds.minOk && bounds.maxOk, "the picker is bounded by schedulingRules, in 5-minute steps", js(bounds));
-  check(js(await page.eval(`__t.texts("#book-form [data-quick]")`)) === js(["In 15 minutes", "Tomorrow 10:00", "Tomorrow 18:00"]),
-    "the pack's quick-time chips");
-  check(js(await page.eval(`__t.texts("#book-form .chip-choice")`)) === js(["Consultation", "Medication review", "Follow-up"])
-    && (await page.eval(`__t.text("#book-form .chip-choice.is-chosen")`)) === "Consultation", "the pack's reasons, the first chosen");
-  check((await page.eval(`__t.audit()`)).unlabelled.length === 0, "the booking panel's fields are labelled");
-  await page.shot("sdk-booking-panel");
-  await page.eval(`__t.click('[data-quick="1"]')`);
-  await page.waitFor(`__t.$('[data-quick="1"]').getAttribute("aria-pressed") === "true" && __t.$("#book-when").value === __t.dayAt(1, "10:00")`,
-    "Tomorrow 10:00 in the picker");
-  check(/· Tomorrow, /.test(await page.eval(`__t.text("#book-zone")`)), "the line under the picker follows the chip");
-  await page.eval(`__t.click(__t.byText("#book-form .chip-choice", "Medication review"))`);
-  await page.waitFor(`__t.text("#book-form .chip-choice.is-chosen") === "Medication review"`, "the reason choice");
-  await page.eval(`__t.click("#book-submit")`);
-  await page.waitFor(`__t.texts(".list-row [data-status]").includes("Scheduled") && !__t.$("#book-form")`, "the booked call in the list, the panel closed");
-  let booked = await page.eval(`__graineFake.log.filter((c) => c[0] === "scheduleCall").at(-1)[1]`);
-  const tomorrow10 = await page.eval(`__t.dayAt(1, "10:00")`);
-  check(booked.at.startsWith(`${tomorrow10}:00`) && /[+-]\d{2}:\d{2}$/.test(booked.at) && booked.reason === "Medication review",
-    "the chip's local time, with its offset, and the chosen reason are booked", js(booked));
-  check(/^Call booked for Tomorrow, /.test(await page.eval(`__t.toast()`)), "a toast confirms the booking");
+  await page.waitFor(`!!__t.sheet("agent_headless")`, "the widget's booking sheet");
+  check(js(await page.eval(`__graineFake.log.filter((c) => c[0] === "openBooking").at(-1)`)) === js(["openBooking", { reason: "Consultation" }, "agent_headless"]),
+    "the sheet opens for the main agent with the pack's reason");
+  check((await page.eval(`__t.$("[data-fake=booking-reason]").value`)) === "Consultation", "\"What's it about?\" starts with the pack's reason");
+  await page.shot("sdk-booking-sheet");
+  await page.eval(`__t.click("[data-fake=booking-book]")`);
+  await page.waitFor(`__t.texts(".list-row [data-status]").includes("Scheduled") && !__t.sheet()`, "the booked call in the list, the sheet closed");
+  check(/^Call booked for /.test(await page.eval(`__t.toast()`)), "a toast confirms the booking");
+  const listed = await page.eval(`__t.texts(".list-row").length`);
   await page.eval(`__t.click("#book-open")`);
-  await page.waitFor(`!!__t.$('[data-quick="0"]')`, "the panel again");
-  await page.eval(`__t.click('[data-quick="0"]')`);
-  await page.eval(`__t.click("#book-submit")`);
-  await page.waitFor(`__graineFake.log.filter((c) => c[0] === "scheduleCall").length === 2 && !__t.$("#book-form")`, "the second booking");
-  check(await page.eval(`(() => { const at = new Date(__graineFake.log.filter((c) => c[0] === "scheduleCall").at(-1)[1].at);
-    const d = at.getTime() - Date.now(); return d > 14 * 60e3 && d < 16.5 * 60e3; })()`), "\"In 15 minutes\" counts from the moment of booking");
-  await page.eval(`__t.click("#book-open")`);
-  await page.waitFor(`!!__t.$("#book-when")`, "the panel again");
-  await page.eval(`__t.setWhen(__t.localIn(2 * 60 * 1000))`);
-  await page.eval(`__t.click("#book-submit")`);
-  await page.waitFor(`__t.text("#book-error") === "Choose a time at least 5 minutes from now."`, "the too-soon refusal in words");
-  await page.eval(`__t.click("#book-close")`);
-  await page.waitFor(`!__t.$("#book-form")`, "the panel to close");
+  await page.waitFor(`!!__t.sheet()`, "the sheet again");
+  await page.eval(`__t.click("[data-fake=booking-close]")`);
+  await page.waitFor(`!__t.sheet()`, "the sheet closed");
+  check((await page.eval(`__t.texts(".list-row").length`)) === listed, "closing the sheet books nothing");
+  // While the loader says this visitor cannot book, the button stays, disabled, and says so.
+  await page.eval(`__graineFake.setUsersCanBook(false); true`);
+  await page.eval(`__t.click("#calls-refresh")`);
+  await page.waitFor(`__t.$("#book-open").disabled && __t.text("#book-unavailable") === "Booking isn't available for this agent."`,
+    "the button off, with one line saying why");
+  await page.shot("sdk-booking-unavailable");
+  await page.eval(`__graineFake.setUsersCanBook(true); true`);
+  await page.eval(`__t.click("#calls-refresh")`);
+  await page.waitFor(`!__t.$("#book-open").disabled && !__t.$("#book-unavailable")`, "the button on again");
   await page.eval(`__graineFake.seedCalls("MRN-000981", [
     { at: new Date(Date.now() - 864e5).toISOString(), status: "missed", source: "agent", reason: "Weekly check-in" },
     { at: new Date(Date.now() - 2 * 864e5).toISOString(), status: "completed", source: "dashboard" },
@@ -460,7 +426,7 @@ async function sdkTypes(page, origin) {
   await page.waitFor(`__t.$("#confirm").open`, "the in-page confirmation");
   await page.eval(`__t.click("#confirm-yes")`);
   await page.waitFor(`__t.texts(".list-row [data-status]").includes("Cancelled")`, "the cancelled chip");
-  await page.waitFor(`__graineFake.screens.at(-1).fields[0].value === "1"`, "the calls screen context to count 1 upcoming");
+  await page.waitFor(`__graineFake.screens.at(-1).fields[0].value === "0"`, "the calls screen context to count no upcoming calls");
 
   // Help: the second agent takes the page's assistant; the same person stays signed in.
   await go(page, "help", "Billing & appointments help");
@@ -474,18 +440,15 @@ async function sdkTypes(page, origin) {
   await page.waitFor(`__graineFake.opened() >= 1 && !!document.querySelector('[data-fake=panel][data-agent="agent_help"]')`, "Talk opens the help agent");
   await page.waitFor(`!__t.$("#book-open").disabled`, "booking with the help agent");
   check((await page.eval(`__t.text("#book-open")`)) === "Book a call with billing", "Help's booking button is the help agent's bookLabel");
-  await page.eval(`__t.click("#book-open")`);
-  await page.waitFor(`!!__t.$("#book-form")`, "Help's booking panel");
-  check(js(await page.eval(`__t.texts("#book-form .chip-choice")`)) === js(["Billing question", "Change an appointment", "Insurance and coverage"]), "the help agent's reasons");
   check(/as “Graine Care · Billing”/.test(await page.eval(`__t.text("#rings-phone")`)), "the help agent's call name");
-  await page.eval(`__t.click('[data-quick="2"]')`);
-  await page.eval(`__t.click(__t.byText("#book-form .chip-choice", "Change an appointment"))`);
-  await page.waitFor(`__t.text("#book-form .chip-choice.is-chosen") === "Change an appointment"`, "the reason");
-  await page.eval(`__t.click("#book-submit")`);
-  await page.waitFor(`!__t.$("#book-form") && __t.texts(".list-row [data-status]").includes("Scheduled")`, "the help booking in Help's list");
-  const helpBooked = await page.eval(`__graineFake.log.filter((c) => c[0] === "scheduleCall").at(-1)`);
-  check(helpBooked[2] === "agent_help" && helpBooked[1].reason === "Change an appointment" && helpBooked[1].at.startsWith(await page.eval(`__t.dayAt(1, "18:00")`)),
-    "booked with the help agent, its reason and the chip's time", js(helpBooked));
+  await page.eval(`__t.click("#book-open")`);
+  await page.waitFor(`!!__t.sheet("agent_help")`, "the help agent's booking sheet");
+  check(js(await page.eval(`__graineFake.log.filter((c) => c[0] === "openBooking").at(-1)`)) === js(["openBooking", { reason: "Billing question" }, "agent_help"]),
+    "Help's sheet opens for the help agent with its own reason");
+  await page.eval(`__t.click("[data-fake=booking-book]")`);
+  await page.waitFor(`!__t.sheet() && __t.texts(".list-row [data-status]").includes("Scheduled")`, "the help booking in Help's list");
+  const helpBooked = await page.eval(`__graineFake.log.filter((c) => c[0] === "booked").at(-1)`);
+  check(helpBooked[2] === "agent_help" && helpBooked[1].reason === "Billing question", "booked with the help agent, with its reason", js(helpBooked));
   check((await page.eval(`document.querySelectorAll(".list-agent").length`)) === 0, "Help's own list does not repeat the agent's name");
   await page.shot("sdk-help");
 
@@ -604,23 +567,13 @@ async function everyPack(page, origin) {
     }
     await go(page, "calls", p.call.title);
     check((await page.eval(`__t.text("#book-open")`)) === p.call.bookLabel, `${id}: the booking button says "${p.call.bookLabel}"`);
+    await page.waitFor(`!__t.$("#book-open").disabled`, `${id}: booking available`);
     await page.eval(`__t.click("#book-open")`);
-    await page.waitFor(`!!__t.$("#book-form")`, `${id}: the booking panel`);
-    check(js(await page.eval(`__t.texts("#book-form [data-quick]")`)) === js(p.call.quickTimes.map((q) => q.label)), `${id}: the quick-time chips`);
-    check(js(await page.eval(`__t.texts("#book-form .chip-choice")`)) === js(p.call.reasons), `${id}: the reasons`);
-    // A chip is disabled exactly when its time is inside the 5-minute notice (or past) — the pack's rule.
-    const chipRule = await page.eval(`(() => Array.from(document.querySelectorAll("#book-form [data-quick]")).every((b) => {
-      const q = ${js(p.call.quickTimes)}[Number(b.dataset.quick)], now = new Date();
-      const at = q.inMinutes ? new Date(now.getTime() + q.inMinutes * 60e3)
-        : new Date(now.getFullYear(), now.getMonth(), now.getDate() + (q.day === "tomorrow" ? 1 : 0), ...q.time.split(":").map(Number));
-      return b.disabled === (at.getTime() < now.getTime() + 5 * 60e3);
-    }))()`);
-    check(chipRule, `${id}: chips outside the SDK's window are disabled, the rest are not`);
-    await page.eval(`__t.click("#book-form [data-quick]:not([disabled])")`);
-    await page.eval(`__t.click("#book-submit")`);
+    await page.waitFor(`!!__t.sheet()`, `${id}: the booking sheet`);
+    check((await page.eval(`__graineFake.log.filter((c) => c[0] === "openBooking").at(-1)[1].reason`)) === p.call.reasons[0],
+      `${id}: the sheet starts with the first reason, "${p.call.reasons[0]}"`);
+    await page.eval(`__t.click("[data-fake=booking-book]")`);
     await page.waitFor(`__t.texts(".list-row [data-status]").includes("Scheduled")`, `${id}: the booking in the list`);
-    check((await page.eval(`__graineFake.log.filter((c) => c[0] === "scheduleCall").at(-1)[1].reason`)) === p.call.reasons[0],
-      `${id}: booked with the first reason, "${p.call.reasons[0]}"`);
     await go(page, "help", p.agents.help.name);
     check(/Add /.test(await page.eval(`__t.text("#help-setup .card-title")`)) && /help: \{ agentId/.test(await page.eval(`__t.text("#help-setup pre")`)),
       `${id}: without a help agent, Help says how to add one`);

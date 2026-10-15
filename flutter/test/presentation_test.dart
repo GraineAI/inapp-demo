@@ -1,12 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graine_demo/logic/presentation.dart';
-import 'package:graine_demo/usecases.dart';
 
 void main() {
-  // Wednesday 14 October 2026, 18:10:30 local; the SDK's bounds for 5 minutes' notice and 14 days.
+  // Wednesday 14 October 2026, 18:10:30 local.
   final now = DateTime(2026, 10, 14, 18, 10, 30);
-  final earliest = now.add(const Duration(minutes: 5));
-  final latest = now.add(const Duration(days: 14));
 
   test('times in plain words', () {
     expect(formatTime(DateTime(2026, 10, 14, 0, 5)), '12:05 am');
@@ -17,7 +14,7 @@ void main() {
     expect(formatDay(DateTime(2026, 10, 13, 9), now), 'Yesterday');
     expect(formatDay(DateTime(2026, 10, 17, 9), now), 'Sat 17 Oct');
     expect(formatWhen(null, now), 'Time not set');
-    expect(zoneLabel(DateTime(2026, 10, 15, 18), 'Asia/Kolkata', now), 'Asia/Kolkata · Tomorrow, 6:00 pm');
+    expect(formatWhen(DateTime(2026, 10, 15, 18), now), 'Tomorrow, 6:00 pm');
   });
 
   test('call activity names the agent each call was with, when the call engine says', () {
@@ -25,27 +22,6 @@ void main() {
     expect(callEventLine(at: at, agentName: 'Billing & appointments help', kind: 'ended', detail: 'remote', callId: 'call_1f2e3d4c-aaaa'),
         '6:05 pm · Billing & appointments help · ended (remote) · call_1f2e3d4');
     expect(callEventLine(at: at, kind: 'missed', callId: 'c3'), '6:05 pm · missed · c3');
-  });
-
-  test('the pickers stay on the 5-minute grid, inside the SDK bounds', () {
-    expect(formatTime(roundUpToStep(DateTime(2026, 10, 14, 18, 15, 30), 5)), '6:20 pm');
-    expect(formatTime(roundUpToStep(DateTime(2026, 10, 14, 18, 15), 5)), '6:15 pm');
-    final range = pickerRange(earliest, latest)!;
-    expect(formatTime(range.min), '6:20 pm');
-    expect(pickerRange(latest, earliest), isNull);
-    expect(snapToRange(DateTime(2026, 10, 14, 9), range), range.min);
-    expect(formatTime(snapToRange(DateTime(2026, 10, 16, 9, 2), range)), '9:05 am');
-    final last = snapToRange(DateTime(2026, 11, 30, 9), range);
-    expect(last.isAfter(latest), isFalse);
-    expect(last.minute % 5, 0);
-  });
-
-  test('quick times become moments; those outside the range are marked', () {
-    final range = pickerRange(earliest, latest);
-    expect(formatWhen(quickTimeAt(const QuickTime(label: 'In 15 minutes', inMinutes: 15), now), now), 'Today, 6:26 pm');
-    expect(formatWhen(quickTimeAt(const QuickTime(label: 'Tomorrow 10:00', day: 'tomorrow', time: '10:00'), now), now), 'Tomorrow, 10:00 am');
-    expect(inRange(quickTimeAt(const QuickTime(label: 'Today 09:00', day: 'today', time: '09:00'), now), range), isFalse);
-    expect(inRange(quickTimeAt(const QuickTime(label: 'Today 19:00', day: 'today', time: '19:00'), now), range), isTrue);
   });
 
   test('status chips name every status, whichever spelling', () {
@@ -67,8 +43,9 @@ void main() {
     expect(memoryChip(agentMemory: null, consent: true).label, 'Memory on');
     expect(memoryChip(agentMemory: true, consent: false).label, 'Memory off');
     expect(memoryChip(agentMemory: false, consent: true).detail, 'This agent does not remember conversations.');
-    expect(messageFor('too_soon', 'x', minLeadMinutes: 10), 'Pick a time at least 10 minutes from now.');
-    expect(messageFor('outside_window', 'x', agentName: 'Asha'), "That time is outside Asha's calling hours. Pick another time.");
+    expect(messageFor('device_limit', 'x', agentName: 'Asha'), 'This device is not one of yours for Asha. An admin can reset your devices in the dashboard.');
+    // A booking's refusals are the SDK's booking sheet's to word; anywhere else, the SDK's sentence.
+    expect(messageFor('outside_window', 'Outside calling hours.'), 'Outside calling hours.');
     expect(messageFor('rate_limited', 'x', retryAfterSeconds: 30), 'Too many requests. Try again in 30 seconds.');
     expect(messageFor('something_new', 'Server words.'), 'Server words.');
   });

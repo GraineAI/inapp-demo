@@ -3,7 +3,6 @@ package ai.graine.demo.ui
 import ai.graine.demo.domain.AgentCall
 import ai.graine.demo.domain.AgentProfile
 import ai.graine.demo.domain.AppConfig
-import ai.graine.demo.domain.Booking
 import ai.graine.demo.domain.CallLog
 import ai.graine.demo.domain.CallLogEntry
 import ai.graine.demo.domain.CallText
@@ -22,12 +21,10 @@ import ai.graine.demo.graine.GraineClient
 import ai.graine.inapp.GraineCallStatus
 import ai.graine.inapp.GraineError
 import ai.graine.inapp.GraineMemory
-import ai.graine.inapp.GraineSchedulingRules
 import android.app.Activity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import java.util.Date
 
 /** The tabs along the bottom. Profile opens from Home. */
 enum class DemoTab { HOME, ITEMS, CALLS, HELP, MEMORY }
@@ -92,8 +89,8 @@ class AppModel(
         private set
     var callsError by mutableStateOf<String?>(null)
         private set
-    /** The main agent's booking rules (each agent's come from [rulesFor]). */
-    var rules by mutableStateOf(GraineSchedulingRules())
+    /** The agents that can be booked from the app now (the SDK's bookingAvailable): their booking buttons are enabled. */
+    var bookable by mutableStateOf<Set<DemoAgent>>(emptySet())
         private set
     var memories by mutableStateOf<List<GraineMemory>>(emptyList())
         private set
@@ -108,14 +105,14 @@ class AppModel(
     /** A short message for the user: what just happened, or why it did not. */
     var notice by mutableStateOf<String?>(null)
 
-    /** The activity in front: a native call is placed from it. Set by MainActivity. */
+    /** The activity in front: a native call is placed from it, and the booking sheet shown over it. Set by MainActivity. */
     var activity: Activity? = null
 
     init {
         graine.onSessionReady = { sessionArrived() }
         graine.onCallEvent = { record(it) }
         registerActions()
-        rules = graine.schedulingRules(DemoAgent.MAIN)
+        refreshBookable()
         agentMemoryEnabled = graine.agentMemoryEnabled
         describeScreen()
     }
@@ -166,6 +163,7 @@ class AppModel(
         memories = emptyList()
         callsError = null
         memoriesError = null
+        refreshBookable()
         describeScreen()
         refreshCalls()
     }
@@ -185,6 +183,7 @@ class AppModel(
         callLogOpen = false
         tab = DemoTab.HOME
         notice = null
+        refreshBookable()
         describeScreen()
     }
 
@@ -348,16 +347,11 @@ class AppModel(
 
     // ── scheduled calls ─────────────────────────────────────────────────────
 
-    /** An agent's booking rules, from its session. */
-    fun rulesFor(agent: DemoAgent): GraineSchedulingRules = if (agent == DemoAgent.MAIN) rules else graine.schedulingRules(agent)
+    /** The agent's booking button is enabled: the SDK says it can be booked from the app now. */
+    fun canBook(agent: DemoAgent): Boolean = agent in bookable
 
     /** The next call that will ring, from any agent. */
     val nextCall: AgentCall? get() = calls.filter { it.call.isUpcoming && it.call.at != null }.minByOrNull { it.call.at!!.time }
-
-    fun suggestedCallTime(agent: DemoAgent = DemoAgent.MAIN): Long = CallText.suggestedTime(now(), rulesFor(agent))
-
-    /** The times the pickers offer for an agent: its SDK bounds, on the 5-minute grid. */
-    fun bookingRange(agent: DemoAgent = DemoAgent.MAIN): LongRange = Booking.range(now(), rulesFor(agent))
 
     /** Upcoming calls of every agent, soonest first; then the rest, most recent first. */
     val upcomingCalls: List<AgentCall> get() = calls.filter { it.call.isUpcoming }.sortedBy { it.call.at?.time ?: Long.MAX_VALUE }
@@ -387,21 +381,18 @@ class AppModel(
     }
 
     /**
-     * Book a call with one of the pack's reasons, with [agent]. [done] hears null when booked, else why not, in words.
-     * The SDK refuses a time outside the rules before anything is sent, and the server refuses the rest.
+     * The pack's booking button: the SDK's booking sheet for [agent], its "What's it about?" starting with the
+     * pack's reason. The day, the time, the rules and any refusal are the sheet's; a call booked in it joins
+     * the list at once, and the list is read again.
      */
-    fun scheduleCall(atMs: Long, reason: String?, agent: DemoAgent = DemoAgent.MAIN, done: (String?) -> Unit) {
-        if (agent == DemoAgent.MAIN) rules = graine.schedulingRules(DemoAgent.MAIN)
-        val agentRules = rulesFor(agent)
-        graine.scheduleCall(Date(atMs), reason, agent) { booked, error ->
-            if (booked == null) {
-                done(CallText.message(error, agentRules))
-                return@scheduleCall
-            }
+    fun book(agent: DemoAgent = DemoAgent.MAIN) {
+        val front = activity ?: return
+        if (user == null || !canBook(agent)) return
+        graine.presentBooking(front, pack?.bookingReason(agent), agent) { booked ->
+            if (booked == null) return@presentBooking
             calls = calls.filter { !(it.agent == agent && it.call.id == booked.id) } + AgentCall(agent, booked)
-            notice = "Call with ${nameOf(agent)} booked for ${DemoFormat.time(booked.at ?: Date(atMs), now())}."
+            notice = "Call with ${nameOf(agent)} booked for ${DemoFormat.time(booked.at, now())}."
             describeScreen()
-            done(null)
             refreshCalls()
         }
     }
@@ -412,7 +403,7 @@ class AppModel(
                 notice = if (status == GraineCallStatus.CANCELLED) "Call cancelled." else "The call is ${CallText.label(status).lowercase()}."
                 refreshCalls()
             } else {
-                notice = CallText.message(error, rulesFor(call.agent))
+                notice = CallText.message(error)
             }
         }
     }
@@ -551,12 +542,17 @@ class AppModel(
     // ── private ─────────────────────────────────────────────────────────────
 
     private fun sessionArrived() {
-        rules = graine.schedulingRules(DemoAgent.MAIN)
+        refreshBookable()
         agentMemoryEnabled = graine.agentMemoryEnabled
         describeScreen()
     }
 
+    /** Whether each agent can be booked changes with its session and with who is signed in: read it again then. */
+    private fun refreshBookable() {
+        bookable = graine.agents.filter { graine.bookingAvailable(it) }.toSet()
+    }
+
     private fun sessionKey(pack: UseCasePack, user: UseCasePack.User) = "${pack.id}/${user.id}"
 
-    private fun words(error: GraineError?): String = CallText.message(error, rules)
+    private fun words(error: GraineError?): String = CallText.message(error)
 }

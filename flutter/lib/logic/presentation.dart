@@ -1,6 +1,5 @@
-/// How the app SHOWS things — status words and colours, times, the booking pickers' range inside the
-/// SDK's bounds, the memory chip, error sentences. No booking or memory rules live here: those are the
-/// SDK's and the server's.
+/// How the app SHOWS things — status words and colours, times, the memory chip, error sentences. No booking
+/// or memory rules live here: those are the SDK's (its booking sheet) and the server's.
 library;
 
 import '../usecases.dart';
@@ -87,51 +86,6 @@ String formatDay(DateTime t, DateTime now) {
 /// "Tomorrow, 9:00 am".
 String formatWhen(DateTime? t, DateTime now) => t == null ? 'Time not set' : '${formatDay(t, now)}, ${formatTime(t)}';
 
-/// "Asia/Kolkata · Tomorrow, 6:00 pm" — the zone the call is booked in, then the time on this phone's clock.
-String zoneLabel(DateTime at, String zone, DateTime now) => '$zone · ${formatWhen(at, now)}';
-
-// ── The booking pickers ────────────────────────────────────────────────────
-
-class PickerRange {
-  const PickerRange(this.min, this.max);
-  final DateTime min;
-  final DateTime max;
-}
-
-/// Up to the next multiple of [step] minutes, seconds dropped.
-DateTime roundUpToStep(DateTime d, int step) {
-  final ms = step * 60000;
-  final t = d.millisecondsSinceEpoch;
-  return DateTime.fromMillisecondsSinceEpoch(((t + ms - 1) ~/ ms) * ms);
-}
-
-/// A pack quick time as a moment on this phone's clock.
-DateTime quickTimeAt(QuickTime q, DateTime now) {
-  if (q.inMinutes != null) return roundUpToStep(now.add(Duration(minutes: q.inMinutes!)), 1);
-  final parts = (q.time ?? '00:00').split(':');
-  final base = _day(now.toLocal()).add(Duration(days: q.day == 'tomorrow' ? 1 : 0));
-  return DateTime(base.year, base.month, base.day, int.parse(parts[0]), int.parse(parts[1]));
-}
-
-/// What the pickers offer: the SDK's earliest (up to the next 5 minutes) to its latest; null when empty.
-PickerRange? pickerRange(DateTime earliest, DateTime latest, {int step = 5}) {
-  final min = roundUpToStep(earliest, step);
-  return min.isAfter(latest) ? null : PickerRange(min, latest);
-}
-
-bool inRange(DateTime d, PickerRange? range) => range != null && !d.isBefore(range.min) && !d.isAfter(range.max);
-
-/// A picked moment on the 5-minute grid and inside the range (the time picker cannot step by five).
-DateTime snapToRange(DateTime d, PickerRange range, {int step = 5}) {
-  final t = roundUpToStep(d, step);
-  if (t.isBefore(range.min)) return range.min;
-  if (t.isAfter(range.max)) {
-    final ms = step * 60000;
-    return DateTime.fromMillisecondsSinceEpoch((range.max.millisecondsSinceEpoch ~/ ms) * ms);
-  }
-  return t;
-}
-
 // ── Memory ─────────────────────────────────────────────────────────────────
 
 /// The chip on Home and the Memory screen. [agentMemory]: the agent remembers people at all (null until
@@ -153,14 +107,11 @@ String memoryEmptyText(UseCasePack pack) {
 
 // ── Errors ─────────────────────────────────────────────────────────────────
 
-/// The sentence for an error code the SDK reports (WIRE.md codes, as their wire words).
-String messageFor(String code, String fallback, {String agentName = 'The assistant', int minLeadMinutes = 5, int maxDaysAhead = 14, int maxPendingPerUser = 3, int? retryAfterSeconds}) {
+/// The sentence for an error code the SDK reports (WIRE.md codes, as their wire words) when listing or
+/// cancelling calls, reading memory or placing a call. A booking's refusals are worded by the SDK's booking
+/// sheet; any other code reads as the SDK's own sentence.
+String messageFor(String code, String fallback, {String agentName = 'The assistant', int? retryAfterSeconds}) {
   return switch (code) {
-    'scheduling_off' => '$agentName does not take bookings from the app.',
-    'too_soon' => 'Pick a time at least $minLeadMinutes minutes from now.',
-    'too_far' => 'Pick a time within the next $maxDaysAhead days.',
-    'outside_window' => "That time is outside $agentName's calling hours. Pick another time.",
-    'too_many_pending' => 'You already have $maxPendingPerUser calls booked. Cancel one to book another.',
     'rate_limited' => retryAfterSeconds != null ? 'Too many requests. Try again in $retryAfterSeconds seconds.' : 'Too many requests. Try again in a minute.',
     'identity_required' => 'Sign in first.',
     'device_limit' => 'This device is not one of yours for $agentName. An admin can reset your devices in the dashboard.',

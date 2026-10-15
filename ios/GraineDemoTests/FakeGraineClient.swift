@@ -21,9 +21,12 @@ final class FakeGraineClient: GraineClient {
     var actions: [DemoAgent: [String: @MainActor ([String: Any]) -> DemoActionResult]] = [:]
     var unregisterCount = 0
 
-    var rules: [DemoAgent: GraineSchedulingRules] = [.main: GraineSchedulingRules(usersCanBook: true), .help: GraineSchedulingRules(usersCanBook: true)]
-    var scheduleResult: Result<GraineScheduledCall, GraineServiceError> = .success(GraineScheduledCall(id: "c1", at: Date(), status: .scheduled, source: .app))
-    var scheduled: [(Date, String?, DemoAgent)] = []
+    /// The agents the SDK says can be booked now.
+    var bookable: Set<DemoAgent> = [.main, .help]
+    /// What the booking sheet hands back when it closes: the booked call, or nil (closed without booking).
+    var bookingResult: GraineScheduledCall? = GraineScheduledCall(id: "c1", at: Date(), status: .scheduled, source: .app)
+    /// Every booking sheet opened: the reason it started with, and the agent.
+    var bookingSheets: [(String?, DemoAgent)] = []
     var listResults: [DemoAgent: Result<[GraineScheduledCall], GraineServiceError>] = [:]
     var cancelled: [(String, DemoAgent)] = []
     var cancelResult: Result<GraineCallStatus, GraineServiceError> = .success(.cancelled)
@@ -60,11 +63,11 @@ final class FakeGraineClient: GraineClient {
         actions.removeAll()
     }
 
-    func schedulingRules(_ agent: DemoAgent) -> GraineSchedulingRules { rules[agent] ?? GraineSchedulingRules() }
+    func bookingAvailable(_ agent: DemoAgent) -> Bool { agents.contains(agent) && bookable.contains(agent) }
 
-    func scheduleCall(at date: Date, reason: String?, agent: DemoAgent) async throws -> GraineScheduledCall {
-        scheduled.append((date, reason, agent))
-        return try scheduleResult.get()
+    func presentBooking(reason: String?, agent: DemoAgent) async -> GraineScheduledCall? {
+        bookingSheets.append((reason, agent))
+        return bookingResult
     }
 
     func scheduledCalls(agent: DemoAgent) async throws -> [GraineScheduledCall] {

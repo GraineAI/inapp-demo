@@ -16,7 +16,6 @@ import {
   type GraineCallStatus,
   type GraineMemory,
   type GraineScheduledCall,
-  type GraineSchedulingRules,
   type ScreenContext,
 } from "@graineai/inapp-react-native";
 import { GraineCalls, type GraineCallOutcome, type GraineIncomingCall } from "@graineai/inapp-react-native-calls";
@@ -167,14 +166,14 @@ export async function agentSettings(refresh = false): Promise<AgentSettings> {
 
 // ── Booked calls: the SDK owns them ────────────────────────────────────────
 //
-// useScheduling() is the SDK's useGraineScheduling(): `rules` (schedulingRules — usersCanBook,
-// earliest(now), latest(now), callName…), `calls` (upcoming first, each with isUpcoming / canCancel and
-// a typed status), `schedule(at, reason)` (checks scheduling_off / too_soon / too_far before asking),
-// `cancel(id)`, `refresh`, `loading`, `error`. The app only presents them.
+// useScheduling() is the SDK's useGraineScheduling() for the provider's agent: `calls` (upcoming first,
+// each with isUpcoming / canCancel and a typed status), `cancel(id)`, `refresh`, `loading`, `error` —
+// and booking: `bookingAvailable` (the agent can be booked from this app now) and `openBooking({ reason })`,
+// which opens the SDK's own booking sheet (the provider draws it) and resolves with the booked call, or
+// null when the person closed it. useAgentConversation() carries the same two. The app only presents them.
 export { useGraineScheduling as useScheduling } from "@graineai/inapp-react-native";
 export type {
   GraineScheduledCall as ScheduledCall,
-  GraineSchedulingRules as SchedulingRules,
   GraineCallStatus as CallStatus,
 } from "@graineai/inapp-react-native";
 
@@ -313,14 +312,13 @@ export interface HelpCalls {
   calls: GraineScheduledCall[];
   error: unknown;
   refresh: () => Promise<void>;
-  schedule: (at: Date, reason?: string) => Promise<GraineScheduledCall>;
   cancel: (id: string) => Promise<GraineCallStatus>;
-  rules: GraineSchedulingRules | null;
 }
 
 /**
  * The help agent's calls for the Scheduled calls list, read with its own client (its bookings live with that
- * agent). Only loading and passing through: every rule is the SDK's. Empty without a help agent.
+ * agent; it is booked on the Help screen, under its own provider). Only loading and passing through: every
+ * rule is the SDK's. Empty without a help agent.
  */
 export function useHelpCalls(): HelpCalls {
   const client = currentHelp;
@@ -344,15 +342,11 @@ export function useHelpCalls(): HelpCalls {
     const offs = [client.on("scheduled_calls_changed", () => void refresh()), client.on("identity", () => void refresh())];
     return () => offs.forEach((off) => off());
   }, [client, refresh]);
-  const schedule = useCallback((at: Date, reason?: string) => {
-    if (!client) return Promise.reject(new Error("No help agent is configured."));
-    return client.scheduleCall(at, reason);
-  }, [client]);
   const cancel = useCallback((id: string) => {
     if (!client) return Promise.reject(new Error("No help agent is configured."));
     return client.cancelScheduledCall(id);
   }, [client]);
-  return { calls, error, refresh, schedule, cancel, rules: client ? client.schedulingRules : null };
+  return { calls, error, refresh, cancel };
 }
 
 export interface CallEvent {

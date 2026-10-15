@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:graine_demo/app.dart';
 import 'package:graine_demo/graine_service.dart';
 import 'package:graine_demo/state.dart';
+import 'package:graine_demo/ui.dart';
 import 'package:graine_demo/usecases.dart';
 
 import 'fake_service.dart';
@@ -85,7 +86,7 @@ void main() {
     expect(state.tab, ScreenKey.calls);
   });
 
-  testWidgets('booking: reason, quick time, the zone line, scheduleCall, then the call with its chip and Cancel', (tester) async {
+  testWidgets("booking: the pack's button opens the SDK's sheet with the pack's reason, then the call with its chip and Cancel", (tester) async {
     final (_, service) = await start(tester);
     await signInFirst(tester);
     await tester.tap(find.text('Calls'));
@@ -94,34 +95,48 @@ void main() {
 
     await tester.tap(find.byKey(const Key('open-booking')));
     await tester.pumpAndSettle();
-    expect(find.text('Schedule a consultation call'), findsWidgets);
-    expect(find.byKey(const Key('reason-Medication review')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('reason-Medication review')));
-    await tester.tap(find.byKey(const Key('quick-Tomorrow 10:00')));
-    await tester.pumpAndSettle();
-    expect(find.text('Asia/Kolkata · Tomorrow, 10:00 am'), findsOneWidget);
-
-    // The SDK's refusal, in plain words; the sheet stays open.
-    service.failNextBooking = const GraineException('outside hours', code: GraineErrorCode.outsideWindow);
-    await tester.tap(find.byKey(const Key('book')));
-    await tester.pumpAndSettle();
-    expect(find.text("That time is outside Asha's calling hours. Pick another time."), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('book')));
-    await tester.pumpAndSettle();
-    final (at, reason, agent) = service.bookings.single;
-    expect(agent, DemoAgent.main);
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
-    expect((at.year, at.month, at.day, at.hour, at.minute), (tomorrow.year, tomorrow.month, tomorrow.day, 10, 0));
-    expect(reason, 'Medication review');
+    expect(service.bookingSheets.single, ('Consultation', DemoAgent.main));
+    // The list is read again: the booked call, with its chip and Cancel.
     expect(find.byKey(const Key('call-c1')), findsOneWidget);
     expect(find.text('Scheduled'), findsOneWidget);
-    expect(find.textContaining('Booked: Asia/Kolkata · Tomorrow, 10:00 am'), findsOneWidget);
+    expect(find.textContaining('Call with Asha booked for Tomorrow, '), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('cancel-c1')));
     await tester.pumpAndSettle();
     expect(find.text('Cancelled'), findsOneWidget);
     expect(find.byKey(const Key('cancel-c1')), findsNothing);
+  });
+
+  testWidgets('booking: closing the sheet books nothing; while the SDK says no, the button is off and says why', (tester) async {
+    final (_, service) = await start(tester);
+    await signInFirst(tester);
+    await tester.tap(find.text('Calls'));
+    await tester.pumpAndSettle();
+    service.bookAt = null;
+    await tester.tap(find.byKey(const Key('open-booking')));
+    await tester.pumpAndSettle();
+    expect(service.bookingSheets, hasLength(1));
+    expect(find.text('Nothing booked.'), findsOneWidget);
+    expect(find.text(bookingUnavailable), findsNothing);
+
+    service.bookable[DemoAgent.main]!.value = false;
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(find.byKey(const Key('open-booking'))).onPressed, isNull);
+    expect(find.text("Booking isn't available for this agent."), findsOneWidget);
+    await tester.tap(find.byKey(const Key('open-booking')), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(service.bookingSheets, hasLength(1));
+  });
+
+  testWidgets("booking from Home: the pack's button opens the same sheet, then the next call shows", (tester) async {
+    final (_, service) = await start(tester);
+    await signInFirst(tester);
+    expect(find.textContaining('No calls booked.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('book-from-home')));
+    await tester.pumpAndSettle();
+    expect(service.bookingSheets.single, ('Consultation', DemoAgent.main));
+    expect(find.textContaining('No calls booked.'), findsNothing);
+    expect(find.textContaining('Asha · Consultation'), findsOneWidget);
   });
 
   testWidgets('memory: the list, then erase with an in-app confirmation', (tester) async {
@@ -156,7 +171,7 @@ void main() {
     expect(find.textContaining('This app has no key for Billing & appointments help yet'), findsOneWidget);
   });
 
-  testWidgets('help: the second agent chats, talks and books with its own reasons; both agents\' calls are listed by name', (tester) async {
+  testWidgets('help: the second agent chats, talks and books through its own agent; both agents\' calls are listed by name', (tester) async {
     final (_, service) = await start(tester, help: true);
     await signInFirst(tester);
     expect(service.signIns, hasLength(1), reason: 'one sign-in for both agents');
@@ -171,16 +186,10 @@ void main() {
     expect(service.voiceStarts, [DemoAgent.help]);
     expect(find.byKey(const Key('fake-help-voice')), findsOneWidget);
 
+    expect(find.text('Book a call with billing'), findsOneWidget);
     await tester.tap(find.byKey(const Key('help-book')));
     await tester.pumpAndSettle();
-    expect(find.text('Book a call with billing'), findsWidgets);
-    await tester.tap(find.byKey(const Key('reason-Change an appointment')));
-    await tester.tap(find.byKey(const Key('quick-Tomorrow 10:00')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('book')));
-    await tester.pumpAndSettle();
-    final (_, reason, agent) = service.bookings.single;
-    expect((reason, agent), ('Change an appointment', DemoAgent.help));
+    expect(service.bookingSheets.single, ('Billing question', DemoAgent.help));
     expect(find.byKey(const Key('help-message')), findsOneWidget);
 
     // A main-agent booking too; the list shows both, each named.
@@ -189,7 +198,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Calls'));
     await tester.pumpAndSettle();
-    expect(find.text('Billing & appointments help · Change an appointment'), findsOneWidget);
+    expect(find.text('Billing & appointments help · Billing question'), findsOneWidget);
     expect(find.text('Asha · Consultation'), findsOneWidget);
     await tester.tap(find.byKey(const Key('cancel-h1')));
     await tester.pumpAndSettle();

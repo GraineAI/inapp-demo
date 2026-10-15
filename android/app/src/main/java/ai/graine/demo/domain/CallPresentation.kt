@@ -5,28 +5,26 @@ import ai.graine.inapp.GraineCallStatus
 import ai.graine.inapp.GraineError
 import ai.graine.inapp.GraineErrorCode
 import ai.graine.inapp.GraineScheduledCall
-import ai.graine.inapp.GraineSchedulingRules
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-import kotlin.math.ceil
 
 /*
- * HOW SCHEDULED CALLS AND REFUSALS READ IN THE APP. Presentation only: the
- * rules, the local checks before a booking is sent, and what "upcoming" or
- * "can be cancelled" mean all belong to the SDK (GraineSchedulingRules,
- * scheduleCall, GraineScheduledCall).
+ * HOW SCHEDULED CALLS AND REFUSALS READ IN THE APP. Presentation only: what
+ * "upcoming" or "can be cancelled" mean belongs to the SDK
+ * (GraineScheduledCall), and booking — its rules, its checks and its
+ * refusals — is the SDK's booking sheet.
  */
 
 /** How a status reads at a glance. The screens pick the colour. */
 enum class Tone { NEUTRAL, INFO, POSITIVE, WARNING, NEGATIVE }
 
 object CallText {
-    /** Shown in place of the booking button's hint when the agent takes no bookings from the app. */
-    const val SCHEDULING_OFF = "Booking calls from the app is turned off for this assistant."
+    /** Under a booking button the SDK says cannot be used now (bookingAvailable is false). */
+    const val BOOKING_UNAVAILABLE = "Booking isn't available for this agent."
 
     fun label(status: GraineCallStatus): String = when (status) {
         GraineCallStatus.SCHEDULED -> "Scheduled"
@@ -68,29 +66,14 @@ object CallText {
         calls.filter { it.isUpcoming && it.at != null }.minByOrNull { it.at!!.time }
 
     /**
-     * The time the picker opens on: at least 30 minutes out, never before the
-     * rules' earliest, rounded up to the next quarter hour.
+     * Plain words for a refusal (the platform's error codes) when listing or
+     * cancelling calls, or reading memory. For a code the app has no words of
+     * its own for, the SDK's message — the server's sentence when there was
+     * one. A booking's refusals are worded by the SDK's booking sheet.
      */
-    fun suggestedTime(nowMs: Long, rules: GraineSchedulingRules): Long {
-        val base = maxOf(rules.earliest(Date(nowMs)).time, nowMs + 30 * 60_000L)
-        // Every time zone's offset is a whole number of quarter hours, so a UTC quarter is a local one.
-        val quarter = 15 * 60_000L
-        return ceil(base.toDouble() / quarter).toLong() * quarter
-    }
-
-    /**
-     * Plain words for a refusal (the platform's error codes). For a code the
-     * app has no words of its own for, the SDK's message — the server's
-     * sentence when there was one.
-     */
-    fun message(error: GraineError?, rules: GraineSchedulingRules = GraineSchedulingRules()): String {
+    fun message(error: GraineError?): String {
         val code = error?.code ?: GraineErrorCode.NETWORK
         return when (code) {
-            GraineErrorCode.SCHEDULING_OFF -> SCHEDULING_OFF
-            GraineErrorCode.TOO_SOON -> "Choose a time at least ${if (rules.minLeadMinutes == 1) "1 minute" else "${rules.minLeadMinutes} minutes"} from now."
-            GraineErrorCode.TOO_FAR -> "Choose a time within the next ${rules.maxDaysAhead} days."
-            GraineErrorCode.OUTSIDE_WINDOW -> "That time is outside the assistant's calling hours. Choose another time."
-            GraineErrorCode.TOO_MANY_PENDING -> "You already have ${rules.maxPendingPerUser} upcoming calls. Cancel one to book another."
             GraineErrorCode.IDENTITY_REQUIRED -> "Sign in to use this."
             GraineErrorCode.DEVICE_LIMIT -> "This user is signed in on the maximum number of devices. Sign out on another device first."
             GraineErrorCode.RATE_LIMITED -> "Too many requests. Try again in a few minutes."

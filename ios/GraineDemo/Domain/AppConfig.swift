@@ -67,6 +67,7 @@ struct AppConfig: Equatable {
  *
  *     -GraineDemoUser <id>        sign in as the pack's user with this id, memory on
  *     -GraineDemoOpen <screen>    home | items | calls | memory | profile | help | call_log | chat | talk | call
+ *                                 | book | help_book (the SDK's booking sheet, as the booking button opens it)
  *     -GraineDemoSay <text>       in the chat, send this a moment after it opens (-GraineDemoSayAfter <seconds>, 2)
  *     -GraineDemoRing <seconds>   that long after sign-in, a booked call rings as Graine's VoIP push would ring it
  *                                 (on a phone; a simulator has no CallKit, so the SDK shows the call as missed)
@@ -132,6 +133,12 @@ enum OfflineDemo {
                 }
             case "talk": model.talk()
             case "call": model.callAgent()
+            case "book":
+                model.open(.calls)
+                Task { await model.book(.main) }
+            case "help_book":
+                model.open(.help)
+                Task { await model.book(.help) }
             case let screen?: if let s = DemoScreen(rawValue: screen) { model.open(s) }
             case nil: break
             }

@@ -19,14 +19,13 @@ import {
   GraineVoiceBar,
   GraineVoiceLauncher,
   placeCall,
+  useAgentConversation,
   useAgentSurface,
-  useHelpCalls,
   useScreenContext,
 } from "../graine";
-import { deviceTimeZone, zoneLabel } from "../logic/scheduling";
+import { formatWhen } from "../logic/time";
 import { ChatWindow } from "./ChatScreen";
-import { BookingSheet } from "./BookingSheet";
-import { Body, Button, ErrorText, Notice, styles, useColors } from "../ui/components";
+import { Body, BookingButton, Button, ErrorText, Notice, styles, useColors } from "../ui/components";
 
 export function HelpScreen() {
   const { pack, helpClient } = useDemo();
@@ -69,9 +68,9 @@ function HelpBody() {
   const c = useColors();
   const help = pack.agents.help;
   const { surfaces, setSurface } = useAgentSurface(); // the HELP agent's, from the provider above
-  const helpCalls = useHelpCalls();
+  // Booking with the help agent: its own sheet, drawn by the provider above.
+  const { bookingAvailable, openBooking } = useAgentConversation();
   const [talking, setTalking] = useState(false);
-  const [sheet, setSheet] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,6 +100,14 @@ function HelpBody() {
     }
   };
 
+  const book = async () => {
+    setMessage(null);
+    setError(null);
+    const booked = await openBooking({ reason: help.reasons[0] });
+    // The Calls screen hears the booking from the help agent's client and reads its list again.
+    if (booked) setMessage(`Booked with ${help.name} for ${formatWhen(booked.at, new Date())}. It is listed under ${pack.call.title}.`);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <View style={{ padding: 16, gap: 8, borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.surface }}>
@@ -109,7 +116,7 @@ function HelpBody() {
           <View style={{ flex: 1 }}><Button label="Talk" onPress={talk} disabled={!surfaces.includes("voice")} /></View>
           <View style={{ flex: 1 }}><Button label="Call" kind="secondary" onPress={call} disabled={!callsAvailable()} /></View>
         </View>
-        <Button label={help.bookLabel} kind="secondary" onPress={() => { setMessage(null); setSheet(true); }} />
+        <BookingButton label={help.bookLabel} kind="secondary" available={bookingAvailable} onPress={() => void book()} />
         {message ? <Body>{message}</Body> : null}
         {error ? <ErrorText>{error}</ErrorText> : null}
       </View>
@@ -119,19 +126,6 @@ function HelpBody() {
       <GraineVoiceLauncher webView={WebView} active={talking} autoStart onEnded={stopTalking} onError={(m) => console.warn("[Graine Demo] help:", m)}>
         {(api) => (talking ? <GraineVoiceBar api={api} onClose={stopTalking} /> : null)}
       </GraineVoiceLauncher>
-      {helpCalls.rules ? (
-        <BookingSheet
-          visible={sheet}
-          agent={{ name: help.name, bookLabel: help.bookLabel, reasons: help.reasons }}
-          rules={helpCalls.rules}
-          schedule={helpCalls.schedule}
-          onClose={() => setSheet(false)}
-          onBooked={(booked) => {
-            setMessage(booked.at ? `Booked with ${help.name}: ${zoneLabel(booked.at, deviceTimeZone(), new Date())}.` : "Booked.");
-            void helpCalls.refresh();
-          }}
-        />
-      ) : null}
     </View>
   );
 }

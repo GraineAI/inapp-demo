@@ -1,11 +1,9 @@
 /**
- * Booked calls, PRESENTATION ONLY: the status chip's words and colour, who booked it, the pack's quick
- * times as moments, and the range the pickers offer inside the SDK's `schedulingRules.earliest(now)` /
- * `latest(now)`, on a 5-minute grid, with the device's time zone.
- * The booking rules themselves — what is too soon, too far, too many, what can be cancelled — are
- * the SDK's and the server's; this file never decides them.
+ * Booked calls, PRESENTATION ONLY: the status chip's words and colour, who booked it, the call log's lines
+ * and both agents' calls in one list. Booking itself — the sheet, what is too soon, too far, too many —
+ * is the SDK's, and what can be cancelled the SDK says; this file never decides them.
  */
-import { addDays, formatDay, formatTime, MINUTE, startOfDay } from "./time";
+import { formatTime } from "./time";
 
 export type ChipTone = "neutral" | "info" | "success" | "warning" | "danger" | "muted";
 
@@ -46,65 +44,6 @@ export function sourceLabel(source: unknown): string | null {
   if (s === "agent") return "Booked in a conversation";
   if (s === "dashboard" || s === "api") return "Booked by the team";
   return null;
-}
-
-/** A pack's one-tap time: `inMinutes` from now, or a `day` and a local `time` ("HH:MM"). */
-export interface QuickTime {
-  label: string;
-  inMinutes?: number;
-  day?: "today" | "tomorrow";
-  time?: string;
-}
-
-export interface PickerRange { min: Date; max: Date }
-
-/** Up to the next multiple of `step` minutes, seconds dropped. */
-export function roundUpToStep(d: Date, step: number): Date {
-  const ms = step * MINUTE;
-  return new Date(Math.ceil(d.getTime() / ms) * ms);
-}
-
-/** A pack quick time as a moment on the device's clock. */
-export function quickTimeAt(q: QuickTime, now: Date): Date {
-  if (typeof q.inMinutes === "number") return roundUpToStep(new Date(now.getTime() + q.inMinutes * MINUTE), 1);
-  const [h, m] = (q.time ?? "00:00").split(":").map((n) => Number(n));
-  const day = q.day === "tomorrow" ? addDays(startOfDay(now), 1) : startOfDay(now);
-  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m);
-}
-
-/** What the pickers offer: the SDK's earliest (up to the next 5 minutes) to its latest; null when that is empty. */
-export function pickerRange(earliest: Date, latest: Date, step = 5): PickerRange | null {
-  const min = roundUpToStep(earliest, step);
-  return min.getTime() <= latest.getTime() ? { min, max: latest } : null;
-}
-
-export function inRange(d: Date, range: PickerRange | null): boolean {
-  return !!range && d.getTime() >= range.min.getTime() && d.getTime() <= range.max.getTime();
-}
-
-/**
- * A picked moment on the 5-minute grid and inside the range — Android's clock cannot step by five, and a
- * date picked first keeps the time it had, which may fall outside the range on the first or last day.
- */
-export function snapToRange(d: Date, range: PickerRange, step = 5): Date {
-  const t = roundUpToStep(d, step);
-  if (t.getTime() < range.min.getTime()) return range.min;
-  if (t.getTime() > range.max.getTime()) return new Date(Math.floor(range.max.getTime() / (step * MINUTE)) * step * MINUTE);
-  return t;
-}
-
-/** The device's time zone as the SDK sends it (IANA), or "Local time" where the platform will not say. */
-export function deviceTimeZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time";
-  } catch {
-    return "Local time";
-  }
-}
-
-/** "Asia/Kolkata · Tomorrow, 6:00 pm" — the zone the call is booked in, then the time on this phone's clock. */
-export function zoneLabel(at: Date, zone: string, now: Date): string {
-  return `${zone} · ${formatDay(at, now)}, ${formatTime(at)}`;
 }
 
 /**

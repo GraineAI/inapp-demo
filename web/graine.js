@@ -15,8 +15,8 @@
  *     GraineError with that code and a message, so the screens never read the loader's own objects.
  *
  * What comes back is the SDK types (WIRE.md → "SDK types"): booked calls with `isUpcoming` and
- * `canCancel`, the agent's `schedulingRules`, memories with Dates. The loader owns scheduling —
- * its rules and its checks — so the page only draws what it returns.
+ * `canCancel`, memories with Dates. The loader owns scheduling — its booking sheet, its rules and its
+ * checks — so the page only draws what it returns.
  *
  * Two agents (MULTI-AGENT.md → Website): the main one, and a help one when configured. The loader
  * holds one at a time; useAgent() moves the page between them with load() again — only on a loader
@@ -25,8 +25,8 @@
  * Notices go into the element with id `graine-notices` when the page has one, else the console.
  *
  * Loader methods used: load (again, to switch agents), open, setScreen, defineAction, identify,
- * setMemory, forgetMemory, memories, scheduleCall, scheduledCalls, cancelScheduledCall,
- * schedulingRules — and, read-only when present, installId (or getInstallId), version and
+ * setMemory, forgetMemory, memories, openBooking, scheduledCalls, cancelScheduledCall,
+ * bookingAvailable — and, read-only when present, installId (or getInstallId), version and
  * switchesAgents.
  */
 
@@ -53,10 +53,10 @@ const FEATURES = {
   setMemory: "the memory switch",
   forgetMemory: "erasing what the assistant remembers",
   memories: "the list of what the assistant remembers",
-  scheduleCall: "booking calls",
+  openBooking: "booking a call (the booking sheet)",
   scheduledCalls: "the list of booked calls",
   cancelScheduledCall: "cancelling booked calls",
-  schedulingRules: "the booking limits from the agent's settings (earliest and latest time)",
+  bookingAvailable: "whether this visitor can book a call",
   switchAgent: "switching the page's assistant to another agent (the Help section's)",
   setScreen: "telling the assistant what is on screen",
   defineAction: "letting the assistant act on this page",
@@ -65,7 +65,7 @@ const FEATURES = {
 
 /** How a notice names what is missing, where that is not `GraineAgent.<name>()`. */
 const DISPLAY = {
-  schedulingRules: "GraineAgent.schedulingRules",
+  bookingAvailable: "GraineAgent.bookingAvailable",
   switchAgent: "GraineAgent.load() with another agent",
 };
 
@@ -155,40 +155,6 @@ export function normaliseCall(raw) {
 export function normaliseStatus(raw) {
   const s = typeof raw === "string" ? raw : raw && typeof raw.status === "string" ? raw.status : "";
   return s ? STATUS_NAMES[s] || s : null;
-}
-
-const whole = (v, fallback) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v) : fallback);
-
-/**
- * The booking rules from the agent's settings (WIRE.md → GraineSchedulingRules), read
- * defensively: `usersCanBook` is false unless the loader says true; `earliest(now)` and
- * `latest(now)` are the loader's own when it has them.
- */
-export function normaliseRules(r) {
-  if (!r || typeof r !== "object") return null;
-  const minLeadMinutes = whole(r.minLeadMinutes, 5);
-  const maxDaysAhead = whole(r.maxDaysAhead, 14);
-  const bound = (name, fallback) => (now = new Date()) => {
-    if (typeof r[name] === "function") {
-      try {
-        const d = toDate(r[name](now));
-        if (d) return d;
-      } catch (e) { /* fall back to the numbers */ }
-    }
-    return fallback(now);
-  };
-  return {
-    usersCanBook: r.usersCanBook === true,
-    minLeadMinutes,
-    maxDaysAhead,
-    maxPendingPerUser: whole(r.maxPendingPerUser, 3),
-    ringTimeoutSeconds: whole(r.ringTimeoutSeconds, 45),
-    callName: typeof r.callName === "string" && r.callName ? r.callName : null,
-    hostedRinging: r.hostedRinging === true,
-    platforms: Array.isArray(r.platforms) ? r.platforms.filter((p) => typeof p === "string") : [],
-    earliest: bound("earliest", (now) => new Date(now.getTime() + minLeadMinutes * 60 * 1000)),
-    latest: bound("latest", (now) => new Date(now.getTime() + maxDaysAhead * 24 * 60 * 60 * 1000)),
-  };
 }
 
 function listOf(value, key) {
@@ -667,18 +633,18 @@ export function createGraine(env = {}) {
     },
 
     /**
-     * The agent's booking rules (WIRE.md → GraineSchedulingRules), or null while they are not
-     * known: they come with the session, so only once the assistant has started. The loader owns
-     * them, and checks every booking against them itself; the page uses them only to draw the
-     * time picker and its words.
+     * Whether the visitor can book a call with the agent on the page (the loader's
+     * `bookingAvailable`: the agent lets visitors book, and the visitor is identified). False until
+     * the assistant has started, and on a loader without it — which the notice then names.
      */
-    schedulingRules() {
+    bookingAvailable() {
       const a = api();
-      if (!a || state !== "ready") return null;
-      let r = null;
-      try { r = typeof a.schedulingRules === "function" ? a.schedulingRules() : a.schedulingRules; } catch (e) { r = null; }
-      if (!r || typeof r !== "object") { unsupported("schedulingRules"); return null; }
-      return normaliseRules(r);
+      if (!a || state !== "ready") return false;
+      // A loader without the booking sheet cannot book from here: the notice names what it lacks.
+      const sheet = typeof a.openBooking === "function";
+      if (!sheet) unsupported("openBooking");
+      if (!("bookingAvailable" in a)) { unsupported("bookingAvailable"); return false; }
+      try { return sheet && a.bookingAvailable === true; } catch (e) { return false; }
     },
 
     /** Open the assistant's panel (voice and chat). */
@@ -739,13 +705,14 @@ export function createGraine(env = {}) {
     },
 
     /**
-     * Book a call. `at` is ISO-8601 with an offset. The loader checks it against the agent's
-     * rules before anything is sent (scheduling_off, too_soon, too_far), then the server does.
-     * Resolves with the booking, when the loader returns it.
+     * Open the widget's booking sheet for the agent on the page — the day, the time, the time zone
+     * and an optional note, in the agent's design — its "What's it about?" starting with `reason`.
+     * The sheet checks the agent's rules and words any refusal itself. Resolves with the booked call,
+     * or null when the visitor closed it without booking.
      */
-    async scheduleCall({ at, reason }) {
-      const r = await call("scheduleCall", [reason ? { at, reason } : { at }]);
-      return normaliseCall(r && r.call ? r.call : r);
+    async openBooking({ reason } = {}) {
+      const r = await call("openBooking", [reason ? { reason } : {}]);
+      return r ? normaliseCall(r.call ? r.call : r) : null;
     },
 
     /** The signed-in person's calls, upcoming first. */

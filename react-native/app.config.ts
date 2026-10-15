@@ -44,8 +44,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       "expo-dev-client",
-      // The booking sheet's native date and time pickers.
-      "@react-native-community/datetimepicker",
       // Android hosted ringing: hands the FCM token and call pushes to the SDK, natively.
       ["./plugins/with-graine-fcm", {}],
     ],

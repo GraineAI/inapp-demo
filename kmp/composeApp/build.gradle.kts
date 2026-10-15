@@ -54,7 +54,8 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = setting("graine.applicationId", "GRAINE_APPLICATION_ID", "com.example.grainedemo")
+        // Its own, not the Android demo's (com.example.grainedemo): installing one must not replace the other.
+        applicationId = setting("graine.applicationId", "GRAINE_APPLICATION_ID", "com.example.grainedemo.kmp")
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -96,9 +97,10 @@ kotlin {
         commonMain {
             kotlin.srcDir(generatePacks)
             dependencies {
-                // The Graine in-app SDK, as published. The local-SDK switch in settings.gradle.kts replaces it.
-                implementation("ai.graine:inapp-kmp:0.7.0")
-                implementation("ai.graine:inapp-kmp-compose:0.7.0")
+                // The Graine in-app SDK, as published (0.8.0: the SDK's own booking sheet). The local-SDK switch in
+                // settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
+                implementation("ai.graine:inapp-kmp:0.8.0")
+                implementation("ai.graine:inapp-kmp-compose:0.8.0")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)

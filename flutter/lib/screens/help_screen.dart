@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../graine_service.dart';
 import '../state.dart';
 import '../ui.dart';
-import 'booking_sheet.dart';
 
 /// Help: the pack's SECOND agent (for example "Billing & appointments help" beside Asha). Its chat, voice and
 /// calls use the help agent (configured as `GraineInApp.init(config, name: 'help')`), while Home and Chat keep
@@ -38,15 +37,17 @@ class _HelpScreenState extends State<HelpScreen> {
       final id = await state.service.placeCall(state.pack.helpAgent.placeReason ?? 'help', agent: DemoAgent.help);
       if (id == null && mounted) setState(() => _error = 'A call is already in progress.');
     } catch (e) {
-      if (mounted) setState(() => _error = describeError(e, state.pack, null, state.pack.helpAgent.name));
+      if (mounted) setState(() => _error = describeError(e, state.pack, state.pack.helpAgent.name));
     }
   }
 
+  /// The help agent's booking button: the SDK's booking sheet for the help agent, starting with its reason.
   Future<void> _book(DemoState state) async {
     setState(() { _message = null; _error = null; });
-    final call = await showBookingSheet(context, agent: DemoAgent.help);
+    final help = state.pack.helpAgent;
+    final call = await state.service.openBooking(context, reason: help.bookingReason ?? state.pack.call.bookingReason, agent: DemoAgent.help);
     if (call == null || !mounted) return;
-    setState(() => _message = 'Booked with ${state.pack.helpAgent.name}. It is listed under ${state.pack.call.title}.');
+    setState(() => _message = 'Booked with ${help.name}. It is listed under ${state.pack.call.title}.');
   }
 
   @override
@@ -86,7 +87,13 @@ class _HelpScreenState extends State<HelpScreen> {
             ),
           ]),
           const SizedBox(height: 8),
-          OutlinedButton(key: const Key('help-book'), onPressed: () => _book(state), child: Text(help.bookLabel ?? pack.call.bookLabel)),
+          BookingButton(
+            buttonKey: const Key('help-book'),
+            label: help.bookLabel ?? pack.call.bookLabel,
+            available: state.service.bookingAvailable(DemoAgent.help),
+            onPressed: () => _book(state),
+            filled: false,
+          ),
           if (_message != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(_message!, key: const Key('help-message'))),
           if (_error != null) ErrorText(_error!),
         ]),

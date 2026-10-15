@@ -1,9 +1,9 @@
 // The adapter (graine.js) against fake loaders: none configured, blocked, the released 1.1.0
-// surface, one that never starts, and one with identity, memory and scheduling.
+// surface, one that never starts, and one with identity, memory, scheduling and the booking sheet.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  createGraine, GraineError, loaderSwitchesAgents, normaliseCall, normaliseMemory, normaliseRules, normaliseStatus,
+  createGraine, GraineError, loaderSwitchesAgents, normaliseCall, normaliseMemory, normaliseStatus,
   toGraineError, versionAtLeast,
 } from "../graine.js";
 
@@ -40,12 +40,12 @@ function releasedLoader(win, { starts = true, says = "" } = {}) {
   return { api, calls };
 }
 
-/** A loader with the identity, memory and scheduling methods; `answers` decides what each returns. */
+/** A loader with the identity, memory, scheduling and booking-sheet methods; `answers` decides what each returns. */
 function extendedLoader(win, answers = {}) {
   const { api, calls } = releasedLoader(win);
   api.version = "1.2.0";
   api.installId = "1b4e28ba-2fa1-41d2-883f-0016d3cca427";
-  for (const name of ["identify", "setMemory", "forgetMemory", "memories", "scheduleCall", "scheduledCalls", "cancelScheduledCall"]) {
+  for (const name of ["identify", "setMemory", "forgetMemory", "memories", "openBooking", "scheduledCalls", "cancelScheduledCall"]) {
     api[name] = async (...args) => {
       calls.push([name, ...args]);
       const a = answers[name];
@@ -156,11 +156,11 @@ test("the released loader lacks identity, memory and scheduling: one notice name
   assert.match(n.text, /version 1\.1\.0/);
   assert.deepEqual(n.lines.map((l) => l.split(" — ")[0]), ["GraineAgent.identify()"]);
   await assert.rejects(t.g.memories(), { code: "unsupported" });
-  await assert.rejects(t.g.scheduleCall({ at: "2026-10-14T18:00:00+05:30" }), { code: "unsupported" });
+  await assert.rejects(t.g.openBooking({ reason: "General question" }), { code: "unsupported" });
   await assert.rejects(t.g.forgetMemory(), { code: "unsupported" });
   n = t.notices.filter((x) => x.key === "unsupported").at(-1);
   assert.deepEqual(n.lines.map((l) => l.split(" — ")[0]),
-    ["GraineAgent.identify()", "GraineAgent.memories()", "GraineAgent.scheduleCall()", "GraineAgent.forgetMemory()"]);
+    ["GraineAgent.identify()", "GraineAgent.memories()", "GraineAgent.openBooking()", "GraineAgent.forgetMemory()"]);
   assert.equal(t.g.supports("memories"), false);
   assert.equal(t.g.supports("setScreen"), true);
   assert.equal(t.g.version(), "1.1.0");
@@ -239,9 +239,9 @@ test("memories and forget accept the other answer shapes", async () => {
   assert.equal(t.g.installId(), "0f8fad5b-d9cb-469f-a165-70867728950e");
 });
 
-test("scheduling: the booking is sent as given and read back with a Date", async () => {
+test("booking: the widget's sheet opens with the reason, and the call booked there comes back with a Date", async () => {
   const t = setup((win) => extendedLoader(win, {
-    scheduleCall: (req) => ({ call: { id: "c1", at: "2026-10-14T12:30:00Z", status: "scheduled", source: "sdk", reason: req.reason } }),
+    openBooking: (o) => ({ id: "c1", at: "2026-10-14T12:30:00Z", status: "scheduled", source: "sdk", reason: o.reason }),
     scheduledCalls: { calls: [
       { id: "c1", at: "2026-10-14T12:30:00Z", status: "scheduled", source: "sdk", reason: "General question" },
       { id: "c2", scheduledAt: "2026-10-13T08:00:00Z", status: "on_hold_new", source: "robot" },
@@ -249,12 +249,16 @@ test("scheduling: the booking is sent as given and read back with a Date", async
     ] },
   }));
   await t.g.start(CONFIG);
-  const booked = await t.g.scheduleCall({ at: "2026-10-14T18:00:00+05:30", reason: "General question" });
-  assert.deepEqual(t.loader.calls.find((c) => c[0] === "scheduleCall"), ["scheduleCall", { at: "2026-10-14T18:00:00+05:30", reason: "General question" }]);
+  const booked = await t.g.openBooking({ reason: "General question" });
+  assert.deepEqual(t.loader.calls.find((c) => c[0] === "openBooking"), ["openBooking", { reason: "General question" }]);
   assert.equal(booked.id, "c1");
   assert.equal(booked.at.toISOString(), "2026-10-14T12:30:00.000Z");
-  await t.g.scheduleCall({ at: "2026-10-14T19:00:00+05:30" });
-  assert.deepEqual(t.loader.calls.filter((c) => c[0] === "scheduleCall")[1][1], { at: "2026-10-14T19:00:00+05:30" });
+  assert.equal(booked.source, "app");
+  await t.g.openBooking();
+  assert.deepEqual(t.loader.calls.filter((c) => c[0] === "openBooking")[1], ["openBooking", {}]);
+  // Closed without booking: null.
+  t.loader.api.openBooking = async () => null;
+  assert.equal(await t.g.openBooking({ reason: "x" }), null);
   const list = await t.g.scheduledCalls();
   assert.deepEqual(list.map((c) => [c.id, c.status, c.source, c.isUpcoming, c.canCancel]),
     [["c1", "scheduled", "app", true, true], ["c2", "on_hold_new", "robot", false, false]]);
@@ -265,58 +269,38 @@ test("scheduling: the booking is sent as given and read back with a Date", async
 
 test("the loader's errors leave as GraineError with their code", async () => {
   const t = setup((win) => extendedLoader(win, {
-    scheduleCall: () => { throw Object.assign(new Error("Choose a time at least 5 minutes from now."), { code: "too_soon" }); },
     memories: () => { throw Object.assign(new Error("Too many requests."), { code: "rate_limited", retryAfterSeconds: 30 }); },
     scheduledCalls: () => { throw new Error("socket closed"); },
   }));
   await t.g.start(CONFIG);
-  await assert.rejects(t.g.scheduleCall({ at: "x" }), (e) => e instanceof GraineError && e.code === "too_soon" && /5 minutes/.test(e.message));
-  await assert.rejects(t.g.memories(), (e) => e.code === "rate_limited" && e.retryAfterSeconds === 30);
+  await assert.rejects(t.g.memories(), (e) => e instanceof GraineError && e.code === "rate_limited" && e.retryAfterSeconds === 30);
   await assert.rejects(t.g.scheduledCalls(), (e) => e.code === "unknown" && e.message === "socket closed");
 });
 
-test("the SDK's scheduling rules: unknown until the assistant has started, then the loader's own", async () => {
-  const earliest = (now) => new Date(now.getTime() + 10 * 60e3);
+test("bookingAvailable: false until the assistant has started, then the loader's own", async () => {
+  let available = true;
   const t = setup((win) => {
     const l = extendedLoader(win);
-    l.api.schedulingRules = { usersCanBook: true, minLeadMinutes: 10, maxDaysAhead: 7, maxPendingPerUser: 2, callName: "Nova · Sample", earliest };
+    Object.defineProperty(l.api, "bookingAvailable", { get: () => available, enumerable: true });
     return l;
   });
-  assert.equal(t.g.schedulingRules(), null);
+  assert.equal(t.g.bookingAvailable(), false);
   await t.g.start(CONFIG);
-  assert.equal(t.g.schedulingRules(), null, "still starting: the session is not known yet");
+  assert.equal(t.g.bookingAvailable(), false, "still starting: the session is not known yet");
   await waitFor(() => t.g.state === "ready");
-  const rules = t.g.schedulingRules();
-  assert.equal(rules.usersCanBook, true);
-  assert.equal(rules.maxPendingPerUser, 2);
-  assert.equal(rules.callName, "Nova · Sample");
-  const now = new Date("2026-10-14T12:00:00Z");
-  assert.equal(rules.earliest(now).toISOString(), "2026-10-14T12:10:00.000Z", "the loader's earliest()");
-  assert.equal(rules.latest(now).toISOString(), "2026-10-21T12:00:00.000Z", "latest() from maxDaysAhead when the loader has none");
+  assert.equal(t.g.bookingAvailable(), true);
+  available = false;
+  assert.equal(t.g.bookingAvailable(), false, "read again every time: it changes with the session and the person");
   assert.equal(t.notices.filter((n) => n.key === "unsupported").length, 0);
 });
 
-test("a loader without schedulingRules: null, and the notice names it as a property", async () => {
+test("a loader without the booking sheet: booking is off, and the notice names openBooking() and bookingAvailable", async () => {
   const t = setup((win) => releasedLoader(win));
   await t.g.start(CONFIG);
   await waitFor(() => t.g.state === "ready");
-  assert.equal(t.g.schedulingRules(), null);
+  assert.equal(t.g.bookingAvailable(), false);
   const n = t.notices.filter((x) => x.key === "unsupported").at(-1);
-  assert.match(n.lines[0], /^GraineAgent\.schedulingRules — /);
-});
-
-test("rules read defensively: booking is off unless the loader says on", () => {
-  const r = normaliseRules({});
-  assert.equal(r.usersCanBook, false);
-  assert.deepEqual([r.minLeadMinutes, r.maxDaysAhead, r.maxPendingPerUser, r.ringTimeoutSeconds], [5, 14, 3, 45]);
-  const now = new Date("2026-10-14T12:00:00Z");
-  assert.equal(r.earliest(now).toISOString(), "2026-10-14T12:05:00.000Z");
-  assert.equal(r.latest(now).toISOString(), "2026-10-28T12:00:00.000Z");
-  const broken = normaliseRules({ usersCanBook: "yes", earliest: () => { throw new Error("no"); }, latest: () => "nonsense" });
-  assert.equal(broken.usersCanBook, false);
-  assert.equal(broken.earliest(now).toISOString(), "2026-10-14T12:05:00.000Z");
-  assert.equal(broken.latest(now).toISOString(), "2026-10-28T12:00:00.000Z");
-  assert.equal(normaliseRules(null), null);
+  assert.deepEqual(n.lines.map((l) => l.split(" — ")[0]), ["GraineAgent.openBooking()", "GraineAgent.bookingAvailable"]);
 });
 
 test("booked calls come out in the SDK types' shape, whichever loader answered", () => {

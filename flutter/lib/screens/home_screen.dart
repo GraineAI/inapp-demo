@@ -58,6 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// The pack's booking button: the SDK's booking sheet, starting with the pack's reason; then the next call again.
+  Future<void> _book(DemoState state) async {
+    setState(() => _error = null);
+    final call = await state.service.openBooking(context, reason: state.pack.call.bookingReason);
+    if (call == null || !mounted) return;
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = DemoScope.of(context);
@@ -110,10 +118,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text('Call ${pack.agentName}'),
             ),
             const SizedBox(height: 8),
-            OutlinedButton(
-              key: const Key('book-from-home'),
-              onPressed: () => state.go(ScreenKey.calls),
-              child: Text(pack.call.bookLabel),
+            BookingButton(
+              buttonKey: const Key('book-from-home'),
+              label: pack.call.bookLabel,
+              available: state.service.bookingAvailable(DemoAgent.main),
+              onPressed: () => _book(state),
+              filled: false,
             ),
             const SizedBox(height: 8),
             OutlinedButton(

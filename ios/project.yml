@@ -15,7 +15,7 @@ settings:
 packages:
   GraineInApp:
     url: https://github.com/GraineAI/inapp-ios
-    from: 0.7.0
+    from: 0.8.0
 targets:
   GraineDemo:
     type: application

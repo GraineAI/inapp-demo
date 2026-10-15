@@ -98,7 +98,7 @@ androidComponents {
 
 dependencies {
     // The Graine in-app SDK, as published. The local-SDK switch in settings.gradle.kts replaces it.
-    implementation("ai.graine:inapp-android:0.7.0")
+    implementation("ai.graine:inapp-android:0.8.0")
 
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")

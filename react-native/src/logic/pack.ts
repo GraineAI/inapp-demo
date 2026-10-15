@@ -72,9 +72,10 @@ export interface UseCasePack {
   call: {
     callName: string;
     title: string;
+    /** The button that opens the SDK's booking sheet. */
     bookLabel: string;
+    /** What a booking is about: the first starts the sheet's "What's it about?" line, which the person may change. */
     reasons: string[];
-    quickTimes: Array<{ label: string; inMinutes?: number; day?: "today" | "tomorrow"; time?: string }>;
     placeReason: string;
   };
   memoryExamples: Array<{ tell: string; ask: string; expect: string }>;

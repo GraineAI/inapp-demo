@@ -1,7 +1,6 @@
 package ai.graine.demo
 
 import ai.graine.demo.domain.AppConfig
-import ai.graine.demo.domain.Booking
 import ai.graine.demo.domain.CallLog
 import ai.graine.demo.domain.CallLogEntry
 import ai.graine.demo.domain.CallText
@@ -13,7 +12,6 @@ import ai.graine.inapp.GraineCallStatus
 import ai.graine.inapp.GraineError
 import ai.graine.inapp.GraineErrorCode
 import ai.graine.inapp.GraineScheduledCall
-import ai.graine.inapp.GraineSchedulingRules
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,7 +19,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -67,20 +64,12 @@ class CallTextTest {
         assertEquals("e", CallText.next(calls)?.id)
     }
 
-    @Test fun suggestedTimeIsAtLeastHalfAnHourOutAndNeverBeforeTheEarliest() {
-        assertEquals(TestClock.at(10, 45), CallText.suggestedTime(TestClock.at(10, 7), GraineSchedulingRules(usersCanBook = true)))
-        assertEquals(TestClock.at(12, 15), CallText.suggestedTime(TestClock.at(10, 7), GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 120)))
-        assertEquals(TestClock.at(10, 0), CallText.suggestedTime(TestClock.at(9, 30), GraineSchedulingRules(usersCanBook = true)))
-    }
-
     @Test fun refusalsInWords() {
-        val rules = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 15, maxDaysAhead = 7, maxPendingPerUser = 2)
-        fun say(code: GraineErrorCode, message: String = "x") = CallText.message(GraineError(code, message), rules)
-        assertEquals("Choose a time at least 15 minutes from now.", say(GraineErrorCode.TOO_SOON))
-        assertEquals("Choose a time within the next 7 days.", say(GraineErrorCode.TOO_FAR))
-        assertEquals("You already have 2 upcoming calls. Cancel one to book another.", say(GraineErrorCode.TOO_MANY_PENDING))
-        assertEquals(CallText.SCHEDULING_OFF, say(GraineErrorCode.SCHEDULING_OFF))
-        assertTrue(say(GraineErrorCode.OUTSIDE_WINDOW).contains("calling hours"))
+        fun say(code: GraineErrorCode, message: String = "x") = CallText.message(GraineError(code, message))
+        assertEquals("That call no longer exists. Pull to refresh.", say(GraineErrorCode.NOT_FOUND))
+        assertEquals("Sign in to use this.", say(GraineErrorCode.IDENTITY_REQUIRED))
+        // A booking's refusals are the SDK's booking sheet's to word; anywhere else, the SDK's sentence.
+        assertEquals("Outside calling hours.", say(GraineErrorCode.OUTSIDE_WINDOW, "Outside calling hours."))
         assertEquals("Try again shortly.", say(GraineErrorCode.UNAVAILABLE, "Try again shortly."))
         assertEquals("Something went wrong. Try again.", say(GraineErrorCode.from("new_code"), " "))
         assertEquals("No connection. Check your network and try again.", CallText.message(null))
@@ -96,50 +85,6 @@ class CallTextTest {
         assertEquals("Today, 18:00", DemoFormat.time(TestClock.date(18), now, TestClock.zone, Locale.UK))
         // 18:00 in Kolkata is 12:30 UTC.
         assertEquals("2026-10-14T12:30:00Z", DemoFormat.iso(TestClock.at(18)))
-    }
-}
-
-/** The booking sheet's times: quick-time chips, the 5-minute grid, the SDK's bounds, the zone shown. */
-class BookingTest {
-    private val now = TestClock.at(10, 7)
-    private val rules = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 5, maxDaysAhead = 14)
-    private val quick = TestPack.pack.call.quickTimes
-
-    @Test fun quickTimesResolveInTheDevicesZoneOnTheGrid() {
-        // 10:07 + 15 minutes = 10:22, up to the grid: 10:25.
-        assertEquals(TestClock.at(10, 25), Booking.resolve(quick[0], now, TestClock.zone))
-        assertEquals(TestClock.at(10, 0, day = 15), Booking.resolve(quick[1], now, TestClock.zone))
-        assertEquals(TestClock.at(19, 0), Booking.resolve(quick[2], now, TestClock.zone))
-        assertNull(Booking.resolve(ai.graine.demo.domain.UseCasePack.QuickTime("Soon"), now, TestClock.zone))
-        assertNull(Booking.resolve(ai.graine.demo.domain.UseCasePack.QuickTime("Bad", day = "someday", time = "10:00"), now, TestClock.zone))
-        assertNull(Booking.resolve(ai.graine.demo.domain.UseCasePack.QuickTime("Bad", day = "today", time = "25:00"), now, TestClock.zone))
-    }
-
-    @Test fun aChipOutsideTheSDKsBoundsIsNotBookable() {
-        val late = TestClock.at(20, 30)
-        assertFalse(Booking.isBookable(Booking.resolve(quick[2], late, TestClock.zone)!!, late, rules))
-        assertTrue(Booking.isBookable(Booking.resolve(quick[1], late, TestClock.zone)!!, late, rules))
-        val strict = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 30)
-        assertFalse(Booking.isBookable(Booking.resolve(quick[0], now, TestClock.zone)!!, now, strict))
-    }
-
-    @Test fun thePickersRangeIsTheSDKsBoundsOnTheGrid() {
-        val range = Booking.range(now, rules)
-        assertEquals(TestClock.at(10, 15), range.first)
-        assertEquals(TestClock.at(10, 5, day = 28), range.last)
-        assertEquals(range.first, Booking.clamp(TestClock.at(9), range))
-    }
-
-    @Test fun snappingAndCombining() {
-        assertEquals(TestClock.at(10, 5), Booking.snapped(TestClock.at(10, 7)))
-        assertEquals(TestClock.at(10, 10), Booking.snapped(TestClock.at(10, 8)))
-        assertEquals(TestClock.at(10, 15), Booking.ceilToStep(TestClock.at(10, 11)))
-        val day = Booking.utcDayOf(TestClock.at(23, 50), TestClock.zone)
-        assertEquals(TestClock.at(18, 30), Booking.combine(day, 18, 30, TestClock.zone))
-    }
-
-    @Test fun theZoneIsShownWithTheTime() {
-        assertEquals("Asia/Kolkata · 18:00", Booking.zoneLabel(TestClock.at(18), TestClock.zone, Locale.UK))
     }
 }
 

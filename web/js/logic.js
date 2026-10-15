@@ -208,7 +208,10 @@ export function decideAction(pack, action, args, { userId, statuses } = {}) {
 // A booked call reaches the page as the SDK types describe it (graine.js → normaliseCall):
 // `{ id, at, status, source, reason, isUpcoming, canCancel }`, with the SDK types' names
 // (`noDevice`, source `app`). Whether a call is upcoming, whether it can be cancelled and every
-// booking rule are the SDK's; this section only says how they read.
+// booking rule are the SDK's — booking is the widget's own sheet; this section only says how they read.
+
+/** Under a booking button while the loader says this visitor cannot book with its agent. */
+export const BOOKING_UNAVAILABLE = "Booking isn't available for this agent.";
 
 /** Every status the platform reports, in the order the page explains them. */
 export const CALL_STATUSES = [
@@ -278,97 +281,11 @@ export function nextCall(calls) {
   return orderCalls(calls).upcoming.find((c) => c.at instanceof Date) || null;
 }
 
-const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
-const MINUTE = 60 * 1000;
-
-/**
- * The moment of one of the pack's quick-time chips (`call.quickTimes`), in this
- * device's time zone: `inMinutes` from now (rounded up to the next whole minute,
- * which is all the picker shows), or a `day` — today or tomorrow — at a local
- * `time` (HH:MM). Null for an entry that names neither.
- */
-export function quickTimeAt(quick, now) {
-  if (!quick || typeof quick !== "object") return null;
-  if (Number.isInteger(quick.inMinutes) && quick.inMinutes > 0) {
-    return new Date(Math.ceil((now.getTime() + quick.inMinutes * MINUTE) / MINUTE) * MINUTE);
-  }
-  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(typeof quick.time === "string" ? quick.time : "");
-  if (!m || (quick.day !== "today" && quick.day !== "tomorrow")) return null;
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + (quick.day === "tomorrow" ? 1 : 0), +m[1], +m[2], 0, 0);
-}
-
-/**
- * The quick-time chips for this moment: each with its time, and disabled when
- * that time has passed or falls outside the SDK's window (`schedulingRules`
- * earliest / latest) — the pack's rule. Without the rules, only the past is
- * known to be out.
- */
-export function quickTimeOptions(quickTimes, now, rules = null) {
-  if (!Array.isArray(quickTimes)) return [];
-  const out = [];
-  quickTimes.forEach((quick, index) => {
-    if (!quick || typeof quick.label !== "string" || !quick.label) return;
-    const at = quickTimeAt(quick, now);
-    const outside = !at || at.getTime() <= now.getTime()
-      || (rules ? at.getTime() < rules.earliest(now).getTime() || at.getTime() > rules.latest(now).getTime() : false);
-    out.push({ index, label: quick.label, at, relative: Number.isInteger(quick.inMinutes), disabled: outside });
-  });
-  return out;
-}
-
-/** "Between 5 minutes and 14 days from now" — the SDK's rules, in words, for the time picker. */
-export function bookingWindowWords(rules) {
-  return rules ? `Between ${plural(rules.minLeadMinutes, "minute")} and ${plural(rules.maxDaysAhead, "day")} from now` : "";
-}
-
 // ── Times ───────────────────────────────────────────────────────────────────
-
-const pad = (n) => String(n).padStart(2, "0");
-
-/** "2026-10-14T18:00" for an <input type="datetime-local">, in the page's time zone. */
-export function toLocalInputValue(date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-/** The moment a datetime-local value names, in the page's time zone; null when it names none. */
-export function fromLocalInputValue(value) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(value || "").trim());
-  if (!m) return null;
-  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0), 0);
-  return Number.isNaN(d.getTime()) || d.getMonth() !== +m[2] - 1 ? null : d;
-}
-
-/**
- * ISO-8601 with the page's own offset — "2026-10-14T18:00:00+05:30". A booking
- * sends the time the way the visitor meant it: their wall clock, their zone.
- */
-export function toOffsetIso(date) {
-  const off = -date.getTimezoneOffset();
-  const abs = Math.abs(off);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
-    `${off >= 0 ? "+" : "-"}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
-}
 
 /** ISO-8601 in UTC without milliseconds — how the screen context carries a time. */
 export function toUtcIso(date) {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
-}
-
-/**
- * Where the booking form opens: 30 minutes out — never before the SDK's
- * earliest time — rounded up to the next quarter hour, and never past its
- * latest. Every time zone's offset is a whole number of quarter hours, so a
- * UTC quarter is a local one.
- */
-export function suggestedCallTime(now, rules = null) {
-  const quarter = 15 * 60 * 1000;
-  let from = now.getTime() + 30 * 60 * 1000;
-  if (rules) from = Math.max(from, rules.earliest(now).getTime());
-  let at = Math.ceil(from / quarter) * quarter;
-  if (rules) at = Math.min(at, rules.latest(now).getTime());
-  return new Date(at);
 }
 
 function sameDay(a, b) {
@@ -398,56 +315,17 @@ export function formatWhen(date, now = new Date(), locale) {
   return `${day}, ${time}`;
 }
 
-/** `date` rounded up to the next whole `minutes` step (the picker's 5-minute steps line up with it). */
-export function ceilToStep(date, minutes) {
-  const step = minutes * 60 * 1000;
-  return new Date(Math.ceil(date.getTime() / step) * step);
-}
-
-/**
- * The line under the picker: the visitor's time zone and the chosen time, then
- * the SDK's window — "Your time zone: Asia/Kolkata (GMT+5:30) · Today, 18:00.
- * Between 5 minutes and 14 days from now."
- */
-export function zoneLine(now, when, rules) {
-  let line = `Your time zone: ${timeZoneLabel(now)}`;
-  if (when) line += ` · ${formatWhen(when, now)}`;
-  line += ".";
-  if (rules) line += ` ${bookingWindowWords(rules)}.`;
-  return line;
-}
-
-/** "Asia/Kolkata (GMT+5:30)": the zone a booking's time is read in. */
-export function timeZoneLabel(now = new Date()) {
-  let zone = "";
-  try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { zone = ""; }
-  const off = -now.getTimezoneOffset();
-  const abs = Math.abs(off);
-  const gmt = `GMT${off >= 0 ? "+" : "-"}${Math.floor(abs / 60)}${abs % 60 ? ":" + pad(abs % 60) : ""}`;
-  return zone ? `${zone} (${gmt})` : gmt;
-}
-
 // ── Errors in words ─────────────────────────────────────────────────────────
 
 /**
- * Plain words for a refusal (the platform's error codes). The limits in them
- * (how soon, how far ahead, how many) are the SDK's `schedulingRules` when the
- * page has them; otherwise the SDK's own sentence, which knows them.
+ * Plain words for a refusal (the platform's error codes) when listing or
+ * cancelling calls, or reading memory. A booking's refusals are worded by the
+ * widget's booking sheet; any code without words here reads as the SDK's own
+ * sentence.
  */
-export function messageFor(code, serverMessage, rules = null) {
+export function messageFor(code, serverMessage) {
   const server = typeof serverMessage === "string" ? serverMessage.trim() : "";
   switch (code) {
-    case "scheduling_off": return "Booking calls from this website is turned off for this assistant.";
-    case "too_soon":
-      return rules ? `Choose a time at least ${plural(rules.minLeadMinutes, "minute")} from now.`
-        : server || "That time is too soon. Choose a later time.";
-    case "too_far":
-      return rules ? `Choose a time within the next ${plural(rules.maxDaysAhead, "day")}.`
-        : server || "That time is too far ahead. Choose an earlier time.";
-    case "outside_window": return "That time is outside the hours when calls are allowed. Choose another time.";
-    case "too_many_pending":
-      return rules ? `You already have ${plural(rules.maxPendingPerUser, "upcoming call")}. Cancel one to book another.`
-        : server || "You already have the most upcoming calls allowed. Cancel one to book another.";
     case "identity_required": return "Sign in to use this.";
     case "device_limit": return "You are signed in on the most devices allowed for one person. Sign out on another device first, or ask the team to reset your devices.";
     case "rate_limited": return "Too many requests. Try again in a few minutes.";

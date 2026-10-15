@@ -15,7 +15,6 @@ import ai.graine.inapp.GraineError
 import ai.graine.inapp.GraineErrorCode
 import ai.graine.inapp.GraineMemory
 import ai.graine.inapp.GraineScheduledCall
-import ai.graine.inapp.GraineSchedulingRules
 import android.app.Activity
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -304,54 +303,71 @@ class AppModelTest {
         assertEquals("No connection. Check your network and try again.", model.callsError)
     }
 
-    @Test fun bookingWithTheHelpDeskGoesToItAndUsesItsRules() {
+    @Test fun theHelpDeskBooksWithItsOwnAgent() {
         withHelp()
-        fake.rules[DemoAgent.HELP] = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 30, maxDaysAhead = 3)
-        fake.scheduleResult = GraineScheduledCall("h9", TestClock.date(18), GraineCallStatus.SCHEDULED, GraineCallSource.APP) to null
+        val booked = GraineScheduledCall("h9", TestClock.date(18), GraineCallStatus.SCHEDULED, GraineCallSource.APP)
+        fake.bookingResult = booked
+        fake.listResults[DemoAgent.HELP] = listOf(booked) to null
+        model.activity = Activity()
         model.signIn(riya, true)
-        assertEquals(TestClock.at(10, 0), model.bookingRange(DemoAgent.HELP).first)
-        var said: String? = "unset"
-        model.scheduleCall(TestClock.at(18), "Medicine review", DemoAgent.HELP) { said = it }
-        assertNull(said)
-        assertEquals(DemoAgent.HELP, fake.scheduled.first().third)
-        assertTrue(model.notice!!.startsWith("Call with"))
-
-        fake.scheduleResult = null to GraineError(GraineErrorCode.TOO_SOON, "x")
-        model.scheduleCall(TestClock.at(9, 40), null, DemoAgent.HELP) { said = it }
-        assertEquals("Choose a time at least 30 minutes from now.", said)
+        model.book(DemoAgent.HELP)
+        assertEquals(listOf(DemoAgent.HELP), fake.bookingSheets.map { it.second })
+        assertEquals(listOf("help:h9"), model.calls.map { it.id })
+        assertTrue(model.notice!!.startsWith("Call with Help booked for"))
     }
 
-    // ── scheduled calls (the main agent) ──
+    // ── booking (the SDK's sheet) ──
 
-    @Test fun theSDKsRefusalIsShownInWordsAndTheAppDoesNotCheckFirst() {
-        fake.rules[DemoAgent.MAIN] = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 10)
-        fake.scheduleResult = null to GraineError(GraineErrorCode.TOO_SOON, "Too soon.")
+    @Test fun bookingIsOfferedOnlyWhereTheSDKSaysItIsAvailable() {
+        withHelp()
+        fake.bookable = mutableSetOf(DemoAgent.MAIN)
         model.signIn(riya, true)
-        var said: String? = "unset"
-        model.scheduleCall(TestClock.at(9, 32), "Weekly check-in") { said = it }
-        assertEquals("Choose a time at least 10 minutes from now.", said)
-        assertEquals(1, fake.scheduled.size)
+        assertTrue(model.canBook(DemoAgent.MAIN))
+        assertFalse(model.canBook(DemoAgent.HELP))
+        // An agent's session arriving later can change it.
+        fake.bookable = mutableSetOf(DemoAgent.MAIN, DemoAgent.HELP)
+        fake.onSessionReady?.invoke()
+        assertTrue(model.canBook(DemoAgent.HELP))
+        // Signed out, nobody can be booked: the buttons follow.
+        fake.bookable = mutableSetOf()
+        model.signOut()
+        assertFalse(model.canBook(DemoAgent.MAIN))
+        assertFalse(model.canBook(DemoAgent.HELP))
     }
 
-    @Test fun bookingSendsTheReasonAndShowsTheCall() {
-        fake.scheduleResult = GraineScheduledCall("c42", TestClock.date(18), GraineCallStatus.SCHEDULED, GraineCallSource.APP, "Medicine review") to null
+    @Test fun theBookingButtonOpensTheSDKsSheetWithThePacksReasonThenReadsTheListAgain() {
+        val booked = GraineScheduledCall("c42", TestClock.date(18), GraineCallStatus.SCHEDULED, GraineCallSource.APP, "Weekly check-in")
+        model.activity = Activity()
         model.signIn(riya, true)
-        var said: String? = "unset"
-        model.scheduleCall(TestClock.at(18), "Medicine review") { said = it }
-        assertNull(said)
-        assertEquals(TestClock.at(18), fake.scheduled.first().first.time)
-        assertEquals("Medicine review", fake.scheduled.first().second)
-        assertEquals(DemoAgent.MAIN, fake.scheduled.first().third)
+        fake.bookingResult = booked
+        // Graine now lists the new call and one booked elsewhere meanwhile: only a fresh read shows both.
+        fake.listResults[DemoAgent.MAIN] = listOf(booked, GraineScheduledCall("c7", TestClock.date(20), GraineCallStatus.SCHEDULED)) to null
+        model.book()
+        assertEquals(listOf<Pair<String?, DemoAgent>>("Weekly check-in" to DemoAgent.MAIN), fake.bookingSheets)
+        assertEquals(listOf("c42", "c7"), model.upcomingCalls.map { it.call.id })
         assertTrue(model.notice!!.startsWith("Call with Asha booked for Today"))
     }
 
-    @Test fun bookingRangeComesFromTheSDKsRules() {
-        fake.rules[DemoAgent.MAIN] = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 10, maxDaysAhead = 2)
+    @Test fun closingTheSheetWithoutBookingChangesNothing() {
+        fake.bookingResult = null
+        model.activity = Activity()
         model.signIn(riya, true)
-        fake.onSessionReady?.invoke()
-        assertEquals(TestClock.at(9, 40)..TestClock.at(9, 30, day = 16), model.bookingRange())
-        assertEquals(TestClock.at(10, 0), model.suggestedCallTime())
+        fake.listResults[DemoAgent.MAIN] = listOf(GraineScheduledCall("c7", TestClock.date(20), GraineCallStatus.SCHEDULED)) to null
+        model.book()
+        assertEquals(1, fake.bookingSheets.size)
+        assertNull(model.notice)
+        assertTrue("nothing was booked, so the list is not read again", model.calls.isEmpty())
     }
+
+    @Test fun aBookingButtonThatIsOffOpensNoSheet() {
+        fake.bookable = mutableSetOf()
+        model.activity = Activity()
+        model.signIn(riya, true)
+        model.book()
+        assertTrue(fake.bookingSheets.isEmpty())
+    }
+
+    // ── scheduled calls (the main agent) ──
 
     @Test fun refreshCancelAndTheCallsContext() {
         fake.listResults[DemoAgent.MAIN] = listOf(

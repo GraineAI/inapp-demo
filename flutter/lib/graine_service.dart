@@ -84,11 +84,17 @@ abstract class GraineService {
 
   Future<void> loadSession();
 
-  /// [agent]'s booking rules: usersCanBook, earliest(now), latest(now), callName…
+  /// [agent]'s scheduling settings from its session: the name its calls ring with (callName)…
   GraineSchedulingRules rulesOf(DemoAgent agent);
 
-  /// The SDK checks scheduling_off / too_soon / too_far before asking [agent]; the server the rest.
-  Future<GraineScheduledCall> scheduleCall(DateTime at, String? reason, {DemoAgent agent = DemoAgent.main});
+  /// Whether [agent] can be booked from the app now (the SDK's `bookingAvailable`), for the booking buttons to
+  /// redraw on: it changes when the agent's session arrives and when someone signs in or out.
+  ValueListenable<bool> bookingAvailable(DemoAgent agent);
+
+  /// The SDK's booking sheet for [agent] — the day, the time, the time zone and an optional note, in the
+  /// agent's design — its "What's it about?" starting with [reason]. The call booked, or null when the person
+  /// closed it without booking; a refusal stays in the sheet.
+  Future<GraineScheduledCall?> openBooking(BuildContext context, {String? reason, DemoAgent agent = DemoAgent.main});
 
   /// [agent]'s calls for the signed-in person, upcoming first. Empty for a help agent the app does not have.
   Future<List<GraineScheduledCall>> scheduledCalls({DemoAgent agent = DemoAgent.main});
@@ -125,34 +131,16 @@ abstract class GraineService {
 
   /// The microphone, and on Android 13+ notifications, asked for at sign-in.
   Future<void> requestPermissions();
-
-  /// The device's time zone, as the booking sheet shows it.
-  String get timeZoneLabel;
 }
 
 /// A sentence for anything the SDK threw: its typed code mapped to what to do next.
-String describeError(Object err, UseCasePack pack, [GraineSchedulingRules? rules, String? agentName]) {
+String describeError(Object err, UseCasePack pack, [String? agentName]) {
   final name = agentName ?? pack.agentName;
   if (err is GraineException) {
     final code = err.code == GraineErrorCode.unknown ? (err.codeName ?? 'unknown') : err.code.wire;
-    return messageFor(code, err.message,
-        agentName: name,
-        minLeadMinutes: rules?.minLeadMinutes ?? 5,
-        maxDaysAhead: rules?.maxDaysAhead ?? 14,
-        maxPendingPerUser: rules?.maxPendingPerUser ?? 3,
-        retryAfterSeconds: err.retryAfterSeconds);
+    return messageFor(code, err.message, agentName: name, retryAfterSeconds: err.retryAfterSeconds);
   }
   return messageFor('unknown', '$err', agentName: name);
-}
-
-/// "IST (UTC+05:30)" from the platform clock. PENDING SDK: the IANA name ("Asia/Kolkata") the SDK already
-/// reads for its requests is not public yet; until it is, this is what Dart can tell.
-String clockZoneLabel(DateTime now) {
-  final o = now.timeZoneOffset;
-  final sign = o.isNegative ? '-' : '+';
-  final m = o.inMinutes.abs();
-  final offset = 'UTC$sign${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
-  return now.timeZoneName.isEmpty || now.timeZoneName.startsWith('UTC') ? offset : '${now.timeZoneName} ($offset)';
 }
 
 /// The name the help agent is configured under.
@@ -222,9 +210,16 @@ class SdkGraineService implements GraineService {
   @override
   GraineSchedulingRules rulesOf(DemoAgent agent) => _of(agent).schedulingRules;
 
+  /// For a help agent the app has no key for: never bookable.
+  static final ValueListenable<bool> _never = ValueNotifier<bool>(false);
+
   @override
-  Future<GraineScheduledCall> scheduleCall(DateTime at, String? reason, {DemoAgent agent = DemoAgent.main}) =>
-      _of(agent).scheduleCall(at: at, reason: reason);
+  ValueListenable<bool> bookingAvailable(DemoAgent agent) =>
+      agent == DemoAgent.help && _help == null ? _never : _of(agent).bookingListenable;
+
+  @override
+  Future<GraineScheduledCall?> openBooking(BuildContext context, {String? reason, DemoAgent agent = DemoAgent.main}) =>
+      GraineBooking.show(context, app: _of(agent), reason: reason);
 
   @override
   Future<List<GraineScheduledCall>> scheduledCalls({DemoAgent agent = DemoAgent.main}) async {
@@ -331,7 +326,4 @@ class SdkGraineService implements GraineService {
       debugPrint('[Graine Demo] Permissions could not be asked: $e');
     }
   }
-
-  @override
-  String get timeZoneLabel => clockZoneLabel(DateTime.now());
 }

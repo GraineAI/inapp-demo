@@ -49,6 +49,11 @@ extension UseCasePack {
         (agent == .help ? agents?.help?.reasons : nil) ?? call.reasons
     }
 
+    /// What the booking sheet's "What's it about?" starts with for an agent: its first reason.
+    func bookingReason(_ agent: DemoAgent) -> String? {
+        reasons(agent).first
+    }
+
     /// The reason a call placed with an agent carries: the help desk's own, else the pack's.
     func placeReason(_ agent: DemoAgent) -> String {
         (agent == .help ? agents?.help?.placeReason : nil) ?? call.placeReason

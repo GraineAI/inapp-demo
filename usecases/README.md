@@ -29,10 +29,10 @@ All people, cards and orders are fictional.
 | Home | `home` | `home.title` | Memory chip (on / off), next scheduled call, `home.cards`, Talk (voice), Chat, Call (native call) |
 | Chat | `chat` | `agentName` | The SDK's chat window, the pack's `starters` as chips |
 | Items | `items.screenName` | `items.title` | The signed-in user's rows, their status chips and action buttons |
-| Scheduled calls | `calls` | `call.title` | Calls with their status chips and Cancel; `call.bookLabel` opens the booking sheet: one of `call.reasons`, the `call.quickTimes` chips, and the platform's own date and time pickers in 5-minute steps, bounded by the SDK's `schedulingRules.earliest(now)` / `latest(now)`, with the device's time zone shown ("Asia/Kolkata · 6:00 pm") |
+| Scheduled calls | `calls` | `call.title` | Calls with their status chips and Cancel; `call.bookLabel` opens the SDK's own booking sheet (the day, the time, the device's time zone, an optional note), its "What's it about?" starting with the first of `call.reasons` — enabled while the SDK's `bookingAvailable` is true, else disabled with "Booking isn't available for this agent." |
 | Memory | `memory` | Memory | "What `agentName` remembers about you" (newest first), consent switch, erase everything |
 | Profile | `profile` | Profile | Name, `identifierLabel`, traits, memory switch, sign out |
-| Help | `help` | `agents.help.name` | The **help agent's** chat, voice and call (its own publishable key), `agents.help.bookLabel` with `agents.help.reasons`; says how to add the key when there is none |
+| Help | `help` | `agents.help.name` | The **help agent's** chat, voice and call (its own publishable key), and `agents.help.bookLabel`, which opens the SDK's booking sheet for the help agent, starting with the first of `agents.help.reasons`; says how to add the key when there is none |
 
 Code names are generic: `ItemsScreen.tsx`, `items_screen.dart`, `ItemsView.swift`, `ItemsScreen.kt` — never
 "Medicines".
@@ -86,11 +86,16 @@ none → refused `No <itemNoun> called "<x>". <items.title>: <titles>.`
 
 ## Booking a call
 
-The rules are the SDK's, never the app's: `scheduleCall(at, reason)` checks `scheduling_off`, `too_soon` and
-`too_far` before it asks, and the server answers `outside_window`, `too_many_pending`, `rate_limited`… The app
-only bounds its pickers with `schedulingRules.earliest(now)` / `latest(now)`, shows each error code in plain
-words, and draws the statuses (`scheduled`, `ringing`, `answered`, `completed`, `declined`, `missed`,
-`expired`, `noDevice`, `failed`, `cancelled`) as chips; Cancel is shown when the SDK says `canCancel`.
+Booking is the SDK's own booking sheet — the day, the time, the device's time zone and an optional note, drawn
+in the agent's design; the app has no booking screen. Each agent's booking button (`call.bookLabel`,
+`agents.help.bookLabel`) is enabled while that agent's `bookingAvailable` is true and opens its sheet with the
+first of its `reasons` (iOS `presentBooking(reason:)`, Android `presentBooking(activity, reason)`, Flutter
+`GraineBooking.show(context, app:, reason:)`, React Native `openBooking({ reason })`, the website
+`GraineAgent.openBooking({ reason })`); otherwise the button stays, disabled, with "Booking isn't available for
+this agent." The rules and the refusals are the SDK's: the sheet offers only times the agent allows and says
+any refusal (`outside_window`, `too_many_pending`…) in one line. After a booking the app reads its list again
+and draws the statuses (`scheduled`, `ringing`, `answered`, `completed`, `declined`, `missed`, `expired`,
+`noDevice`, `failed`, `cancelled`) as chips; Cancel is shown when the SDK says `canCancel`.
 
 A row's `actions` are the `set_status` actions it offers as buttons and accepts from the agent; a button is
 hidden while the row already has that status. Statuses live for the app session (they reset on restart) and
@@ -112,7 +117,7 @@ are per user.
 | `home` | `title`, `cards[]` (`id`, `title`, `body`, `target`: a generic screen key) |
 | `items` | `title`, `screenName`, `itemNoun`, `emptyText`, `rows[]` (`id`, `title`, `subtitle`, `status?`, `fields[]` of `name`/`label`/`value`, `actions[]`, `userIds?`) |
 | `actions[]` | `name`, `effect`, `label` (button text), `description` (for the model), `status` (set_status), `args[]` (`name`, `type`, `required`, `description`, `enum?`) |
-| `call` | `callName` (name on the incoming call — match the dashboard), `title` (the screen), `bookLabel` (the button that opens the booking sheet), `reasons[]` (2–4, one is chosen; sent as the booking's reason), `quickTimes[]` (one-tap times: `{label, inMinutes}` or `{label, day: "today"/"tomorrow", time: "HH:MM"}` in the device's zone; a chip outside the SDK's bounds is disabled), `placeReason` (reason on a call the user places) |
+| `call` | `callName` (name on the incoming call — match the dashboard), `title` (the screen), `bookLabel` (the button that opens the SDK's booking sheet), `reasons[]` (2–4, at most 120 characters each; the first starts the sheet's "What's it about?", which the user may change), `quickTimes[]` (one-tap times, `{label, inMinutes}` or `{label, day: "today"/"tomorrow", time: "HH:MM"}`, for an app that draws its own booking screen; the SDK's sheet does not use them), `placeReason` (reason on a call the user places) |
 | `memoryExamples[]` | `tell` / `ask` / `expect` — the memory QA script in the root README |
 | `starters[]` | Up to four chat chips, 40 characters each |
 

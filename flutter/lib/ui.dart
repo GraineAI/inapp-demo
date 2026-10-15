@@ -1,6 +1,7 @@
 /// A few plain building blocks, so every screen looks like one app.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'graine_service.dart';
@@ -61,6 +62,37 @@ class Notice extends StatelessWidget {
         elevation: 0,
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Padding(padding: const EdgeInsets.all(12), child: Text(text, style: Theme.of(context).textTheme.bodySmall)),
+      );
+}
+
+/// Under a booking button while the SDK says its agent cannot be booked.
+const String bookingUnavailable = "Booking isn't available for this agent.";
+
+/// A booking button: enabled while the SDK says the agent can be booked ([available]); otherwise it stays on
+/// screen, disabled, with one line saying so. [onPressed] opens the SDK's booking sheet.
+class BookingButton extends StatelessWidget {
+  const BookingButton({super.key, this.buttonKey, required this.label, required this.available, required this.onPressed, this.filled = true});
+
+  final Key? buttonKey;
+  final String label;
+  final ValueListenable<bool> available;
+  final VoidCallback onPressed;
+
+  /// A filled button, else an outlined one.
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+        valueListenable: available,
+        builder: (context, on, _) {
+          final press = on ? onPressed : null;
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+            filled
+                ? FilledButton(key: buttonKey, onPressed: press, child: Text(label))
+                : OutlinedButton(key: buttonKey, onPressed: press, child: Text(label)),
+            if (!on) Padding(padding: const EdgeInsets.only(top: 6), child: Text(bookingUnavailable, style: Theme.of(context).textTheme.bodySmall)),
+          ]);
+        },
       );
 }
 

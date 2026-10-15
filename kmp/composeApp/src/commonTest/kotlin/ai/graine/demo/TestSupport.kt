@@ -10,7 +10,6 @@ import ai.graine.demo.platform.KeyValueStore
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineMemory
 import ai.graine.inapp.kmp.GraineScheduledCall
-import ai.graine.inapp.kmp.GraineSchedulingRules
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -105,9 +104,12 @@ class FakeGraineClient : GraineClient {
     val actions = mutableMapOf<DemoAgent, MutableMap<String, (Map<String, Any?>) -> DemoActionResult>>()
     var unregisterCount = 0
 
-    val rules = mutableMapOf(DemoAgent.MAIN to GraineSchedulingRules(usersCanBook = true), DemoAgent.HELP to GraineSchedulingRules(usersCanBook = true))
-    var scheduleResult: Result<GraineScheduledCall> = Result.success(GraineScheduledCall("c1", TestClock.instant(18), GraineCallStatus.Scheduled))
-    val scheduled = mutableListOf<Triple<Instant, String?, DemoAgent>>()
+    /** bookingAvailable, per agent, as the SDK answers it now. */
+    val bookable = mutableMapOf(DemoAgent.MAIN to true, DemoAgent.HELP to true)
+    /** What the SDK's booking sheet returns: the booked call, or null when the person closed it. */
+    var bookingResult: Result<GraineScheduledCall?> = Result.success(GraineScheduledCall("c1", TestClock.instant(18), GraineCallStatus.Scheduled))
+    /** Every sheet opened: the reason it was opened with, and whose. */
+    val bookings = mutableListOf<Pair<String?, DemoAgent>>()
     val listResults = mutableMapOf<DemoAgent, Result<List<GraineScheduledCall>>>()
     val cancelled = mutableListOf<Pair<String, DemoAgent>>()
     var cancelResult: Result<GraineCallStatus> = Result.success(GraineCallStatus.Cancelled)
@@ -131,10 +133,10 @@ class FakeGraineClient : GraineClient {
         actions.getOrPut(agent) { mutableMapOf() }[name] = handler
     }
     override fun unregisterActions() { unregisterCount++; actions.clear() }
-    override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = rules[agent] ?: GraineSchedulingRules()
-    override suspend fun scheduleCall(at: Instant, reason: String?, agent: DemoAgent): GraineScheduledCall {
-        scheduled += Triple(at, reason, agent)
-        return scheduleResult.getOrThrow()
+    override fun bookingAvailable(agent: DemoAgent): Boolean = bookable[agent] ?: false
+    override suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall? {
+        bookings += reason to agent
+        return bookingResult.getOrThrow()
     }
     override suspend fun scheduledCalls(agent: DemoAgent): List<GraineScheduledCall> = (listResults[agent] ?: Result.success(emptyList())).getOrThrow()
     override suspend fun cancelScheduledCall(id: String, agent: DemoAgent): GraineCallStatus {

@@ -11,7 +11,6 @@ import ai.graine.inapp.GraineCallStatus
 import ai.graine.inapp.GraineError
 import ai.graine.inapp.GraineMemory
 import ai.graine.inapp.GraineScheduledCall
-import ai.graine.inapp.GraineSchedulingRules
 import android.app.Activity
 import java.util.Calendar
 import java.util.Date
@@ -67,8 +66,6 @@ object TestPack {
       ],
       "call": { "callName": "Asha · Test Care", "title": "Check-in calls", "bookLabel": "Schedule a consultation call",
         "reasons": ["Weekly check-in", "Medicine review"],
-        "quickTimes": [ { "label": "In 15 minutes", "inMinutes": 15 }, { "label": "Tomorrow 10:00", "day": "tomorrow", "time": "10:00" },
-                        { "label": "Today 19:00", "day": "today", "time": "19:00" } ],
         "placeReason": "patient_question" },
       "memoryExamples": [ { "tell": "I take metformin at 8 pm.", "ask": "What do I take in the evening?", "expect": "Metformin at 8 pm." } ],
       "starters": ["What is due today?"]
@@ -109,9 +106,12 @@ class FakeGraineClient : GraineClient {
     val actions = mutableMapOf<DemoAgent, MutableMap<String, (Map<String, Any?>) -> DemoActionResult>>()
     var unregisterCount = 0
 
-    val rules = mutableMapOf(DemoAgent.MAIN to GraineSchedulingRules(usersCanBook = true), DemoAgent.HELP to GraineSchedulingRules(usersCanBook = true))
-    var scheduleResult: Pair<GraineScheduledCall?, GraineError?> = GraineScheduledCall("c1", Date()) to null
-    val scheduled = mutableListOf<Triple<Date, String?, DemoAgent>>()
+    /** The agents the SDK says can be booked now. */
+    var bookable = mutableSetOf(DemoAgent.MAIN, DemoAgent.HELP)
+    /** What the booking sheet hands back when it closes: the booked call, or null (closed without booking). */
+    var bookingResult: GraineScheduledCall? = GraineScheduledCall("c1", Date())
+    /** Every booking sheet opened: the reason it started with, and the agent. */
+    val bookingSheets = mutableListOf<Pair<String?, DemoAgent>>()
     val listResults = mutableMapOf<DemoAgent, Pair<List<GraineScheduledCall>?, GraineError?>>()
     val cancelled = mutableListOf<Pair<String, DemoAgent>>()
     var cancelResult: Pair<GraineCallStatus?, GraineError?> = GraineCallStatus.CANCELLED to null
@@ -135,10 +135,10 @@ class FakeGraineClient : GraineClient {
         actions.getOrPut(agent) { mutableMapOf() }[name] = handler
     }
     override fun unregisterActions() { unregisterCount++; actions.clear() }
-    override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = rules[agent] ?: GraineSchedulingRules()
-    override fun scheduleCall(at: Date, reason: String?, agent: DemoAgent, done: (GraineScheduledCall?, GraineError?) -> Unit) {
-        scheduled += Triple(at, reason, agent)
-        done(scheduleResult.first, scheduleResult.second)
+    override fun bookingAvailable(agent: DemoAgent): Boolean = agent in agents && agent in bookable
+    override fun presentBooking(activity: Activity, reason: String?, agent: DemoAgent, done: (GraineScheduledCall?) -> Unit) {
+        bookingSheets += reason to agent
+        done(bookingResult)
     }
     override fun scheduledCalls(agent: DemoAgent, done: (List<GraineScheduledCall>?, GraineError?) -> Unit) {
         val r = listResults[agent] ?: (emptyList<GraineScheduledCall>() to null)

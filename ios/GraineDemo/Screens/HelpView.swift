@@ -7,7 +7,6 @@ import SwiftUI
  */
 struct HelpView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var booking = false
 
     var body: some View {
         let profile = model.profile(.help)
@@ -43,10 +42,17 @@ struct HelpView: View {
                         Text("\(profile?.name ?? "The help desk") can call you at a time you choose. Its calls are listed with \(model.agentName)'s on the Calls tab.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        Button(model.pack?.bookLabel(.help) ?? "Schedule a call") { booking = true }
+                        // Booked with the help desk's own agent, in the SDK's sheet.
+                        Button(model.pack?.bookLabel(.help) ?? "Book a call") { Task { await model.book(.help) } }
                             .font(.subheadline.weight(.semibold))
-                            .disabled(!model.rules(for: .help).usersCanBook)
+                            .disabled(!model.canBook(.help))
                             .accessibilityIdentifier("help_book")
+                        if !model.canBook(.help) {
+                            Text(CallText.bookingUnavailable)
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .accessibilityIdentifier("help_booking_unavailable")
+                        }
                     }
                     Text("Signed in once: \(profile?.name ?? "the help desk") knows who you are, and \(model.agentName) does too.")
                         .font(.footnote)
@@ -66,8 +72,5 @@ struct HelpView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle(profile?.name ?? "Help")
-        .sheet(isPresented: $booking) {
-            ScheduleCallSheet(agent: .help)
-        }
     }
 }

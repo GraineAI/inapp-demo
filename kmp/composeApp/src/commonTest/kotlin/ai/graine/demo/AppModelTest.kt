@@ -67,23 +67,41 @@ class AppModelTest {
     }
 
     @Test
-    fun bookingACallReportsTheSdksRefusalInWords() = runTest {
-        val (m, fake) = model()
+    fun theBookingButtonOpensTheSdksSheetOnlyWhenTheSdkSaysItCan() = runTest {
+        val fake = FakeGraineClient().apply { agents = listOf(DemoAgent.MAIN, DemoAgent.HELP) }
+        val (m, _) = model(fake)
         m.signIn(TestPack.pack.users[0], memory = true)
-        var problem: String? = "unset"
-        m.scheduleCall(TestClock.at(18), "Weekly check-in") { problem = it }
         advanceUntilIdle()
-        assertNull(problem)
-        assertEquals(Triple(TestClock.instant(18), "Weekly check-in", DemoAgent.MAIN), fake.scheduled.single())
-        assertTrue(m.notice!!.startsWith("Call with Asha booked for"))
-        fake.scheduleResult = Result.failure(GraineException(GraineErrorCode.TooSoon, "Pick a later time."))
-        m.scheduleCall(TestClock.at(12, 1), null) { problem = it }
+        assertTrue(m.canBook(DemoAgent.MAIN))
+        // Booked in the sheet: the call joins the list, and the list is read again.
+        fake.listResults[DemoAgent.MAIN] = Result.success(listOf(GraineScheduledCall("c1", TestClock.instant(18), GraineCallStatus.Scheduled, GraineCallSource.App)))
+        m.book()
         advanceUntilIdle()
-        assertEquals("Choose a time at least 5 minutes from now.", problem)
-        fake.scheduleResult = Result.failure(GraineException(GraineErrorCode.OutsideWindow, "Outside hours."))
-        m.scheduleCall(TestClock.at(23), null) { problem = it }
+        assertEquals("Weekly check-in" to DemoAgent.MAIN, fake.bookings.single(), "opened with the pack's first reason")
+        assertEquals(listOf("main:c1"), m.upcomingCalls.map { it.id })
+        assertFalse(m.bookingOpen)
+        // Closed without booking: nothing changes, nothing is said.
+        fake.bookingResult = Result.success(null)
+        m.book(DemoAgent.HELP)
         advanceUntilIdle()
-        assertEquals("That time is outside the assistant's calling hours. Choose another time.", problem)
+        assertEquals(DemoAgent.HELP, fake.bookings.last().second)
+        assertEquals(listOf("main:c1"), m.upcomingCalls.map { it.id })
+        assertNull(m.notice)
+        // The SDK says no (booking off, Graine does not ring this phone, or nobody identified): off, and nothing opens.
+        fake.bookable[DemoAgent.MAIN] = false
+        fake.onSessionReady?.invoke()
+        assertFalse(m.canBook(DemoAgent.MAIN))
+        assertTrue(m.canBook(DemoAgent.HELP), "each agent answers for itself")
+        m.book()
+        advanceUntilIdle()
+        assertEquals(2, fake.bookings.size)
+        // An agent that cannot be reached: the SDK's refusal in words.
+        fake.bookingResult = Result.failure(GraineException(GraineErrorCode.Network, "offline"))
+        m.book(DemoAgent.HELP)
+        advanceUntilIdle()
+        assertEquals("No connection. Check your network and try again.", m.notice)
+        m.signOut()
+        assertEquals(mapOf(DemoAgent.MAIN to false, DemoAgent.HELP to true), m.bookable, "read again on sign-out")
     }
 
     @Test

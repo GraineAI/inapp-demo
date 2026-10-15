@@ -55,6 +55,9 @@ data class UseCasePack(
     /** The booking reasons for an agent: the help desk's own, else the pack's. */
     fun reasons(agent: DemoAgent): List<String> = (if (agent == DemoAgent.HELP) agents?.help?.reasons else null) ?: call.reasons
 
+    /** What the booking sheet's "What's it about?" starts with for an agent: its first reason. */
+    fun bookingReason(agent: DemoAgent): String? = reasons(agent).firstOrNull()
+
     /** The reason a call placed with an agent carries: the help desk's own, else the pack's. */
     fun placeReason(agent: DemoAgent): String = (if (agent == DemoAgent.HELP) agents?.help?.placeReason else null) ?: call.placeReason
 
@@ -126,20 +129,15 @@ data class UseCasePack(
         val knownEffect: Effect? get() = Effect.of(effect)
     }
 
-    /** A one-tap time in the booking sheet: [inMinutes] from now, or [day] ("today" / "tomorrow") at [time] ("HH:MM"), in the device's zone. */
-    data class QuickTime(val label: String, val inMinutes: Int? = null, val day: String? = null, val time: String? = null)
-
     data class Call(
         /** Name on the incoming call (matches the dashboard). */
         val callName: String,
         /** The scheduled-calls screen's title. */
         val title: String,
-        /** The button that opens the booking sheet: "Schedule a consultation call". */
+        /** The button that opens the SDK's booking sheet: "Schedule a consultation call". */
         val bookLabel: String,
-        /** Offered when booking (one is chosen); sent as the booking's reason. */
+        /** What a booking is about: the first starts the sheet's "What's it about?" line, which the user may change. */
         val reasons: List<String>,
-        /** One-tap times in the booking sheet. */
-        val quickTimes: List<QuickTime>,
         /** The reason a call the user places from Home carries. */
         val placeReason: String,
     )
@@ -226,15 +224,6 @@ data class UseCasePack(
                     title = call.str("title"),
                     bookLabel = call.optStr("bookLabel") ?: "Schedule a call",
                     reasons = call.strings("reasons"),
-                    quickTimes = call.objects("quickTimes").mapNotNull { q ->
-                        val label = q.optStr("label") ?: return@mapNotNull null
-                        QuickTime(
-                            label = label,
-                            inMinutes = if (q.has("inMinutes")) q.optInt("inMinutes") else null,
-                            day = q.optStr("day"),
-                            time = q.optStr("time"),
-                        )
-                    },
                     placeReason = call.str("placeReason"),
                 ),
                 memoryExamples = o.objects("memoryExamples").map { MemoryExample(it.str("tell"), it.str("ask"), it.str("expect")) },

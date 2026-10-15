@@ -93,34 +93,15 @@ struct UseCasePack: Codable, Identifiable, Equatable {
         var knownEffect: Effect? { Effect(rawValue: effect) }
     }
 
-    /// A one-tap time in the booking sheet: `inMinutes` from now, or `day` ("today" / "tomorrow") at `time` ("HH:MM"), in the device's zone.
-    struct QuickTime: Codable, Equatable, Hashable, Identifiable {
-        let label: String
-        let inMinutes: Int?
-        let day: String?
-        let time: String?
-
-        init(label: String, inMinutes: Int? = nil, day: String? = nil, time: String? = nil) {
-            self.label = label
-            self.inMinutes = inMinutes
-            self.day = day
-            self.time = time
-        }
-
-        var id: String { label }
-    }
-
     struct Call: Codable, Equatable {
         /// Name on the incoming call (matches the dashboard).
         let callName: String
         /// The scheduled-calls screen's title: "Check-in calls".
         let title: String
-        /// The button that opens the booking sheet: "Schedule a consultation call".
+        /// The button that opens the SDK's booking sheet: "Schedule a consultation call".
         let bookLabel: String
-        /// Offered when booking (one is chosen); sent as the booking's reason.
+        /// What a booking is about: the first starts the sheet's "What's it about?" line, which the user may change.
         let reasons: [String]
-        /// One-tap times in the booking sheet.
-        let quickTimes: [QuickTime]
         /// The reason a call the user places from Home carries.
         let placeReason: String
     }

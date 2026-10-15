@@ -53,8 +53,6 @@ enum TestPack {
       ],
       "call": { "callName": "Asha · Test Care", "title": "Check-in calls", "bookLabel": "Schedule a consultation call",
         "reasons": ["Weekly check-in", "Medicine review"],
-        "quickTimes": [ { "label": "In 15 minutes", "inMinutes": 15 }, { "label": "Tomorrow 10:00", "day": "tomorrow", "time": "10:00" },
-                        { "label": "Today 19:00", "day": "today", "time": "19:00" } ],
         "placeReason": "patient_question" },
       "memoryExamples": [ { "tell": "I take metformin at 8 pm.", "ask": "What do I take in the evening?", "expect": "Metformin at 8 pm." } ],
       "starters": ["What is due today?"]
