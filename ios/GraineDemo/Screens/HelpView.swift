@@ -45,7 +45,6 @@ struct HelpView: View {
                         // Booked with the help desk's own agent, in the SDK's sheet.
                         Button(model.pack?.bookLabel(.help) ?? "Book a call") { Task { await model.book(.help) } }
                             .font(.subheadline.weight(.semibold))
-                            .disabled(!model.canBook(.help))
                             .accessibilityIdentifier("help_book")
                         if !model.canBook(.help) {
                             Text(CallText.bookingUnavailable)

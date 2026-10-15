@@ -57,7 +57,7 @@ fun ScheduledCallsScreen(model: AppModel) {
             item {
                 Button(
                     onClick = { model.book(DemoAgent.MAIN) },
-                    enabled = canBook && !model.bookingOpen,
+                    enabled = !model.bookingOpen,
                     modifier = Modifier.fillMaxWidth().testTag("book_call"),
                 ) { Text(pack.bookLabel(DemoAgent.MAIN)) }
                 Text(

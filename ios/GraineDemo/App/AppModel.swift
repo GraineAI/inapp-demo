@@ -356,7 +356,10 @@ final class AppModel: ObservableObject {
      * list at once, and the list is read again.
      */
     func book(_ agent: DemoAgent = .main) async {
-        guard user != nil, canBook(agent) else { return }
+        guard user != nil else { return }
+        // Off: say what to set rather than doing nothing (the SDK keeps booking off until Graine can ring this
+        // phone and knows who is signed in).
+        guard canBook(agent) else { notice = CallText.bookingUnavailable; return }
         guard let booked = await graine.presentBooking(reason: pack?.bookingReason(agent), agent: agent) else { return }
         calls.removeAll { $0.agent == agent && $0.call.id == booked.id }
         calls.append(AgentCall(agent: agent, call: booked))

@@ -15,7 +15,6 @@ struct ScheduledCallsView: View {
                 } label: {
                     Label(model.pack?.bookLabel(.main) ?? "Book a call", systemImage: "plus.circle.fill")
                 }
-                .disabled(!canBook)
                 .accessibilityIdentifier("schedule_call")
             } footer: {
                 if canBook {

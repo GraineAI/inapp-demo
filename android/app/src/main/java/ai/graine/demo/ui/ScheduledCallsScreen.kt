@@ -49,7 +49,7 @@ fun ScheduledCallsScreen(model: AppModel) {
                 Text(pack.call.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
             }
             item {
-                Button(onClick = { model.book(DemoAgent.MAIN) }, enabled = canBook, modifier = Modifier.fillMaxWidth().testTag("book_call")) {
+                Button(onClick = { model.book(DemoAgent.MAIN) }, modifier = Modifier.fillMaxWidth().testTag("book_call")) {
                     Text(pack.bookLabel(DemoAgent.MAIN))
                 }
                 Text(

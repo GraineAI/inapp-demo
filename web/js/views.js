@@ -137,7 +137,7 @@ function bookingCard(ctx, spec) {
       "A browser cannot receive calls. With no phone signed in, the call ends as “No device”.")),
     h("div", { class: "actions-row" },
       button(spec.bookLabel || "Book a call", {
-        variant: "primary", iconName: "phone", id: "book-open", disabled: off,
+        variant: "primary", iconName: "phone", id: "book-open", disabled: !!spec.gap,
         "aria-describedby": off && !spec.gap ? "book-unavailable" : null, onClick: ctx.on.book,
       })),
     spec.gap ? issue(spec.gap) : bookable ? null : h("p", { class: "help", id: "book-unavailable" }, L.BOOKING_UNAVAILABLE));

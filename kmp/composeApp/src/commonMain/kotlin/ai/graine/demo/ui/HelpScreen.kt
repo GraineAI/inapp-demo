@@ -75,7 +75,7 @@ fun HelpScreen(model: AppModel) {
                 )
                 TextButton(
                     onClick = { model.book(DemoAgent.HELP) },
-                    enabled = canBook && !model.bookingOpen,
+                    enabled = !model.bookingOpen,
                     modifier = Modifier.testTag("help_book"),
                 ) { Text(model.pack?.bookLabel(DemoAgent.HELP) ?: "Schedule a call") }
             }

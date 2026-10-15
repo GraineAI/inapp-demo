@@ -508,6 +508,8 @@ const handlers = {
     const agent = screenAgent(state.route);
     try {
       await state.identifying;
+      // Off: say what to set rather than opening nothing.
+      if (graine.agent === agent && !graine.bookingAvailable()) { toast(L.BOOKING_UNAVAILABLE); return; }
       // The booking goes to the agent on the page, so it must be this screen's.
       if (graine.agent !== agent) await graine.useAgent(agent);
       const call = await graine.openBooking({ reason: bookingReason(state.route) });

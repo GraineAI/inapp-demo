@@ -85,8 +85,13 @@ struct HomeView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
-            Button(pack.call.title) { model.open(.calls) }
-                .font(.subheadline.weight(.semibold))
+            HStack(spacing: 16) {
+                Button(pack.bookLabel(.main)) { Task { await model.book(.main) } }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("home_book")
+                Button(pack.call.title) { model.open(.calls) }
+            }
+            .font(.subheadline.weight(.semibold))
         }
     }
 }

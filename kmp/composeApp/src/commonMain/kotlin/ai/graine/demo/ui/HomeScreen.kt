@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -76,7 +77,12 @@ fun HomeScreen(model: AppModel) {
             } else {
                 Text(if (model.callsLoading) "Loading…" else "No call booked.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            TextButton(onClick = { model.open(DemoScreen.CALLS) }) { Text(pack.call.title) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { model.book(DemoAgent.MAIN) }, enabled = !model.bookingOpen, modifier = Modifier.testTag("home_book")) {
+                    Text(pack.bookLabel(DemoAgent.MAIN))
+                }
+                TextButton(onClick = { model.open(DemoScreen.CALLS) }) { Text(pack.call.title) }
+            }
         }
 
         pack.home.cards.forEach { card ->

@@ -69,7 +69,7 @@ class Notice extends StatelessWidget {
 const String bookingUnavailable = "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID.";
 
 /// A booking button: enabled while the SDK says the agent can be booked ([available]); otherwise it stays on
-/// screen, disabled, with one line saying so. [onPressed] opens the SDK's booking sheet.
+/// screen with one line saying so, and a tap explains it. [onPressed] opens the SDK's booking sheet.
 class BookingButton extends StatelessWidget {
   const BookingButton({super.key, this.buttonKey, required this.label, required this.available, required this.onPressed, this.filled = true});
 
@@ -85,7 +85,11 @@ class BookingButton extends StatelessWidget {
   Widget build(BuildContext context) => ValueListenableBuilder<bool>(
         valueListenable: available,
         builder: (context, on, _) {
-          final press = on ? onPressed : null;
+          // Always tappable: off, a tap says what to set (the SDK keeps booking off until Graine can ring this
+          // phone and knows who is signed in).
+          void press() => on
+              ? onPressed()
+              : ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text(bookingUnavailable)));
           return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
             filled
                 ? FilledButton(key: buttonKey, onPressed: press, child: Text(label))

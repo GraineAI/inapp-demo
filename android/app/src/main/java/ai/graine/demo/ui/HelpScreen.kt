@@ -72,7 +72,6 @@ fun HelpScreen(model: AppModel) {
                 val canBook = model.canBook(DemoAgent.HELP)
                 TextButton(
                     onClick = { model.book(DemoAgent.HELP) },
-                    enabled = canBook,
                     modifier = Modifier.testTag("help_book"),
                 ) { Text(model.pack?.bookLabel(DemoAgent.HELP) ?: "Book a call") }
                 if (!canBook) {
