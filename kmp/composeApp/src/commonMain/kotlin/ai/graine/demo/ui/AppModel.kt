@@ -153,6 +153,8 @@ class AppModel(
     fun signIn(user: UseCasePack.User, memory: Boolean) {
         val pack = pack ?: return
         graine.identify(pack.traitsFor(user), memory)
+        // The microphone (and notifications on Android 13+) now, so a call or a ring never waits on a prompt.
+        scope.launch { runCatching { graine.requestCallPermissions() } }
         this.user = user
         memoryOn = memory
         items = sessionStatuses[sessionKey(pack, user)] ?: ItemsState(pack.rowsFor(user))

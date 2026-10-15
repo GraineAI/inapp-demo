@@ -46,6 +46,9 @@ interface GraineClient {
 
     // Who the user is, and memory (shared by every agent)
     fun identify(traits: Map<String, String>?, memory: Boolean?)
+
+    /** The SDK asks for what calls need — the microphone, and notifications on Android 13+ — at sign-in. */
+    suspend fun requestCallPermissions() {}
     fun setMemory(enabled: Boolean)
     val installId: String
     /** How many memories were deleted (the main agent's memory). */
@@ -129,6 +132,10 @@ class GraineService private constructor() : GraineClient {
 
     // null signs out everywhere: the device stops being this user's, and later conversations are anonymous.
     override fun identify(traits: Map<String, String>?, memory: Boolean?) = Graine.identify(traits, memory)
+
+    override suspend fun requestCallPermissions() {
+        Graine.calls.requestCallPermissions()
+    }
 
     override fun setMemory(enabled: Boolean) = Graine.setMemory(enabled)
 
