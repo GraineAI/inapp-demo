@@ -25,6 +25,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: false,
       infoPlist: {
         NSMicrophoneUsageDescription: "The assistant listens when you talk to it — in the app, or on a call with it.",
+        // Required by App Store processing because the WebRTC library contains camera code (ITMS-90683); calls are audio only.
+        NSCameraUsageDescription: "Calls are audio only. The camera is never turned on.",
         // audio: a call keeps going with the screen off; voip: Graine's ring arrives as a VoIP push.
         UIBackgroundModes: ["audio", "voip"],
         ITSAppUsesNonExemptEncryption: false,

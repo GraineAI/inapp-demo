@@ -28,6 +28,9 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>The assistant listens when you talk to it — in the app, or on a call with it.</string>
+	<!-- Required by App Store processing because the WebRTC library contains camera code (ITMS-90683); calls are audio only. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Calls are audio only. The camera is never turned on.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

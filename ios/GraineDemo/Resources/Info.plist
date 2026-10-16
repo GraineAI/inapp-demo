@@ -28,6 +28,8 @@
 	<string>$(GRAINE_PUBLISHABLE_KEY)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Graine Demo calls are audio only. The camera is never turned on.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Graine Demo uses the microphone when you talk to the assistant or take its calls.</string>
 	<key>UIBackgroundModes</key>

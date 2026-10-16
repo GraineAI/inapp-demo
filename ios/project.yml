@@ -49,6 +49,8 @@ targets:
         GrainePublishableKey: $(GRAINE_PUBLISHABLE_KEY)
         GraineHelpPublishableKey: $(GRAINE_HELP_PUBLISHABLE_KEY)
         NSMicrophoneUsageDescription: Graine Demo uses the microphone when you talk to the assistant or take its calls.
+        # Required by App Store processing because the WebRTC library contains camera code (ITMS-90683); calls are audio only.
+        NSCameraUsageDescription: Graine Demo calls are audio only. The camera is never turned on.
         UIBackgroundModes: [audio, voip]
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
