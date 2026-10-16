@@ -6,6 +6,7 @@ import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreenContext
 import ai.graine.demo.platform.Platform
 import ai.graine.inapp.kmp.Graine
+import ai.graine.inapp.kmp.GraineCallTransport
 import ai.graine.inapp.kmp.GraineActionResult
 import ai.graine.inapp.kmp.GraineAgent
 import ai.graine.inapp.kmp.GraineCallOutcome
@@ -124,6 +125,12 @@ class GraineService private constructor() : GraineClient {
                 reported = id
                 val detail = transport.wire + (info.transportFallbackReason?.let { ":$it" } ?: "")
                 onCallEvent?.invoke(CallEvent(id, "audio", detail, DemoAgent.ofSdkName(info.agent)))
+                // And into the conversation itself: Call History shows it in this call's timeline, as it shows
+                // the voice bar's own "transport" line. A tracked event is listed by its name, so the name says it.
+                Graine.track(
+                    if (transport == GraineCallTransport.WEBRTC) "call audio: WebRTC"
+                    else "call audio: standard connection" + (info.transportFallbackReason?.let { " ($it)" } ?: ""),
+                )
             }
         }
         scope.launch {
