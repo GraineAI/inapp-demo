@@ -8,7 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		0F73E727088351980490F98D /* GraineInApp in Frameworks */ = {isa = PBXBuildFile; productRef = 54D2AA421744AF5B640713E1 /* GraineInApp */; };
+		1785A041B5E926598EA237BA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C6D2DD7FE2E0BF5DB2A96B4B /* PrivacyInfo.xcprivacy */; };
 		3899ABD1E68B76001B296C9D /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668CECA83ACC03A83C85A623 /* iOSApp.swift */; };
+		60D23AE7153CA2497D8C3019 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F543015C899423D4B01CEB2E /* Assets.xcassets */; };
 		8CD80B6333E5D5A45F9CBE8B /* GraineInAppRTC in Frameworks */ = {isa = PBXBuildFile; productRef = ACD1EDEC519B261B6B5A5964 /* GraineInAppRTC */; };
 		FEC42632E4F46347AEE74368 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */; };
 /* End PBXBuildFile section */
@@ -18,8 +20,10 @@
 		668CECA83ACC03A83C85A623 /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
 		C117AD187833E2513BD2F553 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C49B0B02429FBBC9F867DDE1 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
+		C6D2DD7FE2E0BF5DB2A96B4B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		"TEMP_A7755BA4-972C-4FD8-B679-D168C8726328" /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		F543015C899423D4B01CEB2E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		"TEMP_7EE58EB6-2201-4742-BA43-8293FB523EB5" /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,10 +42,12 @@
 		1DB4B685CAEE8BEFEBBAEF94 /* iosApp */ = {
 			isa = PBXGroup;
 			children = (
+				F543015C899423D4B01CEB2E /* Assets.xcassets */,
 				CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */,
 				C117AD187833E2513BD2F553 /* Info.plist */,
 				C49B0B02429FBBC9F867DDE1 /* iosApp.entitlements */,
 				668CECA83ACC03A83C85A623 /* iOSApp.swift */,
+				C6D2DD7FE2E0BF5DB2A96B4B /* PrivacyInfo.xcprivacy */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -62,10 +68,10 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		"TEMP_2423557F-AF16-4D39-AF9A-5BD209B2B00C" /* iosApp */ = {
+		"TEMP_0A87B3E3-A86F-4738-AF15-446CD91611E2" /* iosApp */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_A7755BA4-972C-4FD8-B679-D168C8726328" /* Base.xcconfig */,
+				"TEMP_7EE58EB6-2201-4742-BA43-8293FB523EB5" /* Base.xcconfig */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -79,6 +85,7 @@
 			buildPhases = (
 				31F7271ED68F4371481D9363 /* Build the shared Kotlin code */,
 				326C0FF71624D23C0D676F0E /* Sources */,
+				7F38C302E97433F1227F5444 /* Resources */,
 				ED2C7EB672DE6D76BAF6CA67 /* Frameworks */,
 			);
 			buildRules = (
@@ -132,6 +139,18 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		7F38C302E97433F1227F5444 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				60D23AE7153CA2497D8C3019 /* Assets.xcassets in Resources */,
+				1785A041B5E926598EA237BA /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXShellScriptBuildPhase section */
 		31F7271ED68F4371481D9363 /* Build the shared Kotlin code */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -169,7 +188,7 @@
 /* Begin XCBuildConfiguration section */
 		0F34AB2F8C7E770CC67F8A14 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_A7755BA4-972C-4FD8-B679-D168C8726328" /* Base.xcconfig */;
+			baseConfigurationReference = "TEMP_7EE58EB6-2201-4742-BA43-8293FB523EB5" /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
@@ -254,7 +273,7 @@
 		};
 		24DF4B7513557B0875AD8A3D /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_A7755BA4-972C-4FD8-B679-D168C8726328" /* Base.xcconfig */;
+			baseConfigurationReference = "TEMP_7EE58EB6-2201-4742-BA43-8293FB523EB5" /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;

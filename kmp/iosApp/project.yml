@@ -68,6 +68,8 @@ targets:
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"
+        # The App Store icon (Assets.xcassets/AppIcon): uploads without one are refused.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Gradle writes the framework here (embedAndSignAppleFrameworkForXcode).
         FRAMEWORK_SEARCH_PATHS: ["$(inherited)", "$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"]
         OTHER_LDFLAGS: ["$(inherited)", "-framework", "ComposeApp"]
