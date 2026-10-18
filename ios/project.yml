@@ -15,11 +15,11 @@ settings:
 packages:
   GraineInApp:
     url: https://github.com/GraineAI/inapp-ios
-    from: 0.10.1
+    from: 0.10.3
   # WebRTC calls: the module beside the SDK, always the same version.
   GraineInAppRTC:
     url: https://github.com/GraineAI/inapp-ios-rtc
-    from: 0.10.1
+    from: 0.10.3
 targets:
   GraineDemo:
     type: application

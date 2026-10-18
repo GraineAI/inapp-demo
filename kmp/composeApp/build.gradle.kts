@@ -97,10 +97,10 @@ kotlin {
         commonMain {
             kotlin.srcDir(generatePacks)
             dependencies {
-                // The Graine in-app SDK, as published (0.10.1: the SDK's booking sheet, call permissions and the setup check). The local-SDK switch in
+                // The Graine in-app SDK, as published (0.10.3: the SDK's booking sheet, call permissions and the setup check). The local-SDK switch in
                 // settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
-                implementation("ai.graine:inapp-kmp:0.10.1")
-                implementation("ai.graine:inapp-kmp-compose:0.10.1")
+                implementation("ai.graine:inapp-kmp:0.10.3")
+                implementation("ai.graine:inapp-kmp-compose:0.10.3")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
@@ -113,7 +113,7 @@ kotlin {
         }
         androidMain.dependencies {
             // WebRTC calls on Android: the module beside the SDK (the same version as inapp-kmp).
-            implementation("ai.graine:inapp-android-rtc:0.10.1")
+            implementation("ai.graine:inapp-android-rtc:0.10.3")
             implementation("androidx.activity:activity-compose:1.9.3")
             implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
             implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.7.0"))
