@@ -1,0 +1,33 @@
+{
+  "originHash" : "e2ba4dbf3ff428c7d1bc55f0a36db8e63408c2b9a54b3ca8a340ceeeba61b86c",
+  "pins" : [
+    {
+      "identity" : "inapp-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/GraineAI/inapp-ios",
+      "state" : {
+        "revision" : "0ce86edac76e6bdbd5dda2575ce8dc0e5ca440b9",
+        "version" : "0.11.0"
+      }
+    },
+    {
+      "identity" : "inapp-ios-rtc",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/GraineAI/inapp-ios-rtc",
+      "state" : {
+        "revision" : "b5c494fae2dd328447db394e8f58806a3e6a9c65",
+        "version" : "0.11.0"
+      }
+    },
+    {
+      "identity" : "webrtc-xcframework",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/livekit/webrtc-xcframework.git",
+      "state" : {
+        "revision" : "a41df9e9bcc7ab1d62131fda75c123ea391e5188",
+        "version" : "150.7871.3"
+      }
+    }
+  ],
+  "version" : 3
+}
