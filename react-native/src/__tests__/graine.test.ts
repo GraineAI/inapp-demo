@@ -10,6 +10,7 @@ jest.mock("@graineai/inapp-react-native", () => {
   class GraineInAppClient {
     opts: any;
     identify = jest.fn(() => undefined);
+    setVariables = jest.fn(() => undefined);
     setMemory = jest.fn(() => undefined);
     memories = jest.fn(async () => [{ id: "m1", text: "Takes metformin at 8 pm", createdAt: null, updatedAt: null }]);
     forgetMemory = jest.fn(async () => undefined);
@@ -53,6 +54,7 @@ const mockCalls = {
   enableVoIPPushes: jest.fn(() => () => undefined),
   attach: jest.fn(() => jest.fn()),
   startCall: jest.fn(async () => "call-1"),
+  requestCallPermissions: jest.fn(async () => undefined),
   onOutcome: jest.fn(() => jest.fn()),
   onIncomingCall: jest.fn(() => jest.fn()),
 };
@@ -102,14 +104,25 @@ describe("identity and memory", () => {
     graine.signIn(health, health.users[0], false);
     const client = graine.currentClient() as any;
     expect(client.identify).toHaveBeenCalledWith(
-      { patient_id: "MRN-000981", name: "Riya Sharma", plan: "Diabetes care", care_team: "Dr. Kavya Rao" },
+      { patient_id: "MRN-000981", name: "Riya Sharma", plan: "Diabetes care", care_team: "Dr. Kavya Rao", age: "34" },
       { memory: false },
     );
   });
 
+  it("sets the pack's variables through the SDK at sign-in, as an API call sends them, and clears them at sign-out", () => {
+    graine.signIn(health, health.users[0], true);
+    const client = graine.currentClient() as any;
+    expect(client.setVariables).toHaveBeenCalledWith({ callee_name: "Riya Sharma", age: "34" });
+    graine.signOut(health);
+    expect(client.setVariables).toHaveBeenLastCalledWith({ callee_name: null, age: null });
+    // Cleared before identify(null): nothing of Riya's reaches the next person.
+    const last = (fn: jest.Mock) => fn.mock.invocationCallOrder[fn.mock.invocationCallOrder.length - 1];
+    expect(last(client.setVariables)).toBeLessThan(last(client.identify));
+  });
+
   it("signs out with identify(null)", () => {
     graine.selectPack(health);
-    graine.signOut();
+    graine.signOut(health);
     expect((graine.currentClient() as any).identify).toHaveBeenCalledWith(null);
   });
 
@@ -229,14 +242,11 @@ describe("calls like a phone call", () => {
     expect(fn).toHaveBeenCalledWith(expect.objectContaining({ callId: "c2", kind: "incoming" }));
   });
 
-  it("asks for notifications on Android 13+ only", async () => {
+  it("asks for what calls need through the calls SDK — the microphone, and notifications on Android 13+", async () => {
     await graine.requestPermissions();
-    expect(sdk.requestMicrophonePermission).toHaveBeenCalled();
-    expect(mockPermissions.request).not.toHaveBeenCalled();
-    mockPlatform.OS = "android";
-    mockPlatform.Version = "34";
-    await graine.requestPermissions();
-    expect(mockPermissions.request).toHaveBeenCalledWith("android.permission.POST_NOTIFICATIONS");
+    expect(mockCalls.requestCallPermissions).toHaveBeenCalledTimes(1);
+    mockCalls.requestCallPermissions.mockRejectedValueOnce(new Error("denied"));
+    await expect(graine.requestPermissions()).resolves.toBeUndefined();   // a refusal never breaks sign-in
   });
 });
 
@@ -251,13 +261,16 @@ describe("two agents in one app", () => {
     graine.signIn(health, health.users[1], true);
     for (const client of [main, help]) {
       expect(client.identify).toHaveBeenLastCalledWith(expect.objectContaining({ patient_id: "MRN-000982" }), { memory: true });
+      expect(client.setVariables).toHaveBeenLastCalledWith({ callee_name: "Arjun Mehta", age: "52" });
     }
     graine.setMemoryConsent(false);
     expect(main.setMemory).toHaveBeenLastCalledWith(false);
     expect(help.setMemory).toHaveBeenLastCalledWith(false);
-    graine.signOut();
-    expect(main.identify).toHaveBeenLastCalledWith(null);
-    expect(help.identify).toHaveBeenLastCalledWith(null);
+    graine.signOut(health);
+    for (const client of [main, help]) {
+      expect(client.setVariables).toHaveBeenLastCalledWith({ callee_name: null, age: null });
+      expect(client.identify).toHaveBeenLastCalledWith(null);
+    }
   });
 
   it("gives the help agent the same actions", () => {

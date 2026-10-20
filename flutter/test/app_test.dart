@@ -61,6 +61,18 @@ void main() {
     expect(service.screens.last.screen, 'home');
   });
 
+  testWidgets("sign in sets the agents' variables through the SDK, as an API call sends them; sign out clears them", (tester) async {
+    final (state, service) = await start(tester);
+    await signInFirst(tester);
+    expect(service.variables, [
+      {'callee_name': 'Riya Sharma', 'age': '34'},
+    ]);
+
+    await state.signOut();
+    await tester.pumpAndSettle();
+    expect(service.variables.last, {'callee_name': null, 'age': null}, reason: "nothing of Riya's reaches the next person");
+  });
+
   testWidgets('items: only the signed-in person rows, a row action sets its status, and the agent can do the same', (tester) async {
     final (state, service) = await start(tester);
     await signInFirst(tester);

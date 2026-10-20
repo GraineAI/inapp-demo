@@ -94,6 +94,8 @@ class FakeGraineClient : GraineClient {
     override var agents: List<DemoAgent> = listOf(DemoAgent.MAIN)
 
     val identified = mutableListOf<Pair<Map<String, String>?, Boolean?>>()
+    /** Every setVariables, in order: what the agents' prompt variables were set to. */
+    val variables = mutableListOf<Map<String, String?>>()
     val memorySets = mutableListOf<Boolean>()
     override val installId = "0f8b2a4c-1d3e-4f5a-9b6c-7d8e9f0a1b2c"
     var forgetResult: Pair<Int?, GraineError?> = 0 to null
@@ -127,6 +129,7 @@ class FakeGraineClient : GraineClient {
     override var onCallEvent: ((CallEvent) -> Unit)? = null
 
     override fun identify(traits: Map<String, String>?, memory: Boolean?) { identified += traits to memory }
+    override fun setVariables(values: Map<String, String?>) { variables += values }
     override fun setMemory(enabled: Boolean) { memorySets += enabled }
     override fun forgetMemory(done: (Int?, GraineError?) -> Unit) { forgetCount++; done(forgetResult.first, forgetResult.second) }
     override fun memories(done: (List<GraineMemory>?, GraineError?) -> Unit) = done(memoriesResult.first, memoriesResult.second)

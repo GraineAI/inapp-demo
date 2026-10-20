@@ -8,6 +8,8 @@ final class FakeGraineClient: GraineClient {
     var agents: [DemoAgent] = [.main]
 
     var identified: [([String: String]?, Bool?)] = []
+    /// Every setVariables, in order: what the agents' prompt variables were set to.
+    var variables: [[String: String?]] = []
     var memorySets: [Bool] = []
     var memoryChoice = true
     var installId = "0f8b2a4c-1d3e-4f5a-9b6c-7d8e9f0a1b2c"
@@ -43,6 +45,7 @@ final class FakeGraineClient: GraineClient {
     var onCallScreenChange: (@MainActor (Bool) -> Void)?
 
     func identify(_ traits: [String: String]?, memory: Bool?) { identified.append((traits, memory)) }
+    func setVariables(_ values: [String: String?]) { variables.append(values) }
     func setMemory(_ enabled: Bool) { memorySets.append(enabled); memoryChoice = enabled }
 
     func forgetMemory() async throws -> Int {

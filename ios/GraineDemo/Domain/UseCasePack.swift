@@ -189,12 +189,33 @@ struct UseCasePack: Codable, Identifiable, Equatable {
     let starters: [String]
     /// The main agent and the help desk; absent in a pack written before there were two.
     let agents: Agents?
+    /// The agent's prompt variables and the user field each takes — `{"callee_name": "name", "age": "age"}`:
+    /// a key is a variable the agent's prompt or welcome uses, a value is "name" or one of the person's traits
+    /// (never the identifier). Set through the SDK at sign-in, as an API call sends `variables`. Absent: `defaultVariables`.
+    let variables: [String: String]?
+
+    /// A pack that names no variables: the person's name as `callee_name`, what greetings and Call History read.
+    static let defaultVariables = ["callee_name": "name"]
 
     /// `identify`'s traits: the identifier under the agent's identity field, the name, and the extra traits.
     func traits(for user: User) -> [String: String] {
         var out = user.traits
         out["name"] = user.name
         out[identifierField] = user.id
+        return out
+    }
+
+    /// The variables the pack sets and the user field each takes: its own `variables`, else `defaultVariables`.
+    var variableFields: [String: String] { variables ?? Self.defaultVariables }
+
+    /// The agent's prompt variables for `user`, from `variableFields` — set through the SDK exactly as an API
+    /// call sends them. A field the person does not have is left out.
+    func variables(for user: User) -> [String: String] {
+        var out: [String: String] = [:]
+        for (variable, field) in variableFields {
+            let value = field == "name" ? user.name : user.traits[field]
+            if let value = value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { out[variable] = value }
+        }
         return out
     }
 

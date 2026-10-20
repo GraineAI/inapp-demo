@@ -137,6 +137,7 @@ final class AppModel: ObservableObject {
     func signIn(_ user: UseCasePack.User, memory: Bool) {
         guard let pack = pack else { return }
         graine.identify(pack.traits(for: user), memory: memory)
+        graine.setVariables(pack.variables(for: user))
         self.user = user
         memoryOn = memory
         items = sessionStatuses[sessionKey(pack, user)] ?? ItemsState(rows: pack.rows(for: user))
@@ -156,6 +157,7 @@ final class AppModel: ObservableObject {
     /// Sign out everywhere: the SDK forgets the user and releases this device; later conversations are anonymous.
     func signOut() {
         if voiceAgent != nil { graine.endVoice() }
+        if user != nil, let pack = pack { graine.setVariables(pack.variableFields.mapValues { _ in nil }) }
         graine.identify(nil, memory: nil)
         user = nil
         items = nil

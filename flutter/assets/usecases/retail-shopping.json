@@ -27,6 +27,7 @@
     { "id": "SHP-20032", "name": "Vikram Singh", "traits": { "membership": "Standard", "city": "Jaipur" } },
     { "id": "SHP-20033", "name": "Kavya Reddy", "traits": { "membership": "Plus member", "city": "Chennai" } }
   ],
+  "variables": { "callee_name": "name" },
   "home": {
     "title": "Your orders",
     "cards": [

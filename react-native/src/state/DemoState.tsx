@@ -105,7 +105,7 @@ export function DemoStateProvider({ children }: { children: ReactNode }) {
     const next = findPack(PACKS, id);
     if (!next) return;
     if (user) {
-      graine.signOut();
+      graine.signOut(pack);
       setUser(null);
       await AsyncStorage.removeItem(SIGNED_IN_KEY).catch(() => undefined);
     }
@@ -116,7 +116,7 @@ export function DemoStateProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(PACK_KEY, next.id).catch(() => undefined);
     const s = await graine.agentSettings();
     if (live.current) setSettings(s);
-  }, [user]);
+  }, [user, pack]);
 
   const signIn = useCallback(async (person: PackUser, agreed: boolean) => {
     graine.signIn(pack, person, agreed);
@@ -128,11 +128,11 @@ export function DemoStateProvider({ children }: { children: ReactNode }) {
   }, [pack]);
 
   const signOut = useCallback(async () => {
-    graine.signOut();
+    graine.signOut(pack);
     setUser(null);
     setOpenRow(null);
     await AsyncStorage.removeItem(SIGNED_IN_KEY).catch(() => undefined);
-  }, []);
+  }, [pack]);
 
   const setConsent = useCallback(async (on: boolean) => {
     graine.setMemoryConsent(on);

@@ -43,6 +43,21 @@ final class BundledPackTests: XCTestCase {
         }
     }
 
+    func testEachPackMapsItsPeopleToTheAgentsVariablesAsAnAPICallWould() throws {
+        let health = try XCTUnwrap(UseCasePacks.load().first { $0.id == "health-coach" })
+        XCTAssertEqual(health.variables, ["callee_name": "name", "age": "age"])
+        XCTAssertEqual(health.variables(for: health.users[0]), ["callee_name": "Riya Sharma", "age": "34"])
+        // Any name the agent's author chose, from the name or any trait; a field the person lacks is left out.
+        let json = TestPack.json.replacingOccurrences(
+            of: "\"starters\": [\"What is due today?\"]",
+            with: "\"starters\": [\"What is due today?\"], \"variables\": { \"name_user\": \"name\", \"plan_name\": \"plan\", \"dob\": \"date_of_birth\" }"
+        )
+        let custom = try UseCasePack.parse(Data(json.utf8))
+        XCTAssertEqual(custom.variables(for: custom.users[0]), ["name_user": "Riya Sharma", "plan_name": "Diabetes care"])
+        // A pack that names none: the name as callee_name — what greetings and Call History read.
+        XCTAssertEqual(TestPack.pack.variables(for: TestPack.pack.users[0]), ["callee_name": "Riya Sharma"])
+    }
+
     func testTheChoiceIsRememberedOnTheDevice() {
         let packs = [TestPack.pack, TestPack.other]
         let defaults = TestClock.defaults()

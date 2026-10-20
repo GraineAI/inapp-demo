@@ -104,6 +104,12 @@ final class GraineService: GraineClient {
         main.identify(traits.map { $0.mapValues { Optional<Any>.some($0) } }, memory: memory)
     }
 
+    func setVariables(_ values: [String: String?]) {
+        // Each agent holds its own variables: every one is given them.
+        let sdkValues = values.mapValues { $0.map { $0 as Any } }
+        for agent in agents { sdk(agent)?.setVariables(sdkValues) }
+    }
+
     func setMemory(_ enabled: Bool) {
         main.setMemory(enabled)
     }

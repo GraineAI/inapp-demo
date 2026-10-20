@@ -68,6 +68,10 @@ abstract class GraineService {
   /// identify(null): signed out of every agent; this device stops being the person's.
   void signOut();
 
+  /// The agents' prompt {variables} — what an API call sends as `variables` — set through the SDK, for every
+  /// agent: merged into each chat, voice session and call from now on; null under a key removes it.
+  void setVariables(Map<String, String?> values);
+
   /// The consent switch (shared by every agent): false keeps this person's conversations out of memory.
   void setMemoryConsent(bool enabled);
 
@@ -185,6 +189,13 @@ class SdkGraineService implements GraineService {
 
   @override
   void signOut() => _main.identify(null);
+
+  // Each agent holds its own variables: every one is given them.
+  @override
+  void setVariables(Map<String, String?> values) {
+    _main.setVariables(values);
+    _help?.setVariables(values);
+  }
 
   @override
   void setMemoryConsent(bool enabled) => _main.setMemory(enabled);

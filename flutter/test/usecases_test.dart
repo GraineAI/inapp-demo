@@ -39,4 +39,17 @@ void main() {
       }
     }
   });
+
+  test("each pack maps its people to the agent's variables, as an API call would", () {
+    final json = jsonDecode(File('assets/usecases/health-coach.json').readAsStringSync()) as Map<String, dynamic>;
+    final health = UseCasePack.fromJson(json);
+    expect(health.variables, {'callee_name': 'name', 'age': 'age'});
+    expect(health.variablesFor(health.users[0]), {'callee_name': 'Riya Sharma', 'age': '34'});
+    // Any name the agent's author chose, from the name or any trait; a field the person lacks is left out.
+    final custom = UseCasePack.fromJson({...json, 'variables': {'name_user': 'name', 'plan_name': 'plan', 'dob': 'date_of_birth'}});
+    expect(custom.variablesFor(custom.users[0]), {'name_user': 'Riya Sharma', 'plan_name': 'Diabetes care'});
+    // A pack that names none: the name as callee_name — what greetings and Call History read.
+    final none = UseCasePack.fromJson({...json}..remove('variables'));
+    expect(none.variablesFor(none.users[0]), {'callee_name': 'Riya Sharma'});
+  });
 }

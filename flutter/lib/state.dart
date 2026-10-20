@@ -129,6 +129,7 @@ class DemoState extends ChangeNotifier {
 
   void _apply(PackUser person, bool agreed) {
     service.signIn(pack, person, memory: agreed);
+    service.setVariables(pack.variablesFor(person));
     user = person;
     consent = agreed;
     openRowId = null;
@@ -138,6 +139,7 @@ class DemoState extends ChangeNotifier {
 
   Future<void> signOut() async {
     service.endVoice();
+    if (user != null) service.setVariables({for (final name in pack.variables.keys) name: null});
     service.signOut();
     _unregister?.call();
     _unregister = null;

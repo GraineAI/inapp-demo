@@ -80,6 +80,12 @@ export interface UseCasePack {
   };
   memoryExamples: Array<{ tell: string; ask: string; expect: string }>;
   starters: string[];
+  /**
+   * The agent's prompt variables and the user field each takes — `{ callee_name: "name", age: "age" }`: a key is
+   * a variable the agent's prompt or welcome uses, a value is "name" or one of the person's traits (never the
+   * identifier). Set through the SDK at sign-in, as an API call sends `variables`. Absent: DEFAULT_VARIABLES.
+   */
+  variables?: Record<string, string>;
 }
 
 export const SCREEN_KEYS: ReadonlyArray<ScreenKey> = ["home", "chat", "items", "calls", "memory", "profile"];
@@ -87,6 +93,27 @@ export const SCREEN_KEYS: ReadonlyArray<ScreenKey> = ["home", "chat", "items", "
 /** What identify() is given: the identifier under the pack's field, the name, and the person's traits. */
 export function identifyTraits(pack: UseCasePack, user: PackUser): Record<string, string> {
   return { ...user.traits, name: user.name, [pack.identifierField]: user.id };
+}
+
+/** A pack that names no variables: the person's name as `callee_name`, what greetings and Call History read. */
+export const DEFAULT_VARIABLES: Readonly<Record<string, string>> = { callee_name: "name" };
+
+/**
+ * The agent's prompt variables for `user`, from the pack's `variables` map — set through the SDK exactly as an
+ * API call sends them. A field the person does not have is left out.
+ */
+export function variablesFor(pack: UseCasePack, user: PackUser): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [variable, field] of Object.entries(pack.variables ?? DEFAULT_VARIABLES)) {
+    const value = field === "name" ? user.name : user.traits[field];
+    if (typeof value === "string" && value.trim()) out[variable] = value;
+  }
+  return out;
+}
+
+/** Every variable the pack maps: what sign-out clears, so nothing of one person reaches the next. */
+export function variableNames(pack: UseCasePack): string[] {
+  return Object.keys(pack.variables ?? DEFAULT_VARIABLES);
 }
 
 /** The rows this person sees. */

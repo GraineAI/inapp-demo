@@ -32,6 +32,12 @@ data class UseCasePack(
     val starters: List<String>,
     /** The main agent and the help desk; null in a pack written before there were two. */
     val agents: Agents? = null,
+    /**
+     * The agent's prompt variables and the user field each takes — `{"callee_name": "name", "age": "age"}`:
+     * a key is a variable the agent's prompt or welcome uses, a value is "name" or one of the person's
+     * traits (never the identifier). Set through the SDK at sign-in, as an API call sends `variables`.
+     */
+    val variables: Map<String, String> = DEFAULT_VARIABLES,
 ) {
     /**
      * One of the pack's agents (`agents.main`, `agents.help`). The help desk also carries its own call settings:
@@ -151,6 +157,16 @@ data class UseCasePack(
             put(identifierField, user.id)
         }
 
+    /**
+     * The agent's prompt variables for [user], from the pack's [variables] map — set through the SDK
+     * exactly as an API call sends them. A field the person does not have is left out.
+     */
+    fun variablesFor(user: User): Map<String, String> =
+        variables.mapNotNull { (variable, field) ->
+            val value = if (field == "name") user.name else user.traits[field]
+            value?.takeIf { it.isNotBlank() }?.let { variable to it }
+        }.toMap()
+
     /** The rows [user] sees. */
     fun rowsFor(user: User): List<Row> = items.rows.filter { it.userIds?.contains(user.id) ?: true }
 
@@ -159,6 +175,9 @@ data class UseCasePack(
     class PackException(message: String) : Exception(message)
 
     companion object {
+        /** A pack that names no variables: the person's name as `callee_name`, what greetings and Call History read. */
+        val DEFAULT_VARIABLES: Map<String, String> = mapOf("callee_name" to "name")
+
         @Throws(PackException::class)
         fun parse(json: String): UseCasePack = try {
             parse(JSONObject(json))
@@ -228,6 +247,9 @@ data class UseCasePack(
                 ),
                 memoryExamples = o.objects("memoryExamples").map { MemoryExample(it.str("tell"), it.str("ask"), it.str("expect")) },
                 starters = o.strings("starters"),
+                variables = o.optJSONObject("variables")?.let { v ->
+                    v.keys().asSequence().mapNotNull { k -> (v.opt(k) as? String)?.let { k to it } }.toMap()
+                } ?: DEFAULT_VARIABLES,
                 agents = o.optJSONObject("agents")?.let { a -> Agents(agentInfo(a.optJSONObject("main")), agentInfo(a.optJSONObject("help"))) },
             )
         }

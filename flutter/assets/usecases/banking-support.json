@@ -28,6 +28,7 @@
     { "id": "CUST-10042", "name": "Rahul Verma", "traits": { "segment": "Salary account", "home_branch": "Mumbai, Andheri East" } },
     { "id": "CUST-10043", "name": "Sana Qureshi", "traits": { "segment": "Small business", "home_branch": "Hyderabad, Banjara Hills" } }
   ],
+  "variables": { "callee_name": "name" },
   "home": {
     "title": "Accounts",
     "cards": [

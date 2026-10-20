@@ -218,7 +218,11 @@ class UseCasePack {
     required this.call,
     required this.memoryExamples,
     required this.starters,
+    this.variables = defaultVariables,
   });
+
+  /// A pack that names no variables: the person's name as `callee_name`, what greetings and Call History read.
+  static const Map<String, String> defaultVariables = <String, String>{'callee_name': 'name'};
 
   factory UseCasePack.fromJson(Map<String, dynamic> j) {
     final home = j['home'] as Map<String, dynamic>;
@@ -248,6 +252,7 @@ class UseCasePack {
       call: PackCall.fromJson(j['call'] as Map<String, dynamic>),
       memoryExamples: [for (final m in j['memoryExamples'] as List<dynamic>) MemoryExample.fromJson(m as Map<String, dynamic>)],
       starters: [for (final s in j['starters'] as List<dynamic>) s as String],
+      variables: (j['variables'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, v as String)) ?? defaultVariables,
     );
   }
 
@@ -278,8 +283,24 @@ class UseCasePack {
   final List<MemoryExample> memoryExamples;
   final List<String> starters;
 
+  /// The agent's prompt variables and the user field each takes — `{"callee_name": "name", "age": "age"}`: a key
+  /// is a variable the agent's prompt or welcome uses, a value is "name" or one of the person's traits (never the
+  /// identifier). Set through the SDK at sign-in, as an API call sends `variables`.
+  final Map<String, String> variables;
+
   /// What identify() is given: the identifier under the pack's field, the name, and the person's traits.
   Map<String, Object?> identifyTraits(PackUser user) => <String, Object?>{...user.traits, 'name': user.name, identifierField: user.id};
+
+  /// The agent's prompt variables for [user], from [variables] — set through the SDK exactly as an API call
+  /// sends them. A field the person does not have is left out.
+  Map<String, String> variablesFor(PackUser user) {
+    final out = <String, String>{};
+    variables.forEach((variable, field) {
+      final value = field == 'name' ? user.name : user.traits[field];
+      if (value != null && value.trim().isNotEmpty) out[variable] = value;
+    });
+    return out;
+  }
 
   /// The rows this person sees.
   List<PackRow> rowsFor(String? userId) =>

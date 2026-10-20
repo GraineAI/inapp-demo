@@ -95,6 +95,13 @@ class AppModelTest {
         assertEquals("sign_in", fake.lastScreen?.screen)
     }
 
+    @Test fun signingInSetsTheAgentsVariablesThroughTheSdkAndSigningOutClearsThem() {
+        model.signIn(riya, true)
+        assertEquals("as an API call sends them", listOf(mapOf<String, String?>("callee_name" to "Riya Sharma")), fake.variables)
+        model.signOut()
+        assertEquals("nothing of Riya's reaches the next user", mapOf<String, String?>("callee_name" to null), fake.variables.last())
+    }
+
     @Test fun memoryChipNeedsTheAgentAndTheConsent() {
         model.signIn(riya, true)
         assertEquals("Memory: on" to true, model.memoryStatus)

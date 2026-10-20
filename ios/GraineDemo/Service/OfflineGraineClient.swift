@@ -16,6 +16,7 @@ final class OfflineGraineClient: GraineClient {
 
     var agents: [DemoAgent] { [.main] }
     func identify(_ traits: [String: String]?, memory: Bool?) {}
+    func setVariables(_ values: [String: String?]) {}
     func setMemory(_ enabled: Bool) {}
     var memoryChoice: Bool { true }
     var installId: String { "00000000-0000-4000-8000-000000000000" }

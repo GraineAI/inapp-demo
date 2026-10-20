@@ -18,6 +18,9 @@ class FakeGraineService implements GraineService {
 
   final List<(String packId, Map<String, Object?> traits, bool memory)> signIns = <(String, Map<String, Object?>, bool)>[];
   int signOuts = 0;
+
+  /// Every setVariables, in order: what the agents' prompt variables were set to.
+  final List<Map<String, String?>> variables = <Map<String, String?>>[];
   final List<bool> consentChanges = <bool>[];
   final List<GraineScreen> screens = <GraineScreen>[];
   final List<String> registered = <String>[];
@@ -44,6 +47,9 @@ class FakeGraineService implements GraineService {
 
   @override
   void signOut() => signOuts++;
+
+  @override
+  void setVariables(Map<String, String?> values) => variables.add(values);
 
   @override
   void setMemoryConsent(bool enabled) => consentChanges.add(enabled);

@@ -20,7 +20,7 @@ import {
 import { GraineCalls, type GraineCallOutcome, type GraineIncomingCall } from "@graineai/inapp-react-native-calls";
 
 import { demoConfig, helpKeyFor, isConfigured, publishableKeyFor } from "./config";
-import { identifyTraits, type PackAction, type PackUser, type UseCasePack } from "./logic/pack";
+import { identifyTraits, variableNames, variablesFor, type PackAction, type PackUser, type UseCasePack } from "./logic/pack";
 import { settingsFromSession, UNKNOWN_SETTINGS, type AgentSettings } from "./logic/session";
 import { messageFor, readError, type ErrorContext } from "./logic/errors";
 
@@ -101,16 +101,30 @@ const c = (): GraineInAppClient => currentClient();
  *
  * Two agents, one person: the user is identified on BOTH agents' clients (each React Native client is
  * independent), so one sign-in reaches the main agent and the help agent alike.
+ *
+ * Each agent is also given the prompt variables the pack maps from the person (setVariables), exactly as an
+ * API call sends `variables`.
  */
 export function signIn(pack: UseCasePack, user: PackUser, memory: boolean): void {
   selectPack(pack);
   const traits = identifyTraits(pack, user);
-  for (const client of everyAgent()) client.identify(traits, { memory });
+  const variables = variablesFor(pack, user);
+  for (const client of everyAgent()) {
+    client.identify(traits, { memory });
+    client.setVariables(variables);
+  }
 }
 
-/** identify(null) on both agents: this device stops being the person's (no rings, no memory). */
-export function signOut(): void {
-  for (const client of everyAgent()) client.identify(null);
+/**
+ * identify(null) on both agents: this device stops being the person's (no rings, no memory). Every variable
+ * `pack` maps is cleared first, so nothing of theirs reaches the next person.
+ */
+export function signOut(pack: UseCasePack): void {
+  const cleared = Object.fromEntries(variableNames(pack).map((name) => [name, null]));
+  for (const client of everyAgent()) {
+    client.setVariables(cleared);
+    client.identify(null);
+  }
 }
 
 /** The consent switch, on both agents: false keeps this person's conversations out of memory. */

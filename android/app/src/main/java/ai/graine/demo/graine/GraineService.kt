@@ -50,6 +50,11 @@ interface GraineClient {
 
     // Who the user is, and memory (shared by every agent)
     fun identify(traits: Map<String, String>?, memory: Boolean?)
+    /**
+     * The agents' prompt {variables} — what an API call sends as `variables` — set through the SDK, for
+     * every agent: merged into each chat, voice session and call from now on; null under a key removes it.
+     */
+    fun setVariables(values: Map<String, String?>)
     fun setMemory(enabled: Boolean)
     val installId: String
     /** [done] hears how many memories were deleted (the main agent's memory), or why not. */
@@ -155,6 +160,9 @@ class GraineService private constructor(private val main: GraineInApp, private v
         // null signs out everywhere: the device stops being this user's, and later conversations are anonymous.
         main.identify(traits, memory)
     }
+
+    // Each agent holds its own variables: every one is given them.
+    override fun setVariables(values: Map<String, String?>) = agents.forEach { sdk(it)?.setVariables(values) }
 
     override fun setMemory(enabled: Boolean) = main.setMemory(enabled)
 

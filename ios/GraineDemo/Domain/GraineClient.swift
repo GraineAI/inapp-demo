@@ -36,6 +36,9 @@ protocol GraineClient: AnyObject {
 
     // Who the user is, and memory (shared by every agent)
     func identify(_ traits: [String: String]?, memory: Bool?)
+    /// The agents' prompt {variables} — what an API call sends as `variables` — set through the SDK, for every
+    /// agent: merged into each chat, voice session and call from now on; nil under a key removes it.
+    func setVariables(_ values: [String: String?])
     func setMemory(_ enabled: Bool)
     var memoryChoice: Bool { get }
     var installId: String { get }

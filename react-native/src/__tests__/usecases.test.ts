@@ -3,6 +3,7 @@ import { execFileSync } from "child_process";
 import { readdirSync } from "fs";
 import path from "path";
 import { DEFAULT_PACK_ID, PACKS } from "../usecases";
+import { variableNames, variablesFor } from "../logic/pack";
 
 const root = path.resolve(__dirname, "../../..");
 
@@ -24,4 +25,17 @@ it("gives every pack a main agent (the top-level one) and a help agent of its ow
     expect(p.agents.help.name).not.toBe(p.agentName);
     expect(p.agents.help.reasons.length).toBeGreaterThanOrEqual(2);
   }
+});
+
+it("maps each pack's people to the agent's variables, as an API call would", () => {
+  const health = PACKS.find((p) => p.id === "health-coach")!;
+  expect(health.variables).toEqual({ callee_name: "name", age: "age" });
+  expect(variablesFor(health, health.users[0])).toEqual({ callee_name: "Riya Sharma", age: "34" });
+  // Any name the agent's author chose, from the name or any trait; a field the person lacks is left out.
+  const custom = { ...health, variables: { name_user: "name", plan_name: "plan", dob: "date_of_birth" } };
+  expect(variablesFor(custom, health.users[0])).toEqual({ name_user: "Riya Sharma", plan_name: "Diabetes care" });
+  // A pack that names none: the name as callee_name — what greetings and Call History read.
+  const none = { ...health, variables: undefined };
+  expect(variablesFor(none, health.users[0])).toEqual({ callee_name: "Riya Sharma" });
+  expect(variableNames(none)).toEqual(["callee_name"]);
 });

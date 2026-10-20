@@ -24,10 +24,11 @@
   "identifierLabel": "Patient ID",
   "userNoun": "patient",
   "users": [
-    { "id": "MRN-000981", "name": "Riya Sharma", "traits": { "plan": "Diabetes care", "care_team": "Dr. Kavya Rao" } },
-    { "id": "MRN-000982", "name": "Arjun Mehta", "traits": { "plan": "Heart health", "care_team": "Dr. Sameer Joshi" } },
-    { "id": "MRN-000983", "name": "Meera Iyer", "traits": { "plan": "Thyroid care", "care_team": "Dr. Anita Menon" } }
+    { "id": "MRN-000981", "name": "Riya Sharma", "traits": { "plan": "Diabetes care", "care_team": "Dr. Kavya Rao", "age": "34" } },
+    { "id": "MRN-000982", "name": "Arjun Mehta", "traits": { "plan": "Heart health", "care_team": "Dr. Sameer Joshi", "age": "52" } },
+    { "id": "MRN-000983", "name": "Meera Iyer", "traits": { "plan": "Thyroid care", "care_team": "Dr. Anita Menon", "age": "45" } }
   ],
+  "variables": { "callee_name": "name", "age": "age" },
   "home": {
     "title": "Today",
     "cards": [

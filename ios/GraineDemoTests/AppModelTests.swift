@@ -86,6 +86,13 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(fake.lastScreen?.screen, "sign_in")
     }
 
+    func testSigningInSetsTheAgentsVariablesThroughTheSDKAndSigningOutClearsThem() {
+        model.signIn(riya, memory: true)
+        XCTAssertEqual(fake.variables, [["callee_name": "Riya Sharma"]], "as an API call sends them")
+        model.signOut()
+        XCTAssertEqual(fake.variables.last, ["callee_name": nil], "nothing of Riya's reaches the next user")
+    }
+
     func testMemoryChipNeedsTheAgentAndTheConsent() {
         model.signIn(riya, memory: true)
         XCTAssertEqual(model.memoryStatus.label, "Memory: on")
@@ -430,11 +437,12 @@ final class AppModelTests: XCTestCase {
         XCTAssertTrue(model.calls.isEmpty, "nothing was booked, so the list is not read again")
     }
 
-    func testABookingButtonThatIsOffOpensNoSheet() async {
+    func testABookingButtonThatIsOffStillOpensTheSdksSheet() async {
+        // The SDK's sheet says why booking is off; the app never swallows the tap (as on Android, KMP, Flutter).
         fake.bookable = []
         model.signIn(riya, memory: true)
         await model.book(.main)
-        XCTAssertTrue(fake.bookingSheets.isEmpty)
+        XCTAssertEqual(fake.bookingSheets.count, 1)
     }
 
     // MARK: - Scheduled calls (the main agent)
