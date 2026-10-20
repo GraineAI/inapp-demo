@@ -25,21 +25,21 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.12.0), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.13.0), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
 **Optional: build against the SDK's sources** instead of the published artifacts (for example a fix that is not
-released yet) — the public repositories, tag `0.12.0`, side by side: the multiplatform SDK builds its Android
+released yet) — the public repositories, tag `0.13.0`, side by side: the multiplatform SDK builds its Android
 side from the Android SDK in the folder `android` beside it, and the iOS app can take GraineInApp from a
 checkout too:
 
 ```sh
 # from the repository root
-git clone --branch 0.12.0 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.12.0 https://github.com/GraineAI/inapp-android ../graine-sdk/android
-git clone --branch 0.12.0 https://github.com/GraineAI/inapp-ios ../graine-sdk/ios
+git clone --branch 0.13.0 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.13.0 https://github.com/GraineAI/inapp-android ../graine-sdk/android
+git clone --branch 0.13.0 https://github.com/GraineAI/inapp-ios ../graine-sdk/ios
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -98,7 +98,7 @@ Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the 
 filled in. A button is on only while the SDK's `bookingAvailable` is true for its agent (Graine rings this
 phone, the agent lets users book, and the user is identified with the agent's Identity field); otherwise it
 is off, with one line: "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID". Both platforms run both agents
-(`ai.graine:inapp-kmp` 0.12.0 on Android and iOS alike), and **Call activity** names the agent of every
+(`ai.graine:inapp-kmp` 0.13.0 on Android and iOS alike), and **Call activity** names the agent of every
 ring and outcome.
 
 ## Calls on a real device
