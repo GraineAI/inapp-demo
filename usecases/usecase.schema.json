@@ -47,6 +47,13 @@
       "description": "Fictional people to sign in as. Never real people.",
       "items": { "$ref": "#/$defs/user" }
     },
+    "variables": {
+      "type": "object",
+      "description": "The agent's prompt variables, set through the SDK (setVariables) at sign-in exactly as an API call sends `variables`, and cleared at sign-out. Each key is a variable the agent's prompt or welcome message uses — {callee_name}, {age}, any name its author chose — and each value is the user field it takes: \"name\", or one of the person's traits. The identifier is never a variable: it never reaches a prompt. Absent: {\"callee_name\": \"name\"}.",
+      "maxProperties": 12,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+      "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" }
+    },
     "home": {
       "type": "object",
       "additionalProperties": false,

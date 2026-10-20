@@ -33,6 +33,16 @@ class AppModelTest {
         AppModel(fake, config, listOf(TestPack.pack, TestPack.other), store, scope = this as CoroutineScope, now = { TestClock.at(12) }) to fake
 
     @Test
+    fun signingInSetsTheAgentsVariablesThroughTheSdkAndSigningOutClearsThem() = runTest {
+        val (m, fake) = model()
+        m.signIn(TestPack.pack.users[0], memory = true)
+        advanceUntilIdle()
+        assertEquals(listOf(mapOf<String, String?>("callee_name" to "Riya Sharma")), fake.variables, "as an API call sends them")
+        m.signOut()
+        assertEquals(mapOf<String, String?>("callee_name" to null), fake.variables.last(), "nothing of Riya's reaches the next user")
+    }
+
+    @Test
     fun signingInIdentifiesOnceWithTheTraitsAndTheMemoryChoice() = runTest {
         val (m, fake) = model()
         m.signIn(TestPack.pack.users[0], memory = false)

@@ -153,6 +153,7 @@ class AppModel(
     fun signIn(user: UseCasePack.User, memory: Boolean) {
         val pack = pack ?: return
         graine.identify(pack.traitsFor(user), memory)
+        graine.setVariables(pack.variablesFor(user))
         // The microphone (and notifications on Android 13+) now, so a call or a ring never waits on a prompt.
         scope.launch { runCatching { graine.requestCallPermissions() } }
         this.user = user
@@ -174,6 +175,9 @@ class AppModel(
     /** Sign out everywhere: the SDK forgets the user and releases this device; later conversations are anonymous. */
     fun signOut() {
         if (voiceAgent != null) graine.endVoice()
+        val leaving = user
+        val leavingPack = pack
+        if (leaving != null && leavingPack != null) graine.setVariables(leavingPack.variables.keys.associateWith { null })
         graine.identify(null, null)
         user = null
         items = null

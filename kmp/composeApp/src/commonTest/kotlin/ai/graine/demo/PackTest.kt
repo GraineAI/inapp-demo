@@ -36,6 +36,18 @@ class PackTest {
     }
 
     @Test
+    fun eachPackMapsItsPeopleToTheAgentsVariablesAsAnApiCallWould() {
+        val health = UseCasePacks.load().first { it.id == "health-coach" }
+        assertEquals(mapOf("callee_name" to "name", "age" to "age"), health.variables)
+        assertEquals(mapOf("callee_name" to "Riya Sharma", "age" to "34"), health.variablesFor(health.users[0]))
+        // Any name the agent's author chose, from the name or any trait; a field the person lacks is left out.
+        val custom = health.copy(variables = mapOf("name_user" to "name", "plan_name" to "plan", "dob" to "date_of_birth"))
+        assertEquals(mapOf("name_user" to "Riya Sharma", "plan_name" to "Diabetes care"), custom.variablesFor(health.users[0]))
+        // A pack that names none: the name as callee_name — what greetings and Call History read.
+        assertEquals(mapOf("callee_name" to "Riya Sharma"), TestPack.pack.variablesFor(TestPack.pack.users[0]))
+    }
+
+    @Test
     fun aFileThatIsNotAPackIsRefused() {
         assertFailsWith<UseCasePack.PackException> { UseCasePack.parse("""{"schemaVersion": 1}""") }
         assertFailsWith<UseCasePack.PackException> { UseCasePack.parse("not json") }

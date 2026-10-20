@@ -125,6 +125,8 @@ class FakeGraineClient : GraineClient {
     override var onCallEvent: ((CallEvent) -> Unit)? = null
 
     override fun identify(traits: Map<String, String>?, memory: Boolean?) { identified += traits to memory }
+    val variables = mutableListOf<Map<String, String?>>()
+    override fun setVariables(values: Map<String, String?>) { variables += values }
     override fun setMemory(enabled: Boolean) { memorySets += enabled }
     override suspend fun forgetMemory(): Int { forgetCount++; return forgetResult.getOrThrow() }
     override suspend fun memories(): List<GraineMemory> = memoriesResult.getOrThrow()
