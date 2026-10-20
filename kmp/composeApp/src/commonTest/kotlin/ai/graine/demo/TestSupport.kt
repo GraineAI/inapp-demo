@@ -126,7 +126,13 @@ class FakeGraineClient : GraineClient {
 
     override fun identify(traits: Map<String, String>?, memory: Boolean?) { identified += traits to memory }
     val variables = mutableListOf<Map<String, String?>>()
-    override fun setVariables(values: Map<String, String?>) { variables += values }
+    /** What the SDK would hold: every setVariables merged, null removing. */
+    val held = LinkedHashMap<String, String>()
+    override fun setVariables(values: Map<String, String?>) {
+        variables += values
+        values.forEach { (k, v) -> if (v == null) held.remove(k) else held[k] = v }
+    }
+    override fun currentVariables(): Map<String, String> = LinkedHashMap(held)
     override fun setMemory(enabled: Boolean) { memorySets += enabled }
     override suspend fun forgetMemory(): Int { forgetCount++; return forgetResult.getOrThrow() }
     override suspend fun memories(): List<GraineMemory> = memoriesResult.getOrThrow()

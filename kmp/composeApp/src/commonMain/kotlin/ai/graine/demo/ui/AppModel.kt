@@ -68,6 +68,48 @@ class AppModel(
         private set
     var profileOpen by mutableStateOf(false)
         private set
+
+    // ── the agent's variables (Profile) ─────────────────────────────────────
+
+    /** What the agent receives with the next chat, voice session or call — the SDK's own read-back. */
+    var sentVariables by mutableStateOf<Map<String, String>>(emptyMap())
+        private set
+
+    /** Variables added on Profile — any name, any value — beyond the pack's mapping. */
+    var addedVariables by mutableStateOf<Map<String, String>>(emptyMap())
+        private set
+
+    /**
+     * Add (or change) one prompt variable, exactly as an API call's `variables` carries it: the agent's
+     * prompt and welcome use it as {name}. Returns why it was refused, in plain words, or null when sent.
+     */
+    fun addVariable(name: String, value: String): String? {
+        val pack = pack ?: return "Sign in first."
+        val n = name.trim()
+        val v = value.trim()
+        if (!VARIABLE_NAME.matches(n)) return "A name is letters, digits and underscores, starting with a letter (up to 40)."
+        if (n.lowercase().startsWith("graine_")) return "Names starting with graine_ are set by Graine."
+        if (n == pack.identifierField) return "${pack.identifierLabel} identifies the user; it is never a variable."
+        if (v.isEmpty()) return "Give the variable a value."
+        if (v.length > VARIABLE_VALUE_MAX) return "A value is at most $VARIABLE_VALUE_MAX characters."
+        graine.setVariables(mapOf(n to v))
+        addedVariables = addedVariables + (n to v)
+        refreshVariables()
+        return null
+    }
+
+    /** Remove a variable added on Profile (null under its name, as the SDK takes a removal). */
+    fun removeVariable(name: String) {
+        if (name !in addedVariables) return
+        graine.setVariables(mapOf(name to null))
+        addedVariables = addedVariables - name
+        refreshVariables()
+    }
+
+    fun refreshVariables() {
+        sentVariables = runCatching { graine.currentVariables() }.getOrDefault(emptyMap())
+    }
+
     var callLogOpen by mutableStateOf(false)
         private set
     /** The agent whose chat is open full screen; null when no chat is open. */
@@ -154,6 +196,7 @@ class AppModel(
         val pack = pack ?: return
         graine.identify(pack.traitsFor(user), memory)
         graine.setVariables(pack.variablesFor(user))
+        refreshVariables()
         // The microphone (and notifications on Android 13+) now, so a call or a ring never waits on a prompt.
         scope.launch { runCatching { graine.requestCallPermissions() } }
         this.user = user
@@ -177,7 +220,11 @@ class AppModel(
         if (voiceAgent != null) graine.endVoice()
         val leaving = user
         val leavingPack = pack
-        if (leaving != null && leavingPack != null) graine.setVariables(leavingPack.variables.keys.associateWith { null })
+        if (leaving != null && leavingPack != null) {
+            graine.setVariables((leavingPack.variables.keys + addedVariables.keys).associateWith { null })
+        }
+        addedVariables = emptyMap()
+        sentVariables = emptyMap()
         graine.identify(null, null)
         user = null
         items = null
@@ -572,3 +619,7 @@ class AppModel(
         Result.failure(e)
     }
 }
+
+/** A prompt variable's name, as the agent's {placeholders} are written: a letter, then letters, digits or _. */
+private val VARIABLE_NAME = Regex("^[A-Za-z][A-Za-z0-9_]{0,39}$")
+private const val VARIABLE_VALUE_MAX = 200

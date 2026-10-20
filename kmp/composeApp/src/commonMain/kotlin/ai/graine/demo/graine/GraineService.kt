@@ -54,6 +54,9 @@ interface GraineClient {
      */
     fun setVariables(values: Map<String, String?>)
 
+    /** Every variable the main agent will receive with the next conversation, as the SDK holds them (currentVariables). */
+    fun currentVariables(): Map<String, String>
+
     /** The SDK asks for what calls need — the microphone, and notifications on Android 13+ — at sign-in. */
     suspend fun requestCallPermissions() {}
     fun setMemory(enabled: Boolean)
@@ -158,6 +161,7 @@ class GraineService private constructor() : GraineClient {
     // null signs out everywhere: the device stops being this user's, and later conversations are anonymous.
     override fun identify(traits: Map<String, String>?, memory: Boolean?) = Graine.identify(traits, memory)
     override fun setVariables(values: Map<String, String?>) = agents.forEach { sdk(it)?.setVariables(values) }
+    override fun currentVariables(): Map<String, String> = Graine.currentVariables()
 
     override suspend fun requestCallPermissions() {
         Graine.calls.requestCallPermissions()

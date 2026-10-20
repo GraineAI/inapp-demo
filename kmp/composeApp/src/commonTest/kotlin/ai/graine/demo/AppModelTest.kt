@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -31,6 +32,30 @@ class AppModelTest {
 
     private fun TestScope.model(fake: FakeGraineClient = FakeGraineClient(), store: MemoryStore = MemoryStore()): Pair<AppModel, FakeGraineClient> =
         AppModel(fake, config, listOf(TestPack.pack, TestPack.other), store, scope = this as CoroutineScope, now = { TestClock.at(12) }) to fake
+
+    @Test
+    fun anyVariableCanBeAddedAndRemovedAndProfileShowsWhatTheAgentReceives() = runTest {
+        val (m, fake) = model()
+        m.signIn(TestPack.pack.users[0], memory = true)
+        advanceUntilIdle()
+        assertEquals(mapOf("callee_name" to "Riya Sharma"), m.sentVariables, "the SDK's own read-back")
+        assertNull(m.addVariable("name_user", "Riya"))
+        assertNull(m.addVariable(" age ", " 34 "), "trimmed, as typed")
+        assertEquals(mapOf("callee_name" to "Riya Sharma", "name_user" to "Riya", "age" to "34"), m.sentVariables)
+        assertEquals(mapOf<String, String?>("age" to "34"), fake.variables.last(), "one variable, as an API call carries it")
+        assertNotNull(m.addVariable("2fast", "x"), "a name starts with a letter")
+        assertNotNull(m.addVariable("graine_user_key", "x"), "graine_ names are Graine's")
+        assertNotNull(m.addVariable(TestPack.pack.identifierField, "x"), "the identifier is never a variable")
+        assertNotNull(m.addVariable("note", "  "), "a value is required")
+        assertNotNull(m.addVariable("note", "x".repeat(201)), "a value is at most 200 characters")
+        m.removeVariable("age")
+        assertEquals(mapOf<String, String?>("age" to null), fake.variables.last())
+        assertEquals(mapOf("callee_name" to "Riya Sharma", "name_user" to "Riya"), m.sentVariables)
+        m.signOut()
+        assertEquals(setOf("callee_name", "name_user"), fake.variables.last().keys, "the pack's and the added")
+        assertTrue(fake.variables.last().values.all { it == null })
+        assertTrue(m.sentVariables.isEmpty() && m.addedVariables.isEmpty())
+    }
 
     @Test
     fun signingInSetsTheAgentsVariablesThroughTheSdkAndSigningOutClearsThem() = runTest {

@@ -18,10 +18,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +58,8 @@ fun ProfileScreen(model: AppModel) {
             user.traits.keys.sorted().forEach { key -> Field(label(key), user.traits[key] ?: "") }
             Field("Use case", pack.appTitle)
         }
+
+        VariablesSection(model, agent)
 
         Section("Memory") {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -97,6 +101,63 @@ fun ProfileScreen(model: AppModel) {
             confirmButton = { TextButton(onClick = { confirmErase = false; model.forgetMemory() }) { Text("Erase") } },
             dismissButton = { TextButton(onClick = { confirmErase = false }) { Text("Keep") } },
         )
+    }
+}
+
+/**
+ * The variables the agent receives — the SDK's own read-back (currentVariables) — and a form to add any
+ * variable, the way an API call carries `variables`. The agent's prompt and welcome use each as {name}.
+ */
+@Composable
+private fun VariablesSection(model: AppModel, agent: String) {
+    var name by remember { mutableStateOf("") }
+    var value by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) { model.refreshVariables() }
+
+    Section("Variables $agent receives") {
+        Text(
+            "Sent with every chat, voice conversation and call, like variables on an API call. " +
+                "In the agent's prompt or welcome message, write {name} to use one.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        model.sentVariables.toList().sortedBy { it.first }.forEach { (key, text) ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().testTag("variable_$key")) {
+                Text(
+                    "{" + key + "}",
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                if (key in model.addedVariables) {
+                    TextButton(onClick = { model.removeVariable(key) }) { Text("Remove") }
+                }
+            }
+        }
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it; error = null },
+            label = { Text("Name") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag("variable_name"),
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = { value = it; error = null },
+            label = { Text("Value") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag("variable_value"),
+        )
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        OutlinedButton(
+            onClick = {
+                error = model.addVariable(name, value)
+                if (error == null) { name = ""; value = "" }
+            },
+            modifier = Modifier.testTag("add_variable"),
+        ) { Text("Add variable") }
     }
 }
 
