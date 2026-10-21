@@ -63,15 +63,19 @@ object PastSessionsText {
     const val EMPTY = "No past sessions yet. A session appears here once it has closed."
     const val LOADING = "Loading past sessions…"
 
-    /** A failed load, in plain words: the two the SDK names for this list first, then the rest. */
+    /** Why the list did not load, in plain words: the two the SDK names for this list first, then the rest. */
     fun error(code: String?): String? = when (code) {
         null, "" -> null
         "identity_required" -> "Sign in to see past sessions."
         "device_limit" -> "Not available on this device."
         "rate_limited" -> "Too many requests. Try again in a few minutes."
-        "unavailable", "network" -> "Past sessions could not be loaded. Try again."
+        else -> "Past sessions could not be loaded. Try again."
+    }
+
+    /** Why a transcript did not open: an unknown session, or another user's, is `not_found`; the rest as for the list. */
+    fun transcriptError(code: String?): String? = when (code) {
         "not_found" -> "That session is not available."
-        else -> "Past sessions could not be loaded (${code.replace('_', ' ')})."
+        else -> error(code)
     }
 
     /** "Chat", "Voice", "Call · outbound". */

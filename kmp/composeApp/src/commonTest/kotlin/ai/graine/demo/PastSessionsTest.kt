@@ -53,6 +53,9 @@ class PastSessionsTest {
         assertEquals("Not available on this device.", PastSessionsText.error("device_limit"))
         assertEquals("Too many requests. Try again in a few minutes.", PastSessionsText.error("rate_limited"))
         assertEquals("Past sessions could not be loaded. Try again.", PastSessionsText.error("unavailable"))
+        assertEquals("Past sessions could not be loaded. Try again.", PastSessionsText.error("not_found"), "the list itself is never \"that session\"")
+        assertEquals("That session is not available.", PastSessionsText.transcriptError("not_found"))
+        assertEquals("Not available on this device.", PastSessionsText.transcriptError("device_limit"))
         assertNull(PastSessionsText.error(null))
     }
 

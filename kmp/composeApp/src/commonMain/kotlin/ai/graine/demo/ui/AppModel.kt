@@ -269,7 +269,7 @@ class AppModel(
             if (pastSessionsAgent != agent || transcriptLoading != id) return@launch
             transcriptLoading = null
             result.onSuccess { transcript = it }
-                .onFailure { transcriptError = PastSessionsText.error((it as? GraineException)?.code?.wire) ?: words(it) }
+                .onFailure { transcriptError = PastSessionsText.transcriptError((it as? GraineException)?.code?.wire) ?: words(it) }
         }
     }
 
