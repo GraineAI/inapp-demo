@@ -1,7 +1,6 @@
 package ai.graine.demo.platform
 
 import ai.graine.demo.domain.AppConfig
-import ai.graine.inapp.kmp.GraineCallsConfig
 import androidx.compose.runtime.Composable
 import platform.Foundation.NSBundle
 import platform.Foundation.NSUserDefaults
@@ -30,7 +29,8 @@ actual object Platform {
     /** The iOS SDK opens no call screen of its own (CallKit rings; the app shows its screen): the app's is drawn in place. */
     actual val ownCallScreenInPlace: Boolean = true
 
-    actual fun useOwnCallScreen(own: Boolean, config: GraineCallsConfig) = Unit
+    /** The SDK's `androidCallActivity` is Android's: iOS draws its own call screen over CallKit's. */
+    actual val ownCallActivity: String? = null
 
     private fun info(key: String): String? = (NSBundle.mainBundle.objectForInfoDictionaryKey(key) as? String)?.takeIf { it.isNotBlank() }
 }

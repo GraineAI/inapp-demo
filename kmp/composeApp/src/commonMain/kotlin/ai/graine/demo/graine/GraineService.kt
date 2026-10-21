@@ -121,7 +121,7 @@ interface GraineClient {
 
     /**
      * "Your own design": the app draws the call screen itself. iOS draws it in place; on Android the SDK opens a
-     * call screen of its own for every call, so the app names its own instead (Platform.useOwnCallScreen).
+     * call screen for every call, so the app names its own (GraineCallsConfig.androidCallActivity).
      */
     fun useOwnCallScreen(own: Boolean)
 
@@ -289,19 +289,23 @@ class GraineService private constructor() : GraineClient {
     private var callName: String = ""
     private var ownCallScreen = false
 
-    private fun callsConfig() = GraineCallsConfig(displayName = callName, ringTimeoutSeconds = 45, smallIcon = Platform.callIcon)
+    /** How calls ring and show: the pack's call name; with "Your own design", the app's own call screen (Android). */
+    private fun callsConfig() = GraineCallsConfig(
+        displayName = callName,
+        ringTimeoutSeconds = 45,
+        smallIcon = Platform.callIcon,
+        androidCallActivity = Platform.ownCallActivity.takeIf { ownCallScreen },
+    )
 
     override fun setCallName(name: String) {
         callName = name
         Graine.calls.configure(callsConfig())
-        // Configuring calls again names the SDK's call screen again: the app's own is named after it.
-        if (ownCallScreen) Platform.useOwnCallScreen(true, callsConfig())
     }
 
     override fun useOwnCallScreen(own: Boolean) {
         if (own == ownCallScreen) return
         ownCallScreen = own
-        Platform.useOwnCallScreen(own, callsConfig())
+        Graine.calls.configure(callsConfig())
     }
 
     override fun startNativeCall(reason: String, variables: Map<String, String>, agent: DemoAgent): String? {

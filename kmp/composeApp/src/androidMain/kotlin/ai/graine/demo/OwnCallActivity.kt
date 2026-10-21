@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
  * "YOUR OWN DESIGN"'S CALL SCREEN ON ANDROID. The Android SDK opens a call
  * screen for every call — placed, ringing (over the lock screen too) or missed
  * — and while the app draws its own, that screen is this activity
- * (Platform.useOwnCallScreen names it). It draws the shared OwnCallHost, the
+ * (GraineCallsConfig.androidCallActivity names it). It draws the shared OwnCallHost, the
  * same composable iOS draws in place, from Graine.calls.state only, and closes
  * itself once there is nothing left to show. Back leaves the screen, never the call.
  */

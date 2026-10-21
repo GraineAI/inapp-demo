@@ -5,10 +5,6 @@ import ai.graine.demo.DemoApplication
 import ai.graine.demo.OwnCallActivity
 import ai.graine.demo.R
 import ai.graine.demo.domain.AppConfig
-import ai.graine.inapp.GraineInApp
-import ai.graine.inapp.kmp.Graine
-import ai.graine.inapp.kmp.GraineCallsConfig
-import ai.graine.inapp.GraineCallsConfig as NativeCallsConfig
 import android.Manifest
 import android.app.Activity
 import android.app.NotificationManager
@@ -57,28 +53,10 @@ actual object Platform {
         Log.i("GraineDemo", message)
     }
 
-    /** The SDK opens a call screen for every call: the app's own is OwnCallActivity, named to it below. */
+    /** The SDK opens a call screen for every call: the app's own is OwnCallActivity, named by [ownCallActivity]. */
     actual val ownCallScreenInPlace: Boolean = false
 
-    actual fun useOwnCallScreen(own: Boolean, config: GraineCallsConfig) {
-        if (!own) {
-            // The multiplatform setting, as at launch: the SDK's own call screen again.
-            Graine.calls.configure(config)
-            return
-        }
-        // The multiplatform GraineCallsConfig has no way to name the app's call screen; the Android SDK's has
-        // (callActivity). The same settings the multiplatform SDK hands it, and the app's own activity.
-        val native = GraineInApp.find(Graine.DEFAULT_AGENT) ?: return
-        val app = DemoApplication.instance
-        native.calls.configure(
-            NativeCallsConfig(
-                displayName = config.displayName.ifBlank { app.applicationInfo.loadLabel(app.packageManager).toString() },
-                smallIcon = config.smallIcon,
-                callActivity = OwnCallActivity::class.java,
-                ringTimeoutMs = config.ringTimeoutSeconds.coerceIn(5, 300) * 1000L,
-            ),
-        )
-    }
+    actual val ownCallActivity: String? = OwnCallActivity::class.java.name
 }
 
 @Composable

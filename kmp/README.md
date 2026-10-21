@@ -137,11 +137,11 @@ agents, actions, memory and screen context. Each screen is one file in `composeA
 | Components — `OwnComponentCard.kt` | `component` (`kind`, `data`, `fallbackText`) and `componentPending`, in the chat and in Talk: chips, rows (one, or several at once), time slots, forms, else the component's own sentence | `chat.answerWidget(id, data, summary)`, with the answers the SDK's own views send, and `chat.dismissWidget(id)` |
 | Public state — `PublicStateScreen.kt` | Every value above, live, by surface — who, chat, voice, calls and the connection report, booking, components, events — for walking a team through what their own screens can read | Shows no message, caption or memory text and no variable values: roles, counts, lengths and names |
 
-The call screen on Android is a screen of its own: the Android SDK opens one for every call, ring and missed call,
-and the multiplatform `GraineCallsConfig` cannot name another, so the Android side names `OwnCallActivity` through
-the Android SDK's `GraineCallsConfig.callActivity` (`Platform.useOwnCallScreen`). It draws the same shared
-composable iOS draws in place, over the lock screen too. Switching back to Graine's screens gives the SDK its screen
-back. On Android the voice conversation reports no levels and no transport: Talk shows them at 0 and "not reported".
+The call screen on Android is a screen of its own: the SDK opens one for every call, ring and missed call, and with
+**Your own design** it opens the app's — `GraineCallsConfig(androidCallActivity = "ai.graine.demo.OwnCallActivity")`,
+an activity declared in the app's manifest that draws the same shared composable iOS draws in place, over the lock
+screen too, and forwards its permission answers to `Graine.onRequestPermissionsResult`. Switching back to Graine's
+screens configures calls without it, and the SDK's own screen is back. On Android the voice conversation reports no levels and no transport: Talk shows them at 0 and "not reported".
 
 ## Calls on a real device
 

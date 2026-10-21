@@ -276,7 +276,7 @@ class OwnDesignTest {
 
     @Test
     fun talkIsLiveOnlyWhileAConversationIsConnectedOrOnItsWay() {
-        // iOS words an engine that has not loaded as "connecting" before anything starts: not live, shown as Ready.
+        // A "connecting" word with nothing connected or connecting is not a conversation: not live, shown as Ready.
         val unloaded = GraineVoiceInfo(status = GraineVoiceStatus.CONNECTING)
         assertFalse(OwnText.voiceLive(unloaded))
         assertEquals(GraineVoiceStatus.IDLE, OwnText.voiceWord(unloaded))

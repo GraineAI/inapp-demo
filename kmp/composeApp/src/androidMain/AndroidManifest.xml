@@ -27,7 +27,7 @@
         </activity>
 
         <!-- "Your own design": the app's own call screen, which the SDK opens for every call, ring and missed
-             call while the app draws its own (Platform.useOwnCallScreen). Its own task, as the SDK's screen has,
+             call while the app draws its own (GraineCallsConfig.androidCallActivity). Its own task, as the SDK's screen has,
              so closing it returns to wherever the user was. -->
         <activity
             android:name=".OwnCallActivity"

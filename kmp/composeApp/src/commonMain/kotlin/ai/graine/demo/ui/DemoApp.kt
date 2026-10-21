@@ -109,7 +109,7 @@ fun DemoApp(model: AppModel) {
 
                 if (model.ownDesign) {
                     // Your own design: the app's call screen, in place (iOS); Android's is its own activity, which
-                    // the SDK opens for every call, ring and missed call (Platform.useOwnCallScreen).
+                    // the SDK opens for every call, ring and missed call (GraineCallsConfig.androidCallActivity).
                     if (Platform.ownCallScreenInPlace) OwnCallHost(model, Modifier.fillMaxSize())
                 } else {
                     // A call — ringing, live, or a missed one to call back — on the SDK's call screen.

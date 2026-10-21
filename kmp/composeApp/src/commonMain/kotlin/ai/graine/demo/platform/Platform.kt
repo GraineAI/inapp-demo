@@ -1,7 +1,6 @@
 package ai.graine.demo.platform
 
 import ai.graine.demo.domain.AppConfig
-import ai.graine.inapp.kmp.GraineCallsConfig
 import androidx.compose.runtime.Composable
 
 /** Where the app keeps its few on-device choices (the pack, the call log): SharedPreferences on Android, UserDefaults on iOS. */
@@ -26,16 +25,15 @@ expect object Platform {
     /**
      * Where "Your own design" draws the call screen: in place, over the app (iOS — the SDK opens no screen of its
      * own), or false where it is a screen the SDK opens for every call, ring and missed call (Android: the app's
-     * OwnCallActivity, which draws the same shared composable over the lock screen too).
+     * OwnCallActivity, [ownCallActivity], which draws the same shared composable over the lock screen too).
      */
     val ownCallScreenInPlace: Boolean
 
     /**
-     * The app's own call screen in place of the SDK's ([own]), or the SDK's back. Android: the SDK opens its call
-     * screen for every call, and the multiplatform GraineCallsConfig cannot name another, so the Android SDK's own
-     * setting (GraineCallsConfig.callActivity) names OwnCallActivity, with the same [config]. iOS: nothing to do.
+     * The app's own call screen on Android, by its full class name, for `GraineCallsConfig.androidCallActivity`: the
+     * SDK opens it instead of its own for every call, ring and missed call while the app draws its own. Null on iOS.
      */
-    fun useOwnCallScreen(own: Boolean, config: GraineCallsConfig)
+    val ownCallActivity: String?
 }
 
 /** The system back gesture (Android). iOS has none: every screen here has its own Back or Close. */

@@ -54,9 +54,8 @@ object OwnText {
     }
 
     /**
-     * A voice conversation is under way, or on its way: End and Mute apply, Start does not — what the conversation
-     * does (`connected`, `connecting`), not its word: before anything starts, iOS words a voice engine that is not
-     * loaded yet as `connecting`.
+     * A voice conversation is under way, or on its way: End and Mute apply, Start does not — decided by what the
+     * conversation does (`connected`, `connecting`), so Start is there whenever nothing is under way.
      */
     fun voiceLive(info: GraineVoiceInfo): Boolean = info.connected || info.connecting
 
