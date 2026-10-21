@@ -12,7 +12,10 @@ import ai.graine.demo.domain.DemoField
 import ai.graine.demo.domain.DemoFormat
 import ai.graine.demo.domain.DemoScreen
 import ai.graine.demo.domain.DemoScreenContext
+import ai.graine.demo.domain.EndedCall
 import ai.graine.demo.domain.ItemsState
+import ai.graine.demo.domain.OwnBooking
+import ai.graine.demo.domain.OwnText
 import ai.graine.demo.domain.RowMatch
 import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.domain.UseCasePacks
@@ -20,6 +23,7 @@ import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
 import ai.graine.demo.platform.KeyValueStore
 import ai.graine.inapp.kmp.GraineCallStatus
+import ai.graine.inapp.kmp.GraineException
 import ai.graine.inapp.kmp.GraineMemory
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +35,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
 /** The tabs along the bottom. Profile opens from Home. */
 enum class DemoTab { HOME, ITEMS, CALLS, HELP, MEMORY }
@@ -50,6 +56,8 @@ class AppModel(
     private val store: KeyValueStore,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    /** The user's time zone: the days and times the app's own booking screen offers. */
+    private val zone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
     /** Row statuses for the app session, per pack and user: signing out and back in keeps them; a restart does not. */
     private val sessionStatuses = mutableMapOf<String, ItemsState>()
@@ -151,13 +159,62 @@ class AppModel(
     /** A short message for the user: what just happened, or why it did not. */
     var notice by mutableStateOf<String?>(null)
 
+    // ── "Your own design" ───────────────────────────────────────────────────
+
+    /**
+     * "Your own design": every surface — the chat, voice, the call screen, booking and the agent's components —
+     * drawn by this app from the SDK's public state, with no SDK screen at all. Off (the default): the SDK's own
+     * screens, in the brand's Garage design, exactly as before. Kept on the device.
+     */
+    var ownDesign by mutableStateOf(store.getString(OWN_DESIGN_KEY) == "on")
+        private set
+    /** The app's own booking screen, while it is open: its agent, the day and time picked, and how booking went. */
+    var ownBooking by mutableStateOf<OwnBooking?>(null)
+        private set
+    /** The Public state screen is open: every public state value, live. */
+    var publicStateOpen by mutableStateOf(false)
+        private set
+    /** The last call that ended while the app draws its own call screen, with its final connection report, until closed. */
+    var endedCall by mutableStateOf<EndedCall?>(null)
+        private set
+
     init {
         graine.onSessionReady = { sessionArrived() }
         graine.onCallEvent = { record(it) }
         registerActions()
         refreshBooking()
         agentMemoryEnabled = graine.agentMemoryEnabled
+        if (ownDesign) graine.useOwnCallScreen(true)
         describeScreen()
+    }
+
+    /** The Home switch: "Graine's screens" or "Your own design". What is open closes; the next opens in the design chosen. */
+    fun chooseOwnDesign(on: Boolean) {
+        if (on == ownDesign) return
+        if (voiceAgent != null) graine.endVoice()
+        voiceAgent = null
+        chatAgent = null
+        ownBooking = null
+        publicStateOpen = false
+        endedCall = null
+        ownDesign = on
+        store.putString(OWN_DESIGN_KEY, if (on) "on" else null)
+        graine.useOwnCallScreen(on)
+        describeScreen()
+    }
+
+    fun openPublicState() {
+        if (user == null) return
+        publicStateOpen = true
+    }
+
+    fun closePublicState() {
+        publicStateOpen = false
+    }
+
+    /** The own call screen's Close, once a call is over. */
+    fun closeEndedCall() {
+        endedCall = null
     }
 
     /** An agent's name, role and starters, from the pack. */
@@ -233,6 +290,9 @@ class AppModel(
         memories = emptyList()
         chatAgent = null
         voiceAgent = null
+        ownBooking = null
+        publicStateOpen = false
+        endedCall = null
         profileOpen = false
         callLogOpen = false
         tab = DemoTab.HOME
@@ -322,6 +382,8 @@ class AppModel(
     fun select(next: DemoTab) {
         tab = next
         chatAgent = null
+        ownBooking = null
+        publicStateOpen = false
         profileOpen = false
         callLogOpen = false
         describeScreen()
@@ -365,15 +427,35 @@ class AppModel(
         openChat(agent)
     }
 
-    /** "Talk": that agent's voice bar, and the call in it. */
+    /**
+     * "Talk": that agent's voice bar, and the call in it. In your own design the app's own voice panel opens ready,
+     * and the conversation — the microphone with it — starts only when its Start is tapped ([startTalk]).
+     */
     fun talk(agent: DemoAgent = DemoAgent.MAIN) {
         if (!isAvailable(agent)) return
         if (voiceAgent != null && voiceAgent != agent) graine.endVoice()
         voiceAgent = agent
-        graine.startVoice(agent)
+        if (!ownDesign) graine.startVoice(agent)
     }
 
     fun voiceBarClosed() {
+        voiceAgent = null
+    }
+
+    /** The own voice panel's Start. */
+    fun startTalk() {
+        val agent = voiceAgent ?: return
+        graine.startVoice(agent)
+    }
+
+    /** The own voice panel's End: the conversation ends, the panel stays to start another. */
+    fun endTalk() {
+        if (voiceAgent != null) graine.endVoice()
+    }
+
+    /** The own voice panel's close: the conversation ends and the panel goes. */
+    fun closeTalk() {
+        if (voiceAgent != null) graine.endVoice()
         voiceAgent = null
     }
 
@@ -444,6 +526,11 @@ class AppModel(
     fun book(agent: DemoAgent = DemoAgent.MAIN) {
         val pack = pack ?: return
         if (user == null || bookingOpen) return
+        // Your own design: the app's own booking screen instead of the SDK's sheet.
+        if (ownDesign) {
+            openOwnBooking(agent)
+            return
+        }
         // Always the SDK's own sheet: while booking is off for this phone, the sheet itself says why.
         bookingOpen = true
         scope.launch {
@@ -463,15 +550,105 @@ class AppModel(
             attempt { graine.cancelScheduledCall(call.call.id, call.agent) }.onSuccess { status ->
                 notice = if (status == GraineCallStatus.Cancelled) "Call cancelled." else "The call is ${CallText.label(status).lowercase()}."
                 refreshCalls()
+                ownBooking?.let { refreshOwnBooking() }
             }.onFailure { notice = words(it) }
         }
     }
+
+    // ── booking drawn by the app ("Your own design") ────────────────────────
+
+    /** The app's own booking screen for [agent]: the SDK's rule and its times, the pack's first reason filled in. */
+    fun openOwnBooking(agent: DemoAgent = DemoAgent.MAIN) {
+        if (user == null || !isAvailable(agent)) return
+        ownBooking = readBooking(agent, day = null, reason = pack?.reasons(agent)?.firstOrNull().orEmpty(), slot = null)
+        refreshCalls()
+        describeScreen()
+    }
+
+    fun closeOwnBooking() {
+        ownBooking = null
+        describeScreen()
+    }
+
+    /** Read the SDK again — whether booking is on and why not, the rules, each day's times — keeping the choices that still fit. */
+    fun refreshOwnBooking() {
+        val b = ownBooking ?: return
+        ownBooking = readBooking(b.agent, b.day, b.reason, b.slot).copy(booked = b.booked)
+    }
+
+    fun pickBookingDay(day: LocalDate) {
+        val b = ownBooking ?: return
+        if (b.busy) return
+        ownBooking = b.copy(day = day, slots = graine.bookingSlots(day, b.agent), slot = null, refusal = null, booked = null)
+    }
+
+    fun pickBookingSlot(at: Instant) {
+        val b = ownBooking ?: return
+        if (b.busy || at !in b.slots) return
+        ownBooking = b.copy(slot = at, refusal = null, booked = null)
+    }
+
+    fun setBookingReason(text: String) {
+        val b = ownBooking ?: return
+        ownBooking = b.copy(reason = text.take(OwnBooking.REASON_MAX))
+    }
+
+    /**
+     * Book the time picked, with what it is about — the SDK's scheduleCall, which checks the agent's rules first and
+     * then Graine's (calling hours, calls already booked). A refusal shows the SDK's own sentence; a booked call joins
+     * the list at once.
+     */
+    fun bookOwn() {
+        val b = ownBooking ?: return
+        val at = b.slot ?: return
+        if (b.busy || !b.available) return
+        ownBooking = b.copy(busy = true, refusal = null, booked = null)
+        scope.launch {
+            val result = attempt { graine.scheduleCall(at, b.reason.trim().ifEmpty { null }, b.agent) }
+            result.onSuccess { call ->
+                calls = calls.filter { !(it.agent == b.agent && it.call.id == call.id) } + AgentCall(b.agent, call)
+                if (ownBooking?.agent == b.agent) ownBooking = readBooking(b.agent, b.day, b.reason, slot = null).copy(booked = call)
+                describeScreen()
+                refreshCalls()
+            }.onFailure { e ->
+                ownBooking?.takeIf { it.agent == b.agent }?.let { ownBooking = it.copy(busy = false, refusal = refusal(e)) }
+            }
+        }
+    }
+
+    private fun readBooking(agent: DemoAgent, day: LocalDate?, reason: String, slot: Instant?): OwnBooking {
+        val rules = graine.schedulingRules(agent)
+        val days = OwnText.bookingDays(rules, Instant.fromEpochMilliseconds(now()), zone).map { it to graine.bookingSlots(it, agent) }
+        val chosen = day?.takeIf { d -> days.any { it.first == d && it.second.isNotEmpty() } }
+            ?: days.firstOrNull { it.second.isNotEmpty() }?.first
+        val slots = days.firstOrNull { it.first == chosen }?.second.orEmpty()
+        return OwnBooking(
+            agent = agent,
+            unavailableReason = graine.bookingUnavailableReason(agent),
+            rules = rules,
+            days = days.map { OwnBooking.Day(it.first, it.second.size) },
+            day = chosen,
+            slots = slots,
+            slot = slot?.takeIf { it in slots },
+            reason = reason,
+        )
+    }
+
+    /** A booking refused: the SDK's sentence (its booking sheet's words, or the server's), else the app's words. */
+    private fun refusal(e: Throwable): String = (e as? GraineException)?.message?.trim()?.takeIf { it.isNotEmpty() } ?: words(e)
 
     // ── call activity ───────────────────────────────────────────────────────
 
     fun record(event: CallEvent) {
         callLog = callLog.record(CallLogEntry(callId = event.callId, event = event.event, detail = event.detail, at = now(), agent = event.agent?.key))
         store.putString(CallLog.STORAGE_KEY, callLog.toJson())
+        // Your own design's call screen: a call that is over stays on it with its final connection report, until closed.
+        when (event.event) {
+            "placed", "incoming" -> endedCall = null
+            "ended", "failed" -> if (ownDesign) {
+                endedCall = EndedCall(event.callId, event.agent, event.event, event.detail, event.durationSeconds, event.connection, event.endCause)
+            }
+        }
         // A call that ended may have been a scheduled one: its status changed.
         if (event.event in setOf("answered", "declined", "missed", "ended")) refreshCalls()
     }
@@ -567,6 +744,7 @@ class AppModel(
             user == null -> DemoScreen.SIGN_IN
             chatAgent == DemoAgent.MAIN -> DemoScreen.CHAT
             chatAgent == DemoAgent.HELP -> DemoScreen.HELP
+            ownBooking != null -> DemoScreen.CALLS
             else -> when (tab) {
                 DemoTab.HOME -> if (profileOpen) DemoScreen.PROFILE else DemoScreen.HOME
                 DemoTab.ITEMS -> DemoScreen.ITEMS
@@ -602,6 +780,7 @@ class AppModel(
 
     private fun sessionArrived() {
         refreshBooking()
+        ownBooking?.let { refreshOwnBooking() }
         agentMemoryEnabled = graine.agentMemoryEnabled
         describeScreen()
     }
@@ -619,6 +798,9 @@ class AppModel(
         Result.failure(e)
     }
 }
+
+/** Where the Home switch is kept on the device. */
+private const val OWN_DESIGN_KEY = "demo.ownDesign"
 
 /** A prompt variable's name, as the agent's {placeholders} are written: a letter, then letters, digits or _. */
 private val VARIABLE_NAME = Regex("^[A-Za-z][A-Za-z0-9_]{0,39}$")

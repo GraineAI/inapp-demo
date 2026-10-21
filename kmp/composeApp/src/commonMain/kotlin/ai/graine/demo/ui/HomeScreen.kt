@@ -6,6 +6,7 @@ import ai.graine.demo.domain.DemoFormat
 import ai.graine.demo.domain.DemoScreen
 import ai.graine.demo.domain.Tone
 import ai.graine.demo.platform.CallReadiness
+import ai.graine.demo.ui.own.DesignSwitch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,6 +52,8 @@ fun HomeScreen(model: AppModel) {
                 }
             }
         }
+
+        DesignSwitch(model)
 
         CallReadiness()
 

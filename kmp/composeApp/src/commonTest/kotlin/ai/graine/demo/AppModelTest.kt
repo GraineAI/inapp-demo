@@ -4,10 +4,13 @@ import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreen
+import ai.graine.demo.domain.EndedCall
 import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.ui.AppModel
 import ai.graine.demo.ui.DemoTab
+import ai.graine.inapp.kmp.GraineCallConnection
 import ai.graine.inapp.kmp.GraineCallSource
+import ai.graine.inapp.kmp.GraineCallTransport
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineErrorCode
 import ai.graine.inapp.kmp.GraineException
@@ -18,6 +21,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,7 +35,7 @@ class AppModelTest {
     private val config = AppConfig.of("https://www.graine.ai", "pk_test_demo")
 
     private fun TestScope.model(fake: FakeGraineClient = FakeGraineClient(), store: MemoryStore = MemoryStore()): Pair<AppModel, FakeGraineClient> =
-        AppModel(fake, config, listOf(TestPack.pack, TestPack.other), store, scope = this as CoroutineScope, now = { TestClock.at(12) }) to fake
+        AppModel(fake, config, listOf(TestPack.pack, TestPack.other), store, scope = this as CoroutineScope, now = { TestClock.at(12) }, zone = TestClock.zone) to fake
 
     @Test
     fun anyVariableCanBeAddedAndRemovedAndProfileShowsWhatTheAgentReceives() = runTest {
@@ -229,4 +233,159 @@ class AppModelTest {
         m.open(DemoScreen.HOME)
         assertNull(m.user)
     }
+
+    // ── "Your own design" ───────────────────────────────────────────────────
+
+    @Test
+    fun yourOwnDesignIsKeptOnTheDeviceAndNamesTheAppsCallScreen() = runTest {
+        val store = MemoryStore()
+        val (m, fake) = model(store = store)
+        assertFalse(m.ownDesign, "Graine's screens by default")
+        assertTrue(fake.ownCallScreens.isEmpty(), "Graine's screens change nothing about calls")
+        m.signIn(TestPack.pack.users[0], memory = true)
+        m.chooseOwnDesign(true)
+        assertTrue(m.ownDesign)
+        assertEquals(listOf(true), fake.ownCallScreens)
+        // The next launch keeps it, and names the app's call screen before any call can ring.
+        val (again, fake2) = model(store = store)
+        assertTrue(again.ownDesign)
+        assertEquals(listOf(true), fake2.ownCallScreens)
+        again.chooseOwnDesign(false)
+        assertEquals(listOf(true, false), fake2.ownCallScreens)
+        assertFalse(model(store = store).first.ownDesign)
+    }
+
+    @Test
+    fun switchingDesignClosesWhatIsOpen() = runTest {
+        val (m, fake) = model()
+        m.signIn(TestPack.pack.users[0], memory = true)
+        m.openChat(DemoAgent.MAIN)
+        m.chooseOwnDesign(true)
+        assertNull(m.chatAgent, "the next chat opens in the design chosen")
+        m.talk()
+        m.openPublicState()
+        assertTrue(m.publicStateOpen)
+        m.chooseOwnDesign(false)
+        assertNull(m.voiceAgent)
+        assertEquals(1, fake.voiceEnds)
+        assertFalse(m.publicStateOpen)
+    }
+
+    @Test
+    fun inYourOwnDesignTalkOpensReadyAndStartsOnlyOnItsStart() = runTest {
+        val (m, fake) = model()
+        m.signIn(TestPack.pack.users[0], memory = true)
+        m.chooseOwnDesign(true)
+        m.talk()
+        assertEquals(DemoAgent.MAIN, m.voiceAgent)
+        assertTrue(fake.voiceStarts.isEmpty(), "nothing starts — no microphone — until Start is tapped")
+        m.startTalk()
+        assertEquals(listOf(DemoAgent.MAIN), fake.voiceStarts)
+        m.endTalk()
+        assertEquals(1, fake.voiceEnds)
+        assertEquals(DemoAgent.MAIN, m.voiceAgent, "End leaves the panel, to start again")
+        m.closeTalk()
+        assertEquals(2, fake.voiceEnds)
+        assertNull(m.voiceAgent)
+    }
+
+    @Test
+    fun withGraineScreensTalkStillStartsAtOnceAndBookingOpensTheSdksSheet() = runTest {
+        val (m, fake) = model()
+        m.signIn(TestPack.pack.users[0], memory = true)
+        m.talk()
+        assertEquals(listOf(DemoAgent.MAIN), fake.voiceStarts)
+        m.book()
+        advanceUntilIdle()
+        assertEquals(1, fake.bookings.size)
+        assertNull(m.ownBooking)
+    }
+
+    private fun FakeGraineClient.withSlots(): FakeGraineClient = apply {
+        slots = { day ->
+            when (day) {
+                LocalDate(2026, 10, 14) -> listOf(TestClock.instant(18), TestClock.instant(18, 5))
+                LocalDate(2026, 10, 15) -> listOf(TestClock.instant(9, day = 15))
+                else -> emptyList()
+            }
+        }
+    }
+
+    @Test
+    fun inYourOwnDesignBookingIsTheAppsOwnScreenAndBooksThePickedTime() = runTest {
+        val (m, fake) = model(FakeGraineClient().withSlots())
+        m.signIn(TestPack.pack.users[0], memory = true)
+        m.chooseOwnDesign(true)
+        m.book()
+        assertTrue(fake.bookings.isEmpty(), "the SDK's sheet is not opened")
+        val b = assertNotNull(m.ownBooking)
+        assertTrue(b.available)
+        assertEquals(listOf(2, 1, 0), b.days.map { it.slotCount }, "today through maxDaysAhead, with the SDK's times")
+        assertEquals(LocalDate(2026, 10, 14), b.day, "the first day with times")
+        assertEquals("Weekly check-in", b.reason, "the pack's first reason")
+        assertFalse(b.canBook, "a time first")
+        m.pickBookingSlot(TestClock.instant(7))
+        assertNull(m.ownBooking?.slot, "only a time the SDK offers")
+        m.pickBookingSlot(TestClock.instant(18, 5))
+        assertTrue(m.ownBooking!!.canBook)
+        // Graine lists it once booked.
+        fake.listResults[DemoAgent.MAIN] = Result.success(listOf(GraineScheduledCall("s1", TestClock.instant(18, 5), GraineCallStatus.Scheduled)))
+        m.bookOwn()
+        advanceUntilIdle()
+        assertEquals(Triple(TestClock.instant(18, 5), "Weekly check-in", DemoAgent.MAIN), fake.scheduled.single())
+        assertEquals(TestClock.instant(18, 5), m.ownBooking?.booked?.at)
+        assertNull(m.ownBooking?.slot)
+        assertTrue(m.calls.any { it.call.at == TestClock.instant(18, 5) }, "the booked call is in the list")
+        m.pickBookingDay(LocalDate(2026, 10, 15))
+        assertEquals(listOf(TestClock.instant(9, day = 15)), m.ownBooking?.slots)
+        m.closeOwnBooking()
+        assertNull(m.ownBooking)
+    }
+
+    @Test
+    fun ownBookingSaysWhyItIsOffAndShowsTheSdksRefusal() = runTest {
+        val fake = FakeGraineClient().withSlots().apply { unavailable[DemoAgent.MAIN] = "rings_not_set_up" }
+        val (m, _) = model(fake)
+        m.signIn(TestPack.pack.users[0], memory = true)
+        m.chooseOwnDesign(true)
+        m.book()
+        assertEquals("rings_not_set_up", m.ownBooking?.unavailableReason)
+        m.pickBookingSlot(TestClock.instant(18))
+        assertFalse(m.ownBooking!!.canBook, "nothing is booked while booking is off")
+        m.bookOwn()
+        assertTrue(fake.scheduled.isEmpty())
+
+        fake.unavailable.remove(DemoAgent.MAIN)
+        m.refreshOwnBooking()
+        assertTrue(m.ownBooking!!.available)
+        assertEquals(TestClock.instant(18), m.ownBooking?.slot, "the time picked is kept")
+        val sentence = "That time is outside the hours we can call — pick another"
+        fake.scheduleResult = Result.failure(GraineException(GraineErrorCode.OutsideWindow, sentence))
+        m.setBookingReason("x".repeat(200))
+        assertEquals(120, m.ownBooking?.reason?.length, "Graine keeps at most 120 characters")
+        m.bookOwn()
+        advanceUntilIdle()
+        assertEquals(sentence, m.ownBooking?.refusal, "the SDK's own sentence")
+        assertFalse(m.ownBooking!!.busy)
+    }
+
+    @Test
+    fun theAppsCallScreenKeepsAnEndedCallWithItsFinalConnectionUntilClosed() = runTest {
+        val (m, fake) = model()
+        m.signIn(TestPack.pack.users[0], memory = true)
+        val connection = GraineCallConnection(transport = GraineCallTransport.WEBRTC, setupMs = 300, tapToVoiceMs = 1500)
+        fake.onCallEvent!!(CallEvent("call_0", "ended", "remote", DemoAgent.MAIN, 12, connection))
+        assertNull(m.endedCall, "Graine's screens draw their own end")
+
+        m.chooseOwnDesign(true)
+        fake.onCallEvent!!(CallEvent("call_1", "ended", "remote", DemoAgent.MAIN, 42, connection, "remote_bye"))
+        assertEquals(EndedCall("call_1", DemoAgent.MAIN, "ended", "remote", 42, connection, "remote_bye"), m.endedCall)
+        m.callAgent()
+        assertNull(m.endedCall, "a new call clears it")
+        fake.onCallEvent!!(CallEvent("call_2", "failed", "no_answer", DemoAgent.MAIN))
+        assertEquals("failed", m.endedCall?.outcome)
+        m.closeEndedCall()
+        assertNull(m.endedCall)
+    }
 }
+

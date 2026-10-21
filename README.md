@@ -59,6 +59,7 @@ All people, cards and orders are fictional.
 | Hosted ringing — Graine rings the booked call | ✓ ³ | ✓ ³ | ✓ ³ | ✓ ³ | rings the user's phone app | ✓ ³ |
 | Call outcomes logged in the app, with the agent each call was with | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | Two agents in one app: a Help screen on a second agent (chat, voice, calls, booking), one sign-in for both, both agents' calls listed by name | ✓ ⁵ | ✓ ⁵ | ✓ | ✓ | ✓ | ✓ |
+| Your own design: the chat, voice, the call screen (with its connection report), booking and components drawn by the app from the SDK's public state, and a live Public state screen | — | — | — | — | — | ✓ ⁶ |
 
 1. Flutter starts the chosen use case's two agents at launch: choosing a use case whose agents have other
    publishable keys takes effect the next time the app is opened (the app says so).
@@ -71,6 +72,8 @@ All people, cards and orders are fictional.
 4. Kotlin Multiplatform: one Compose Multiplatform app in [`kmp/`](kmp/README.md) — Android 8.0+ and iOS 16+,
    every screen and SDK call in shared code, the SDK's own chat, call screen and voice bar as composables.
 5. The help agent's key is optional: without it the Help screen says how to add one.
+6. Home's switch, **Graine's screens / Your own design** ([`kmp/README.md`](kmp/README.md#your-own-design)): the
+   same features with no SDK screen at all, for apps that draw every screen in their own design system.
 
 ## What the SDK does, and what your app does
 
@@ -180,7 +183,7 @@ release.
 |---|---|---|
 | iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.13.1 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
 | Android | `ai.graine:inapp-android:0.13.1` and `ai.graine:inapp-android-rtc:0.13.1` | Maven Central |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.13.1 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` 0.13.1, as above | Maven Central, Swift Package Manager |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.0 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.0 | Maven Central, Swift Package Manager |
 | Flutter | `graine_inapp: ^0.13.1` | pub.dev |
 | React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — |

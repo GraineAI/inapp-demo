@@ -9,6 +9,7 @@ import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.GraineCallTransport
 import ai.graine.inapp.kmp.GraineActionResult
 import ai.graine.inapp.kmp.GraineAgent
+import ai.graine.inapp.kmp.GraineCallConnection
 import ai.graine.inapp.kmp.GraineCallOutcome
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineCallsConfig
@@ -19,15 +20,31 @@ import ai.graine.inapp.kmp.GraineField
 import ai.graine.inapp.kmp.GraineFieldStatus
 import ai.graine.inapp.kmp.GraineMemory
 import ai.graine.inapp.kmp.GraineScheduledCall
+import ai.graine.inapp.kmp.GraineSchedulingRules
 import ai.graine.inapp.kmp.GraineScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 
-/** What the SDK reported about a native call: placed, incoming, answered, declined, missed, ended or failed. [agent]: whose call, when known. */
-data class CallEvent(val callId: String, val event: String, val detail: String?, val agent: DemoAgent? = null)
+/**
+ * What the SDK reported about a native call: placed, incoming, answered, declined, missed, ended or failed. [agent]:
+ * whose call, when known. An ended or failed call's outcome also carries how long it was connected and how it
+ * connected ([connection]: timings and network figures only), which the app's own call screen shows once it is over.
+ */
+data class CallEvent(
+    val callId: String,
+    val event: String,
+    val detail: String?,
+    val agent: DemoAgent? = null,
+    val durationSeconds: Int? = null,
+    val connection: GraineCallConnection? = null,
+    /** Who or what ended it: local_end, remote_bye, media_drop, audio_watch, failed, provider_reset. */
+    val endCause: String? = null,
+)
 
 /**
  * EVERYTHING THE APP ASKS OF THE GRAINE SDK. The scheduling and memory types
@@ -78,6 +95,16 @@ interface GraineClient {
     fun bookingAvailable(agent: DemoAgent): Boolean
     /** The SDK's booking sheet, in the agent's design, with [reason] filled in. The booked call, or null when closed without booking. */
     suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall?
+
+    // Booking drawn by the app itself ("Your own design"): the SDK's rule, rules and times, and its scheduleCall
+    /** Why [agent] cannot be booked now, as the SDK's word (`not_loaded`, `rings_not_set_up`, …); null when it can. */
+    fun bookingUnavailableReason(agent: DemoAgent): String?
+    /** What [agent] allows when a user books: lead time, days ahead, calls pending. */
+    fun schedulingRules(agent: DemoAgent): GraineSchedulingRules
+    /** The times the SDK's own sheet would offer on [day] (every 5 minutes inside the rules), for a picker of the app's own. */
+    fun bookingSlots(day: LocalDate, agent: DemoAgent): List<Instant>
+    /** Book [at] with [agent]; the SDK checks the agent's rules first, then Graine. Every refusal is a GraineException. */
+    suspend fun scheduleCall(at: Instant, reason: String?, agent: DemoAgent): GraineScheduledCall
     suspend fun scheduledCalls(agent: DemoAgent): List<GraineScheduledCall>
     /** The call's status afterwards (cancelled). */
     suspend fun cancelScheduledCall(id: String, agent: DemoAgent): GraineCallStatus
@@ -91,6 +118,12 @@ interface GraineClient {
     fun setCallName(name: String)
     /** The call's id, or null when another call is live. */
     fun startNativeCall(reason: String, variables: Map<String, String>, agent: DemoAgent): String?
+
+    /**
+     * "Your own design": the app draws the call screen itself. iOS draws it in place; on Android the SDK opens a
+     * call screen of its own for every call, so the app names its own instead (Platform.useOwnCallScreen).
+     */
+    fun useOwnCallScreen(own: Boolean)
 
     // What the SDK reports
     var onSessionReady: (() -> Unit)?
@@ -145,7 +178,9 @@ class GraineService private constructor() : GraineClient {
         scope.launch {
             Graine.calls.outcomes.collect { o ->
                 // The ring itself is the "incoming" line already.
-                if (o.outcome != GraineCallOutcome.Kind.RINGING) onCallEvent?.invoke(CallEvent(o.callId, o.outcome.wire, o.reason, DemoAgent.ofSdkName(o.agent)))
+                if (o.outcome != GraineCallOutcome.Kind.RINGING) {
+                    onCallEvent?.invoke(CallEvent(o.callId, o.outcome.wire, o.reason, DemoAgent.ofSdkName(o.agent), o.durationSeconds, o.connection, o.endCause))
+                }
             }
         }
     }
@@ -223,6 +258,20 @@ class GraineService private constructor() : GraineClient {
     override suspend fun cancelScheduledCall(id: String, agent: DemoAgent): GraineCallStatus =
         (sdk(agent) ?: throw noAgent()).cancelScheduledCall(id)
 
+    // Your own design: the same rule, rules and times the SDK's sheet uses, read from its public state.
+    // Null is the SDK's "it can be booked": only an agent that is not configured has no answer of its own.
+    override fun bookingUnavailableReason(agent: DemoAgent): String? {
+        val graine = sdk(agent) ?: return "not_loaded"
+        return graine.bookingUnavailableReason
+    }
+
+    override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = sdk(agent)?.schedulingRules ?: GraineSchedulingRules()
+
+    override fun bookingSlots(day: LocalDate, agent: DemoAgent): List<Instant> = sdk(agent)?.bookingSlots(day) ?: emptyList()
+
+    override suspend fun scheduleCall(at: Instant, reason: String?, agent: DemoAgent): GraineScheduledCall =
+        (sdk(agent) ?: throw noAgent()).scheduleCall(at, reason)
+
     // ── voice in the bar, chat, and native calls ────────────────────────────
 
     override fun startVoice(agent: DemoAgent) {
@@ -237,8 +286,22 @@ class GraineService private constructor() : GraineClient {
         sdk(agent)?.chat?.send(text)
     }
 
+    private var callName: String = ""
+    private var ownCallScreen = false
+
+    private fun callsConfig() = GraineCallsConfig(displayName = callName, ringTimeoutSeconds = 45, smallIcon = Platform.callIcon)
+
     override fun setCallName(name: String) {
-        Graine.calls.configure(GraineCallsConfig(displayName = name, ringTimeoutSeconds = 45, smallIcon = Platform.callIcon))
+        callName = name
+        Graine.calls.configure(callsConfig())
+        // Configuring calls again names the SDK's call screen again: the app's own is named after it.
+        if (ownCallScreen) Platform.useOwnCallScreen(true, callsConfig())
+    }
+
+    override fun useOwnCallScreen(own: Boolean) {
+        if (own == ownCallScreen) return
+        ownCallScreen = own
+        Platform.useOwnCallScreen(own, callsConfig())
     }
 
     override fun startNativeCall(reason: String, variables: Map<String, String>, agent: DemoAgent): String? {

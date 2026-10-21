@@ -7,10 +7,13 @@ import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
 import ai.graine.demo.platform.KeyValueStore
+import ai.graine.inapp.kmp.GraineCallSource
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineMemory
 import ai.graine.inapp.kmp.GraineScheduledCall
+import ai.graine.inapp.kmp.GraineSchedulingRules
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -151,6 +154,27 @@ class FakeGraineClient : GraineClient {
         cancelled += id to agent
         return cancelResult.getOrThrow()
     }
+
+    /** bookingUnavailableReason, per agent, when the test sets one; else none while bookable, `not_identified` otherwise. */
+    val unavailable = mutableMapOf<DemoAgent, String?>()
+    override fun bookingUnavailableReason(agent: DemoAgent): String? =
+        if (agent in unavailable) unavailable[agent] else if (bookingAvailable(agent)) null else "not_identified"
+    var rules = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 5, maxDaysAhead = 2, maxPendingPerUser = 3)
+    override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = rules
+    /** The times the SDK offers on a day: the test's own. */
+    var slots: (LocalDate) -> List<Instant> = { emptyList() }
+    override fun bookingSlots(day: LocalDate, agent: DemoAgent): List<Instant> = slots(day)
+    /** Every scheduleCall: when, why, whose. */
+    val scheduled = mutableListOf<Triple<Instant, String?, DemoAgent>>()
+    /** What scheduleCall answers; null books the call asked for. */
+    var scheduleResult: Result<GraineScheduledCall>? = null
+    override suspend fun scheduleCall(at: Instant, reason: String?, agent: DemoAgent): GraineScheduledCall {
+        scheduled += Triple(at, reason, agent)
+        return scheduleResult?.getOrThrow() ?: GraineScheduledCall("s${scheduled.size}", at, GraineCallStatus.Scheduled, GraineCallSource.App, reason)
+    }
+    /** Every useOwnCallScreen, in order. */
+    val ownCallScreens = mutableListOf<Boolean>()
+    override fun useOwnCallScreen(own: Boolean) { ownCallScreens += own }
     override fun startVoice(agent: DemoAgent) { voiceStarts += agent }
     override fun endVoice() { voiceEnds++ }
     override fun sendChatMessage(text: String, agent: DemoAgent) { chatMessages += text to agent }

@@ -26,5 +26,18 @@
             </intent-filter>
         </activity>
 
+        <!-- "Your own design": the app's own call screen, which the SDK opens for every call, ring and missed
+             call while the app draws its own (Platform.useOwnCallScreen). Its own task, as the SDK's screen has,
+             so closing it returns to wherever the user was. -->
+        <activity
+            android:name=".OwnCallActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.owncall"
+            android:excludeFromRecents="false"
+            android:autoRemoveFromRecents="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
+            android:theme="@style/Theme.GraineDemo" />
+
     </application>
 </manifest>

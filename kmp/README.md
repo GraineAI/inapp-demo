@@ -9,6 +9,11 @@ the push service, the notification permission). Every domain word comes from a u
 `../usecases/` (care coach by default, or banking or shopping — switch on the sign-in screen). All people
 and records are fictional.
 
+Home's switch, **Graine's screens / Your own design**, shows the same features twice: with the SDK's own
+screens, drawn from the brand's design in Graine UI, or with every surface — chat, voice, the call screen,
+booking and the agent's components — drawn by this app from the SDK's public state, plus a **Public state**
+screen that lists every value live ([Your own design](#your-own-design)).
+
 It uses `ai.graine:inapp-kmp` (the API) and `ai.graine:inapp-kmp-compose` (the SDK's own chat, call screen
 and voice bar as composables).
 
@@ -25,29 +30,39 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.13.1), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.0), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**Optional: build against the SDK's sources** instead of the published artifacts (for example a fix that is not
-released yet) — the public repositories, tag `0.13.1`, side by side: the multiplatform SDK builds its Android
-side from the Android SDK in the folder `android` beside it, and the iOS app can take GraineInApp from a
-checkout too:
+**The published SDK, or its sources.** The app is pinned to SDK **0.14.0**: `ai.graine:inapp-kmp`,
+`ai.graine:inapp-kmp-compose` and `ai.graine:inapp-android-rtc` from Maven Central, and GraineInApp and
+GraineInAppRTC from Swift Package Manager (`iosApp/iosApp.xcodeproj`). With 0.14.0 published, nothing is set:
+build and run as below.
+
+Before a version is published (or to try a fix that is not released), build against the SDK's sources — the
+multiplatform SDK with the Android SDK beside it (folders `kmp` and `android` side by side), and the iOS SDK with
+its WebRTC module beside it (`ios` and `ios-rtc`), all of the same version:
 
 ```sh
-# from the repository root
-git clone --branch 0.13.1 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.13.1 https://github.com/GraineAI/inapp-android ../graine-sdk/android
-git clone --branch 0.13.1 https://github.com/GraineAI/inapp-ios ../graine-sdk/ios
+# from the repository root — the Kotlin side, Android and iOS alike (or -Pgraine.kmpSdkDir=…, or GRAINE_KMP_SDK_DIR)
+echo "graine.kmpSdkDir=/path/to/sdk/kmp" >> kmp/local.properties
+# the iOS side: writes kmp/iosApp/iosAppLocal.xcodeproj (git-ignored), GraineInApp and GraineInAppRTC from the sources
+GRAINE_IOS_SDK_PATH=/path/to/sdk/ios kmp/iosApp/use-local-sdk.sh     # GRAINE_IOS_RTC_SDK_PATH, if not ../ios-rtc
+```
+
+The public repositories are the same sources, tagged with each release — for example while Maven Central
+catches up with a tag that is already on GitHub (iOS then takes the tag from Swift Package Manager as usual):
+
+```sh
+git clone --branch 0.14.0 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.14.0 https://github.com/GraineAI/inapp-android ../graine-sdk/android
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
-(or `-Pgraine.kmpSdkDir=…`, or `GRAINE_KMP_SDK_DIR`). Gradle then builds the Kotlin Multiplatform SDK, and
-the Android SDK beside it, in place of the published artifacts, handing them `sdk.dir` from `local.properties`
-when `ANDROID_HOME` is not set; remove the line to go back to the published artifacts. The iOS app's Gradle phase reads the
-same `local.properties`; `iosApp/use-local-sdk.sh` generates `iosApp/iosAppLocal.xcodeproj`, the same app with
-GraineInApp from `../graine-sdk/ios` (`GRAINE_IOS_SDK_PATH` names another checkout).
+Gradle then builds the Kotlin Multiplatform SDK, and the Android SDK beside it, in place of the published artifacts,
+handing them `sdk.dir` from `local.properties` when `ANDROID_HOME` is not set; remove the line to go back to the
+published artifacts. The iOS app's Gradle phase reads the same `local.properties` (or `GRAINE_KMP_SDK_DIR`).
 
 **Run** — on an Android emulator or phone, and on an iOS simulator (the commands
 [RUN-THE-DEMO.md](../RUN-THE-DEMO.md#4-kotlin-multiplatform-on-android-and-the-ios-simulator) runs):
@@ -70,8 +85,8 @@ xcrun simctl install "$SIM" build/ios/Build/Products/Debug-iphonesimulator/Grain
 xcrun simctl launch "$SIM" com.example.grainedemo.kmp    # your PRODUCT_BUNDLE_IDENTIFIER
 ```
 
-On an iPhone: open the same Xcode project, choose your iPhone and **Run** (your team is in
-`iosApp/Config.xcconfig`).
+With the SDK's sources (above), build `iosApp/iosAppLocal.xcodeproj` in place of `iosApp/iosApp.xcodeproj`. On an
+iPhone: open the same Xcode project, choose your iPhone and **Run** (your team is in `iosApp/Config.xcconfig`).
 
 ## What is where
 
@@ -85,6 +100,9 @@ On an iPhone: open the same Xcode project, choose your iPhone and **Run** (your 
 | `composeApp/src/androidMain/` | `DemoApplication`, `MainActivity`, notification permission (pushes: the SDK's own messaging service) |
 | `composeApp/src/iosMain/` | `MainViewController` (the shared UI for SwiftUI), Info.plist keys, UserDefaults |
 | `iosApp/` | The iOS app shell (XcodeGen `project.yml`; `iosApp.xcodeproj` committed) |
+| `…/ui/own/` | **Your own design**: chat, Talk, the call screen, booking, components and Public state, drawn by the app from the SDK's public state |
+| `…/domain/OwnDesign.kt`, `OwnComponents.kt` | How that state reads in the app's words, and what the app's component widgets answer (the SDK views' answers) |
+| `composeApp/src/androidMain/…/OwnCallActivity.kt` | The own call screen on Android: the screen the SDK opens for every call while the app draws its own |
 | `composeApp/src/commonTest/` | Tests against a fake SDK client: `./gradlew :composeApp:testDebugUnitTest` |
 
 ## Two agents in one app
@@ -98,8 +116,32 @@ Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the 
 filled in. A button is on only while the SDK's `bookingAvailable` is true for its agent (Graine rings this
 phone, the agent lets users book, and the user is identified with the agent's Identity field); otherwise it
 is off, with one line: "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID". Both platforms run both agents
-(`ai.graine:inapp-kmp` 0.13.1 on Android and iOS alike), and **Call activity** names the agent of every
+(`ai.graine:inapp-kmp` 0.14.0 on Android and iOS alike), and **Call activity** names the agent of every
 ring and outcome.
+
+## Your own design
+
+Home's switch — **Graine's screens** or **Your own design**, kept on the device — changes who draws the agent's
+surfaces. Graine's screens (the default) are the SDK's own chat, voice bar, call screen and booking sheet, in the
+brand's design from Graine UI. **Your own design** draws every one of them in this app, with its own Compose
+widgets, from the SDK's public state alone — what an app with a design system of its own does; no SDK screen is
+used. Everything else stays as it is: the same buttons on Home and Help (Talk, Chat, Call, booking), the same
+agents, actions, memory and screen context. Each screen is one file in `composeApp/src/commonMain/…/ui/own/`:
+
+| Screen | Drawn from | What it does |
+|---|---|---|
+| Chat — `OwnChatScreen.kt` | `chat.turns`, laid out by `GraineChatRows.build(turns, newConversationBefore)`: day lines, one row per earlier call, "Disconnected · new conversation"; `status` (Disconnected included) and `typing` in the header; `quickReplies`; `ended` and `rating`; `upcomingCalls`; the agent's component | `send`, `sendQuickReply`, `rate`, `retry`, `newConversation`, `cancelUpcomingCall`; `shown(true)` and `shown(false)` as the screen appears and goes, so the conversation lives as the SDK's own window's does |
+| Talk — `OwnTalkPanel.kt` | `voice.state`: `status` (and `error` when it failed), `captions`, `agentLevel` and `micLevel`, `transport` and its fallback reason | Opens ready; `start` only on its Start (the microphone with it), then `end`, `setMuted`, `setCaptionsOn` |
+| Call screen — `OwnCallScreen.kt` | `calls.state`: where the call is, `agent`, `reason`, the length from `startedAt`, `agentLevel`, the caption, `muted` and `speakerOn`; a **Connection** card — `state.connection` while the call goes, the outcome's `connection` once it is over | `answer`, `decline`, `end`, `setMuted`, `setSpeaker`, `callBack`, `dismissMissedCall` |
+| Booking — `OwnBookingScreen.kt` | `bookingAvailable`, and `bookingUnavailableReason` in plain words when it is off; `schedulingRules`; each day's `bookingSlots(day)`, by hour; the user's calls with that agent | `scheduleCall(at, reason)` — a refusal shows the SDK's sentence — and `cancelScheduledCall(id)` |
+| Components — `OwnComponentCard.kt` | `component` (`kind`, `data`, `fallbackText`) and `componentPending`, in the chat and in Talk: chips, rows (one, or several at once), time slots, forms, else the component's own sentence | `chat.answerWidget(id, data, summary)`, with the answers the SDK's own views send, and `chat.dismissWidget(id)` |
+| Public state — `PublicStateScreen.kt` | Every value above, live, by surface — who, chat, voice, calls and the connection report, booking, components, events — for walking a team through what their own screens can read | Shows no message, caption or memory text and no variable values: roles, counts, lengths and names |
+
+The call screen on Android is a screen of its own: the Android SDK opens one for every call, ring and missed call,
+and the multiplatform `GraineCallsConfig` cannot name another, so the Android side names `OwnCallActivity` through
+the Android SDK's `GraineCallsConfig.callActivity` (`Platform.useOwnCallScreen`). It draws the same shared
+composable iOS draws in place, over the lock screen too. Switching back to Graine's screens gives the SDK its screen
+back. On Android the voice conversation reports no levels and no transport: Talk shows them at 0 and "not reported".
 
 ## Calls on a real device
 

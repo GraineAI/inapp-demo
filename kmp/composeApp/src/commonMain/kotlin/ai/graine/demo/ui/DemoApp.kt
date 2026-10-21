@@ -1,6 +1,12 @@
 package ai.graine.demo.ui
 
+import ai.graine.demo.platform.Platform
 import ai.graine.demo.platform.PlatformBackHandler
+import ai.graine.demo.ui.own.OwnBookingScreen
+import ai.graine.demo.ui.own.OwnCallHost
+import ai.graine.demo.ui.own.OwnChatScreen
+import ai.graine.demo.ui.own.OwnTalkPanel
+import ai.graine.demo.ui.own.PublicStateScreen
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.compose.GraineAgentBar
 import ai.graine.inapp.kmp.compose.GraineCallScreen
@@ -35,9 +41,12 @@ import kotlinx.coroutines.delay
 
 /**
  * The layers, bottom to top: the app (sign-in or the tabs), the chat, the
- * voice bar, a notice, and the call screen. Every layer is shared code; the
- * chat, the voice bar and the call screen are the SDK's own, drawn in the
- * brand's design (ai.graine:inapp-kmp-compose).
+ * voice bar, a notice, and the call screen. Every layer is shared code. With
+ * Graine's screens (Home's switch, the default) the chat, the voice bar and the
+ * call screen are the SDK's own, drawn in the brand's design
+ * (ai.graine:inapp-kmp-compose); with "Your own design" the app draws each of
+ * them — and its own booking screen and the Public state screen — from the
+ * SDK's public state (ui/own).
  */
 @Composable
 fun DemoApp(model: AppModel) {
@@ -52,21 +61,40 @@ fun DemoApp(model: AppModel) {
 
                 model.chatAgent?.let { agent ->
                     PlatformBackHandler { model.closeChat() }
-                    key(agent) { ChatScreen(model, agent) }
+                    key(agent, model.ownDesign) { if (model.ownDesign) OwnChatScreen(model, agent) else ChatScreen(model, agent) }
                 }
 
                 val voice = model.voiceAgent
                 if (voice != null && !model.chatOpen) {
-                    key(voice) {
-                        // The bar draws itself at the bottom of the band it is given, above the tab bar.
-                        GraineAgentBar(
-                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
-                                .padding(bottom = 80.dp).height(200.dp),
-                            name = model.nameOf(voice),
-                            onClose = { model.voiceBarClosed() },
-                            agent = voice.sdkName,
-                        )
+                    key(voice, model.ownDesign) {
+                        if (model.ownDesign) {
+                            // The app's own voice panel, over the screen it talks about, above the tab bar.
+                            OwnTalkPanel(
+                                model,
+                                voice,
+                                Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 88.dp),
+                            )
+                        } else {
+                            // The bar draws itself at the bottom of the band it is given, above the tab bar.
+                            GraineAgentBar(
+                                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
+                                    .padding(bottom = 80.dp).height(200.dp),
+                                name = model.nameOf(voice),
+                                onClose = { model.voiceBarClosed() },
+                                agent = voice.sdkName,
+                            )
+                        }
                     }
+                }
+
+                if (model.ownBooking != null) {
+                    PlatformBackHandler { model.closeOwnBooking() }
+                    OwnBookingScreen(model)
+                }
+
+                if (model.publicStateOpen) {
+                    PlatformBackHandler { model.closePublicState() }
+                    PublicStateScreen(model)
                 }
 
                 model.notice?.let { text ->
@@ -79,9 +107,15 @@ fun DemoApp(model: AppModel) {
                     ) { Text(text) }
                 }
 
-                // A call — ringing, live, or a missed one to call back — on the SDK's call screen.
-                val call by Graine.calls.state.collectAsState()
-                if (call.showsCallScreen) GraineCallScreen(Modifier.fillMaxSize())
+                if (model.ownDesign) {
+                    // Your own design: the app's call screen, in place (iOS); Android's is its own activity, which
+                    // the SDK opens for every call, ring and missed call (Platform.useOwnCallScreen).
+                    if (Platform.ownCallScreenInPlace) OwnCallHost(model, Modifier.fillMaxSize())
+                } else {
+                    // A call — ringing, live, or a missed one to call back — on the SDK's call screen.
+                    val call by Graine.calls.state.collectAsState()
+                    if (call.showsCallScreen) GraineCallScreen(Modifier.fillMaxSize())
+                }
             }
         }
     }
