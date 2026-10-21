@@ -101,7 +101,8 @@ iPhone: open the same Xcode project, choose your iPhone and **Run** (your team i
 | `composeApp/src/iosMain/` | `MainViewController` (the shared UI for SwiftUI), Info.plist keys, UserDefaults |
 | `iosApp/` | The iOS app shell (XcodeGen `project.yml`; `iosApp.xcodeproj` committed) |
 | `…/ui/own/` | **Your own design**: chat, Talk, the call screen, booking, components and Public state, drawn by the app from the SDK's public state |
-| `…/domain/OwnDesign.kt`, `OwnComponents.kt` | How that state reads in the app's words, and what the app's component widgets answer (the SDK views' answers) |
+| `…/domain/OwnDesign.kt`, `OwnComponents.kt`, `PastSessions.kt` | How that state reads in the app's words, and what the app's component widgets answer (the SDK views' answers) |
+| `…/graine/PastSessionsSdk.kt` | Past sessions read from the SDK (`chat.pastSessions`, `sessionTranscript`) into the app's own state |
 | `composeApp/src/androidMain/…/OwnCallActivity.kt` | The own call screen on Android: the screen the SDK opens for every call while the app draws its own |
 | `composeApp/src/commonTest/` | Tests against a fake SDK client: `./gradlew :composeApp:testDebugUnitTest` |
 
@@ -125,7 +126,7 @@ Home's switch — **Graine's screens** or **Your own design**, kept on the devic
 surfaces. Graine's screens (the default) are the SDK's own chat, voice bar, call screen and booking sheet, in the
 brand's design from Graine UI. **Your own design** draws every one of them in this app, with its own Compose
 widgets, from the SDK's public state alone — what an app with a design system of its own does; no SDK screen is
-used. Everything else stays as it is: the same buttons on Home and Help (Talk, Chat, Call, booking), the same
+used. A chat session closes 15 seconds after its screen closes: the demo sets `GraineConfig(chatCloseDelaySeconds = 15)`. Everything else stays as it is: the same buttons on Home and Help (Talk, Chat, Call, booking), the same
 agents, actions, memory and screen context. Each screen is one file in `composeApp/src/commonMain/…/ui/own/`:
 
 | Screen | Drawn from | What it does |
@@ -135,6 +136,7 @@ agents, actions, memory and screen context. Each screen is one file in `composeA
 | Call screen — `OwnCallScreen.kt` | `calls.state`: where the call is, `agent`, `reason`, the length from `startedAt`, `agentLevel`, the caption, `muted` and `speakerOn`; a **Connection** card — `state.connection` while the call goes, the outcome's `connection` once it is over | `answer`, `decline`, `end`, `setMuted`, `setSpeaker`, `callBack`, `dismissMissedCall` |
 | Booking — `OwnBookingScreen.kt` | `bookingAvailable`, and `bookingUnavailableReason` in plain words when it is off; `schedulingRules`; each day's `bookingSlots(day)`, by hour; the user's calls with that agent | `scheduleCall(at, reason)` — a refusal shows the SDK's sentence — and `cancelScheduledCall(id)` |
 | Components — `OwnComponentCard.kt` | `component` (`kind`, `data`, `fallbackText`) and `componentPending`, in the chat and in Talk: chips, rows (one, or several at once), time slots, forms, else the component's own sentence | `chat.answerWidget(id, data, summary)`, with the answers the SDK's own views send, and `chat.dismissWidget(id)` |
+| Past sessions — `PastSessionsScreen.kt` (from the chat's menu) | `chat.pastSessions`: the signed-in user's closed sessions with the agent, newest first — date and time, chat or call, length, how it ended, messages, the first words, the session id with Copy — and its `loading`, `hasMore` and `error`; a tap opens `chat.sessionTranscript(id)`, read only | `refreshPastSessions()` on open, `loadMorePastSessions()` at the end of the list; refusals in plain words ("Sign in to see past sessions", "Not available on this device") |
 | Public state — `PublicStateScreen.kt` | Every value above, live, by surface — who, chat, voice, calls and the connection report, booking, components, events — for walking a team through what their own screens can read | Shows no message, caption or memory text and no variable values: roles, counts, lengths and names |
 
 The call screen on Android is a screen of its own: the SDK opens one for every call, ring and missed call, and with

@@ -16,6 +16,8 @@ import ai.graine.demo.domain.EndedCall
 import ai.graine.demo.domain.ItemsState
 import ai.graine.demo.domain.OwnBooking
 import ai.graine.demo.domain.OwnText
+import ai.graine.demo.domain.PastSessionsText
+import ai.graine.demo.domain.SessionTranscript
 import ai.graine.demo.domain.RowMatch
 import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.domain.UseCasePacks
@@ -177,6 +179,18 @@ class AppModel(
     /** The last call that ended while the app draws its own call screen, with its final connection report, until closed. */
     var endedCall by mutableStateOf<EndedCall?>(null)
         private set
+    /** The Past sessions screen is open, for this agent's sessions (from the own chat). */
+    var pastSessionsAgent by mutableStateOf<DemoAgent?>(null)
+        private set
+    /** The past session whose transcript is open on it. */
+    var transcript by mutableStateOf<SessionTranscript?>(null)
+        private set
+    /** The id of the transcript on its way. */
+    var transcriptLoading by mutableStateOf<String?>(null)
+        private set
+    /** Why the last transcript could not be opened, in plain words. */
+    var transcriptError by mutableStateOf<String?>(null)
+        private set
 
     init {
         graine.onSessionReady = { sessionArrived() }
@@ -197,6 +211,7 @@ class AppModel(
         ownBooking = null
         publicStateOpen = false
         endedCall = null
+        closePastSessions()
         ownDesign = on
         store.putString(OWN_DESIGN_KEY, if (on) "on" else null)
         graine.useOwnCallScreen(on)
@@ -215,6 +230,53 @@ class AppModel(
     /** The own call screen's Close, once a call is over. */
     fun closeEndedCall() {
         endedCall = null
+    }
+
+    // ── past sessions ───────────────────────────────────────────────────────
+
+    /** The Past sessions screen for [agent]: the SDK loads the first page again, newest first. */
+    fun openPastSessions(agent: DemoAgent) {
+        if (user == null || !isAvailable(agent)) return
+        pastSessionsAgent = agent
+        closeTranscript()
+        graine.refreshPastSessions(agent)
+    }
+
+    fun closePastSessions() {
+        pastSessionsAgent = null
+        closeTranscript()
+    }
+
+    fun refreshPastSessions() {
+        pastSessionsAgent?.let { graine.refreshPastSessions(it) }
+    }
+
+    /** The next page, at the end of the list: only while there is more and nothing is on its way. */
+    fun loadMorePastSessions() {
+        val agent = pastSessionsAgent ?: return
+        val state = graine.pastSessions(agent).value
+        if (state.loading || !state.hasMore) return
+        graine.loadMorePastSessions(agent)
+    }
+
+    /** A past session's transcript, read only: what was said, oldest first. */
+    fun openTranscript(id: String) {
+        val agent = pastSessionsAgent ?: return
+        transcriptLoading = id
+        transcriptError = null
+        scope.launch {
+            val result = attempt { graine.sessionTranscript(id, agent) }
+            if (pastSessionsAgent != agent || transcriptLoading != id) return@launch
+            transcriptLoading = null
+            result.onSuccess { transcript = it }
+                .onFailure { transcriptError = PastSessionsText.error((it as? GraineException)?.code?.wire) ?: words(it) }
+        }
+    }
+
+    fun closeTranscript() {
+        transcript = null
+        transcriptLoading = null
+        transcriptError = null
     }
 
     /** An agent's name, role and starters, from the pack. */
@@ -293,6 +355,7 @@ class AppModel(
         ownBooking = null
         publicStateOpen = false
         endedCall = null
+        closePastSessions()
         profileOpen = false
         callLogOpen = false
         tab = DemoTab.HOME
@@ -384,6 +447,7 @@ class AppModel(
         chatAgent = null
         ownBooking = null
         publicStateOpen = false
+        closePastSessions()
         profileOpen = false
         callLogOpen = false
         describeScreen()

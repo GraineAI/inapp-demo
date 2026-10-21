@@ -92,6 +92,7 @@ fun PublicStateScreen(model: AppModel) {
         ) {
             item(key = "who") { WhoState(sdk, tick) }
             item(key = "chat") { ChatState(model, agent, sdk) }
+            item(key = "past") { PastSessionsState(model, agent) }
             item(key = "voice") { VoiceState(model, agent, sdk) }
             item(key = "calls") { CallsState(tick) }
             item(key = "booking") { BookingState(model, agent, sdk, tick) }
@@ -176,6 +177,23 @@ private fun ChatState(model: AppModel, agent: DemoAgent, sdk: GraineAgent) {
             "rows (GraineChatRows)" to rowsSummary(rows),
         ),
     )
+}
+
+@Composable
+private fun PastSessionsState(model: AppModel, agent: DemoAgent) {
+    val past by model.graine.pastSessions(agent).collectAsState()
+    Readout(
+        "Past sessions · ${model.nameOf(agent)}",
+        listOf(
+            "pastSessions" to "${past.sessions.size} loaded",
+            "loading" to past.loading.toString(),
+            "hasMore" to past.hasMore.toString(),
+            "error" to (past.error ?: "—"),
+            "newest" to (past.sessions.firstOrNull()?.let { "${OwnText.shortId(it.id)} · ${it.channel} · ${it.turns} turns" } ?: "—"),
+            "chat.closeDelaySeconds" to model.graine.chatCloseDelaySeconds(agent).toString(),
+        ),
+    )
+    OutlinedButton(onClick = { model.graine.refreshPastSessions(agent) }, modifier = Modifier.padding(top = 6.dp)) { Text("refreshPastSessions()") }
 }
 
 @Composable

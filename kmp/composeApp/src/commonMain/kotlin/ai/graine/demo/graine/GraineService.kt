@@ -4,6 +4,8 @@ import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreenContext
+import ai.graine.demo.domain.PastSessionsState
+import ai.graine.demo.domain.SessionTranscript
 import ai.graine.demo.platform.Platform
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.GraineCallTransport
@@ -25,6 +27,8 @@ import ai.graine.inapp.kmp.GraineScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -124,6 +128,18 @@ interface GraineClient {
      * call screen for every call, so the app names its own (GraineCallsConfig.androidCallActivity).
      */
     fun useOwnCallScreen(own: Boolean)
+
+    // Past sessions: the signed-in user's earlier sessions with an agent, newest first, and one session's transcript
+    /** The list as the SDK holds it (chat.pastSessions): the sessions loaded so far, loading, more to load, the last error. */
+    fun pastSessions(agent: DemoAgent): StateFlow<PastSessionsState>
+    /** Load the first page again (chat.refreshPastSessions). */
+    fun refreshPastSessions(agent: DemoAgent)
+    /** Load the next page (chat.loadMorePastSessions). */
+    fun loadMorePastSessions(agent: DemoAgent)
+    /** One session's lines, oldest first (chat.sessionTranscript); `not_found` for one that is not this user's. */
+    suspend fun sessionTranscript(id: String, agent: DemoAgent): SessionTranscript
+    /** How long [agent]'s chat stays open once no screen shows it (chat.closeDelaySeconds; set at launch with GraineConfig.chatCloseDelaySeconds). */
+    fun chatCloseDelaySeconds(agent: DemoAgent): Int
 
     // What the SDK reports
     var onSessionReady: (() -> Unit)?
@@ -308,6 +324,27 @@ class GraineService private constructor() : GraineClient {
         Graine.calls.configure(callsConfig())
     }
 
+    // ── past sessions (PastSessionsSdk reads the SDK's state) ──────────────
+
+    private val pastSessionFlows = mutableMapOf<DemoAgent, StateFlow<PastSessionsState>>()
+
+    override fun pastSessions(agent: DemoAgent): StateFlow<PastSessionsState> = pastSessionFlows.getOrPut(agent) {
+        sdk(agent)?.let { PastSessionsSdk.state(it, scope) } ?: MutableStateFlow(PastSessionsState(error = "unavailable"))
+    }
+
+    override fun refreshPastSessions(agent: DemoAgent) {
+        sdk(agent)?.let { PastSessionsSdk.refresh(it) }
+    }
+
+    override fun loadMorePastSessions(agent: DemoAgent) {
+        sdk(agent)?.let { PastSessionsSdk.loadMore(it) }
+    }
+
+    override suspend fun sessionTranscript(id: String, agent: DemoAgent): SessionTranscript =
+        PastSessionsSdk.transcript(sdk(agent) ?: throw noAgent(), id)
+
+    override fun chatCloseDelaySeconds(agent: DemoAgent): Int = sdk(agent)?.chat?.closeDelaySeconds ?: CHAT_CLOSE_DELAY_SECONDS
+
     override fun startNativeCall(reason: String, variables: Map<String, String>, agent: DemoAgent): String? {
         if (sdk(agent) == null) return null
         return Graine.calls.startCall(reason = reason, variables = variables, agent = agent.sdkName)
@@ -316,6 +353,9 @@ class GraineService private constructor() : GraineClient {
     companion object {
         private var instance: GraineService? = null
 
+        /** How long a chat session stays open after the chat screen closes, in seconds (GraineConfig.chatCloseDelaySeconds). */
+        const val CHAT_CLOSE_DELAY_SECONDS = 15
+
         /**
          * Configure the agents and the calls. Once per launch. The help desk is
          * optional: without its key — or if it cannot be started, which the log
@@ -323,7 +363,14 @@ class GraineService private constructor() : GraineClient {
          */
         fun start(config: AppConfig, callName: String, appVersion: String, debug: Boolean): GraineService {
             instance?.let { return it }
-            fun agentConfig(key: String) = GraineConfig(baseUrl = config.baseUrl, publishableKey = key, appVersion = appVersion, debug = debug)
+            // A chat session closes this long after its screen closes (the SDK's default, set here so it is plain to see).
+            fun agentConfig(key: String) = GraineConfig(
+                baseUrl = config.baseUrl,
+                publishableKey = key,
+                appVersion = appVersion,
+                debug = debug,
+                chatCloseDelaySeconds = CHAT_CLOSE_DELAY_SECONDS,
+            )
             Graine.configure(agentConfig(config.publishableKey))
             if (config.hasHelpKey) {
                 runCatching { Graine.configure(agentConfig(config.helpPublishableKey), name = DemoAgent.HELP.sdkName) }

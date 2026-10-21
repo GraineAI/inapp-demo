@@ -40,6 +40,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -104,6 +106,7 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
     val sessionId by chat.sessionId.collectAsState()
     val sessions by chat.sessions.collectAsState()
     var showSessions by remember { mutableStateOf(false) }
+    var menu by remember { mutableStateOf(false) }
     val component by sdk.component.collectAsState()
     val componentPending by sdk.componentPending.collectAsState()
 
@@ -135,8 +138,15 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
         modifier = Modifier.testTag("own_chat"),
         actions = {
             if (OwnText.chatCanRetry(failed)) TextButton(onClick = { chat.retry() }, modifier = Modifier.testTag("own_chat_retry")) { Text("Retry") }
-            if (sessions.isNotEmpty()) {
-                TextButton(onClick = { showSessions = true }, modifier = Modifier.testTag("own_sessions_open")) { Text("Sessions") }
+            // The conversation's own sessions, and the user's past sessions with this agent.
+            Box {
+                IconButton(onClick = { menu = true }, modifier = Modifier.testTag("own_chat_menu")) { Icon(OwnIcons.More, contentDescription = "More") }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    if (sessions.isNotEmpty()) {
+                        DropdownMenuItem(text = { Text("Sessions in this chat") }, onClick = { menu = false; showSessions = true }, modifier = Modifier.testTag("own_sessions_open"))
+                    }
+                    DropdownMenuItem(text = { Text("Past sessions") }, onClick = { menu = false; model.openPastSessions(agent) }, modifier = Modifier.testTag("past_sessions_open"))
+                }
             }
             if (GraineChatRows.offersNewConversation(turns)) {
                 TextButton(onClick = {

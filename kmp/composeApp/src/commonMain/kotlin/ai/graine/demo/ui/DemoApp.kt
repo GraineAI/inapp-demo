@@ -6,6 +6,7 @@ import ai.graine.demo.ui.own.OwnBookingScreen
 import ai.graine.demo.ui.own.OwnCallHost
 import ai.graine.demo.ui.own.OwnChatScreen
 import ai.graine.demo.ui.own.OwnTalkPanel
+import ai.graine.demo.ui.own.PastSessionsScreen
 import ai.graine.demo.ui.own.PublicStateScreen
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.compose.GraineAgentBar
@@ -85,6 +86,11 @@ fun DemoApp(model: AppModel) {
                             )
                         }
                     }
+                }
+
+                model.pastSessionsAgent?.let { agent ->
+                    PlatformBackHandler { if (model.transcript != null) model.closeTranscript() else model.closePastSessions() }
+                    PastSessionsScreen(model, agent)
                 }
 
                 if (model.ownBooking != null) {

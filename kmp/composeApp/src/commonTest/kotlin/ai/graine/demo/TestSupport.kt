@@ -3,6 +3,8 @@ package ai.graine.demo
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreenContext
+import ai.graine.demo.domain.PastSessionsState
+import ai.graine.demo.domain.SessionTranscript
 import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
@@ -12,6 +14,8 @@ import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineMemory
 import ai.graine.inapp.kmp.GraineScheduledCall
 import ai.graine.inapp.kmp.GraineSchedulingRules
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -175,6 +179,19 @@ class FakeGraineClient : GraineClient {
     /** Every useOwnCallScreen, in order. */
     val ownCallScreens = mutableListOf<Boolean>()
     override fun useOwnCallScreen(own: Boolean) { ownCallScreens += own }
+
+    /** Each agent's past sessions, as the SDK would hold them; the test sets them. */
+    val past = mutableMapOf<DemoAgent, MutableStateFlow<PastSessionsState>>()
+    override fun pastSessions(agent: DemoAgent): StateFlow<PastSessionsState> = past.getOrPut(agent) { MutableStateFlow(PastSessionsState()) }
+    val pastRefreshes = mutableListOf<DemoAgent>()
+    override fun refreshPastSessions(agent: DemoAgent) { pastRefreshes += agent }
+    val pastMores = mutableListOf<DemoAgent>()
+    override fun loadMorePastSessions(agent: DemoAgent) { pastMores += agent }
+    /** What sessionTranscript answers, by id. */
+    val transcripts = mutableMapOf<String, Result<SessionTranscript>>()
+    override suspend fun sessionTranscript(id: String, agent: DemoAgent): SessionTranscript =
+        (transcripts[id] ?: Result.failure(ai.graine.inapp.kmp.GraineException(ai.graine.inapp.kmp.GraineErrorCode.NotFound, "No such session."))).getOrThrow()
+    override fun chatCloseDelaySeconds(agent: DemoAgent): Int = 15
     override fun startVoice(agent: DemoAgent) { voiceStarts += agent }
     override fun endVoice() { voiceEnds++ }
     override fun sendChatMessage(text: String, agent: DemoAgent) { chatMessages += text to agent }
