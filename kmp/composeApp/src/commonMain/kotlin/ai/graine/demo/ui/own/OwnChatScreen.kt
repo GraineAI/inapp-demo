@@ -93,6 +93,7 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
     val chat = sdk.chat
     val turns by chat.turns.collectAsState()
     val status by chat.status.collectAsState()
+    val failed by chat.failed.collectAsState()
     val typing by chat.typing.collectAsState()
     val quickReplies by chat.quickReplies.collectAsState()
     val ended by chat.ended.collectAsState()
@@ -129,11 +130,11 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
 
     OwnScreen(
         title = name,
-        subtitle = OwnText.chatStatus(status, typing),
+        subtitle = OwnText.chatStatus(status, typing, failed),
         onBack = { model.closeChat() },
         modifier = Modifier.testTag("own_chat"),
         actions = {
-            if (OwnText.chatCanRetry(status)) TextButton(onClick = { chat.retry() }) { Text("Retry") }
+            if (OwnText.chatCanRetry(failed)) TextButton(onClick = { chat.retry() }, modifier = Modifier.testTag("own_chat_retry")) { Text("Retry") }
             if (sessions.isNotEmpty()) {
                 TextButton(onClick = { showSessions = true }, modifier = Modifier.testTag("own_sessions_open")) { Text("Sessions") }
             }

@@ -146,6 +146,7 @@ private fun ChatState(model: AppModel, agent: DemoAgent, sdk: GraineAgent) {
     val chat = sdk.chat
     val turns by chat.turns.collectAsState()
     val status by chat.status.collectAsState()
+    val failed by chat.failed.collectAsState()
     val typing by chat.typing.collectAsState()
     val quickReplies by chat.quickReplies.collectAsState()
     val ended by chat.ended.collectAsState()
@@ -160,6 +161,7 @@ private fun ChatState(model: AppModel, agent: DemoAgent, sdk: GraineAgent) {
         "Chat · ${model.nameOf(agent)}",
         listOf(
             "status" to status.name.lowercase(),
+            "failed" to failed.toString(),
             "typing" to typing.toString(),
             "turns" to "${turns.size} (${turns.count { it.restored }} restored)",
             "last turn" to (turns.lastOrNull()?.let { describe(it) } ?: "—"),
@@ -222,6 +224,7 @@ private fun CallsState(tick: Int) {
             "endReason" to (info.endReason ?: "—"),
             "endCause" to (info.endCause ?: "—"),
             "caption" to (info.caption?.let { describe(it) } ?: "—"),
+            "captions" to info.captions.size.toString(),
             "missedCall" to (info.missedCall?.let { OwnText.shortId(it.callId) } ?: "—"),
             "transport" to (info.transport?.wire ?: "—"),
             "fallbackReason" to (info.transportFallbackReason ?: "—"),

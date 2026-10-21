@@ -30,14 +30,15 @@ import kotlin.test.assertTrue
 /** "Your own design": how the SDK's public state reads on the app's own screens, and what its own widgets answer. */
 class OwnDesignTest {
     @Test
-    fun chatStatusSaysDisconnectedAndOffersRetryOnlyWhenItWillNotComeBackByItself() {
+    fun chatStatusSaysDisconnectedAndOffersRetryOnlyOnceTheChatGaveUp() {
         assertEquals("Disconnected · send a message to continue", OwnText.chatStatus(GraineChatStatus.DISCONNECTED))
         assertEquals("Typing…", OwnText.chatStatus(GraineChatStatus.ONLINE, typing = true))
         assertEquals("Online", OwnText.chatStatus(GraineChatStatus.ONLINE))
         assertEquals("Reconnecting…", OwnText.chatStatus(GraineChatStatus.RECONNECTING))
-        assertTrue(OwnText.chatCanRetry(GraineChatStatus.OFFLINE))
-        assertFalse(OwnText.chatCanRetry(GraineChatStatus.DISCONNECTED), "a message continues a disconnected chat")
-        assertFalse(OwnText.chatCanRetry(GraineChatStatus.RECONNECTING))
+        assertEquals("Couldn't reconnect · tap Retry", OwnText.chatStatus(GraineChatStatus.OFFLINE, failed = true))
+        assertEquals("Offline · messages are sent when it reconnects", OwnText.chatStatus(GraineChatStatus.OFFLINE))
+        assertTrue(OwnText.chatCanRetry(failed = true), "Retry once it gave up")
+        assertFalse(OwnText.chatCanRetry(failed = false), "merely offline, or disconnected: it comes back, or a message continues it")
     }
 
     @Test

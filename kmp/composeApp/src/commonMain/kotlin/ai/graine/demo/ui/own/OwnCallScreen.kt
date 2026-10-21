@@ -161,14 +161,20 @@ fun OwnCallScreen(model: AppModel, info: GraineCallInfo, ended: EndedCall?, modi
                 }
             }
 
-            info.caption?.takeIf { live }?.let { caption ->
-                Text(
-                    (if (caption.role == GraineRole.AGENT) "$agentName: " else "You: ") + caption.text,
-                    color = CallText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().alpha(if (caption.live) 0.75f else 1f).testTag("own_call_caption"),
-                )
+            // The call's transcript (state.captions, kept through its end), its last lines; else the line being said.
+            val transcript = info.captions.takeLast(4).ifEmpty { listOfNotNull(info.caption.takeIf { live }) }
+            if (transcript.isNotEmpty()) {
+                Column(Modifier.fillMaxWidth().testTag("own_call_caption"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    transcript.forEach { line ->
+                        Text(
+                            (if (line.role == GraineRole.AGENT) "$agentName: " else "You: ") + line.text,
+                            color = CallText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().alpha(if (line.live) 0.75f else 1f),
+                        )
+                    }
+                }
             }
 
             Spacer(Modifier.height(4.dp))

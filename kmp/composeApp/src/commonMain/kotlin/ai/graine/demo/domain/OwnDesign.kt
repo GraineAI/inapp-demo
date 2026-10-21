@@ -27,8 +27,10 @@ import kotlinx.datetime.toLocalDateTime
 
 /** The words the app's own screens put on the SDK's states. */
 object OwnText {
-    /** The chat's connection, in one line under the agent's name. */
-    fun chatStatus(status: GraineChatStatus, typing: Boolean = false): String = when (status) {
+    /** The chat's connection, in one line under the agent's name; [failed]: it gave up reconnecting (`chat.failed`). */
+    fun chatStatus(status: GraineChatStatus, typing: Boolean = false, failed: Boolean = false): String = if (failed) {
+        "Couldn't reconnect · tap Retry"
+    } else when (status) {
         GraineChatStatus.IDLE -> "Not connected"
         GraineChatStatus.CONNECTING -> "Connecting…"
         GraineChatStatus.ONLINE -> if (typing) "Typing…" else "Online"
@@ -37,8 +39,8 @@ object OwnText {
         GraineChatStatus.DISCONNECTED -> "Disconnected · send a message to continue"
     }
 
-    /** The chat can be connected again with a tap (retry): it is down and not on its way back by itself. */
-    fun chatCanRetry(status: GraineChatStatus): Boolean = status == GraineChatStatus.OFFLINE
+    /** The chat offers Retry once it gave up (`chat.failed`): while it is merely offline it comes back by itself. */
+    fun chatCanRetry(failed: Boolean): Boolean = failed
 
     /** The voice conversation's word. */
     fun voiceStatus(status: GraineVoiceStatus): String = when (status) {
