@@ -58,7 +58,8 @@ android {
         applicationId = setting("graine.applicationId", "GRAINE_APPLICATION_ID", "com.example.grainedemo.kmp")
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        // The build number, as the iOS app's CURRENT_PROJECT_VERSION: an APK and an IPA of the same code carry the same one.
+        versionCode = 12
         versionName = "1.0.0"
         buildConfigField("String", "GRAINE_PUBLISHABLE_KEY", "\"${setting("graine.publishableKey", "GRAINE_PUBLISHABLE_KEY", "")}\"")
         // Optional: a second agent (the pack's help desk) for the Help tab.
@@ -97,10 +98,11 @@ kotlin {
         commonMain {
             kotlin.srcDir(generatePacks)
             dependencies {
-                // The Graine in-app SDK, as published (0.13.1: the call screen drawn from its Garage design — looks, moments, reconnecting, the agent's real voice). The local-SDK switch in
-                // settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
-                implementation("ai.graine:inapp-kmp:0.13.1")
-                implementation("ai.graine:inapp-kmp-compose:0.13.1")
+                // The Graine in-app SDK, as published (0.14.0: every state the SDK's own screens read is public, so the
+                // app's "Your own design" screens draw chat, voice, calls, booking and components themselves). The
+                // local-SDK switch in settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
+                implementation("ai.graine:inapp-kmp:0.14.0")
+                implementation("ai.graine:inapp-kmp-compose:0.14.0")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
@@ -113,7 +115,7 @@ kotlin {
         }
         androidMain.dependencies {
             // WebRTC calls on Android: the module beside the SDK (the same version as inapp-kmp).
-            implementation("ai.graine:inapp-android-rtc:0.13.1")
+            implementation("ai.graine:inapp-android-rtc:0.14.0")
             implementation("androidx.activity:activity-compose:1.9.3")
             implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
             implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.7.0"))
