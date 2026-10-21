@@ -30,14 +30,14 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.0), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.1), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**The published SDK, or its sources.** The app is pinned to SDK **0.14.0**: `ai.graine:inapp-kmp`,
+**The published SDK, or its sources.** The app is pinned to SDK **0.14.1**: `ai.graine:inapp-kmp`,
 `ai.graine:inapp-kmp-compose` and `ai.graine:inapp-android-rtc` from Maven Central, and GraineInApp and
-GraineInAppRTC from Swift Package Manager (`iosApp/iosApp.xcodeproj`). With 0.14.0 published, nothing is set:
+GraineInAppRTC from Swift Package Manager (`iosApp/iosApp.xcodeproj`). With 0.14.1 published, nothing is set:
 build and run as below.
 
 Before a version is published (or to try a fix that is not released), build against the SDK's sources — the
@@ -55,8 +55,8 @@ The public repositories are the same sources, tagged with each release — for e
 catches up with a tag that is already on GitHub (iOS then takes the tag from Swift Package Manager as usual):
 
 ```sh
-git clone --branch 0.14.0 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.14.0 https://github.com/GraineAI/inapp-android ../graine-sdk/android
+git clone --branch 0.14.1 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.14.1 https://github.com/GraineAI/inapp-android ../graine-sdk/android
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -116,7 +116,7 @@ Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the 
 filled in. A button is on only while the SDK's `bookingAvailable` is true for its agent (Graine rings this
 phone, the agent lets users book, and the user is identified with the agent's Identity field); otherwise it
 is off, with one line: "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID". Both platforms run both agents
-(`ai.graine:inapp-kmp` 0.14.0 on Android and iOS alike), and **Call activity** names the agent of every
+(`ai.graine:inapp-kmp` 0.14.1 on Android and iOS alike), and **Call activity** names the agent of every
 ring and outcome.
 
 ## Your own design
@@ -141,7 +141,7 @@ The call screen on Android is a screen of its own: the SDK opens one for every c
 **Your own design** it opens the app's — `GraineCallsConfig(androidCallActivity = "ai.graine.demo.OwnCallActivity")`,
 an activity declared in the app's manifest that draws the same shared composable iOS draws in place, over the lock
 screen too, and forwards its permission answers to `Graine.onRequestPermissionsResult`. Switching back to Graine's
-screens configures calls without it, and the SDK's own screen is back. On Android the voice conversation reports no levels and no transport: Talk shows them at 0 and "not reported".
+screens configures calls without it, and the SDK's own screen is back. Where a platform does not report what carries the voice conversation, Talk says "not reported".
 
 ## Calls on a real device
 

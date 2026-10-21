@@ -13,17 +13,17 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "12"
+    CURRENT_PROJECT_VERSION: "13"
 packages:
   GraineInApp:
     url: https://github.com/GraineAI/inapp-ios
     # The same version as ai.graine:inapp-kmp: the shared code calls this SDK through its Objective-C facade
-    # (0.14.0: chat.shown, booking slots and reasons, the calls' connection report, for the app's own screens).
-    from: 0.14.0
+    # (from 0.14.0: chat.shown, booking slots and reasons, the calls' connection report, for the app's own screens).
+    from: 0.14.1
   # WebRTC calls: the module beside the SDK, always the same version.
   GraineInAppRTC:
     url: https://github.com/GraineAI/inapp-ios-rtc
-    from: 0.14.0
+    from: 0.14.1
 targets:
   GraineDemoKMP:
     type: application
