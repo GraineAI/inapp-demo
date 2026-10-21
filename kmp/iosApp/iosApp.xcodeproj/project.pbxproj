@@ -247,7 +247,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -332,7 +332,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -392,7 +392,7 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.14.1;
+				minimumVersion = 0.14.3;
 			};
 		};
 		BDF0289FFD302273CF2E077C /* XCRemoteSwiftPackageReference "inapp-ios-rtc" */ = {
@@ -400,7 +400,7 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios-rtc";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.14.1;
+				minimumVersion = 0.14.3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

@@ -183,7 +183,7 @@ release.
 |---|---|---|
 | iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.13.1 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
 | Android | `ai.graine:inapp-android:0.13.1` and `ai.graine:inapp-android-rtc:0.13.1` | Maven Central |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.1 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.1 | Maven Central, Swift Package Manager |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.3 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.3 | Maven Central, Swift Package Manager |
 | Flutter | `graine_inapp: ^0.13.1` | pub.dev |
 | React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — |
