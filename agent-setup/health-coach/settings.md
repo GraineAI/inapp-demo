@@ -32,19 +32,32 @@ apps exactly (they read them from `usecases/health-coach.json`).
 | Doses taken today | product_list | `show_doses_taken` |
 | Check-in call times | calendar_slots | `show_check_in_times` |
 
-## Memory (Agent → Memory → Settings)
+## Memory (Agent → Memory → Settings, the same page as Embed & Widgets → Users & memory)
 
 | Setting | Value |
 |---|---|
 | Remembers users across chats and calls | **On** |
-| Who is the user? | **Custom field → `patient_id`** |
+| Who is the user? | **Custom field → `patient_id`** — the field the apps identify the patient with; with any other field nobody is recognised |
 | Devices per user | 2 (the same person on the website and on a phone, or on two phones) |
 | What the agent remembers → Shared with | This agent only |
-| Keep memories for | 365 days |
-| What to remember — and what never to | Remember: routines around medicines and meals, how the patient likes to be reminded and called, symptoms they report and when they started, goals they set. Never remember: diagnoses, test results or record numbers they read out, payment details, anything about other people's health, anything the patient asks you to forget. |
+| What the agent remembers → Keep memories for | 365 days |
+| What the agent remembers → What to remember — and what never to | the text below, as it is (at most 1,000 characters; it replaces the default rules) |
+
+```text
+Remember the patient's health goals (for example walking 30 minutes a day), the routines they chose
+around meals, sleep and exercise, what they find hard, their preferred language, and the days and
+times they like check-in calls and reminders.
+Never remember symptoms, medicines, doses, test results, diagnoses or record numbers, anything about
+other people's health, or anything the patient asks you to forget.
+```
+
+Health conditions, medicines and diagnoses are removed before anything is saved, whatever these rules say, so
+Asha asks about symptoms and doses in every conversation. What Asha does with what she remembers is set by the
+**Memory** section of `prompt.md` (part of the prompt you pasted): the preferred language, a goal confirmed
+instead of asked again, a follow-up on what was agreed.
 
 Agent → Memory → **People** shows everyone the agent has talked to while they were identified and what it
-remembers about each — useful during QA.
+remembers about each — useful during QA. Erase a person there and the agent forgets them at once.
 
 ## Calls & scheduling (Agent → Calls & scheduling)
 

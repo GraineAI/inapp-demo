@@ -15,8 +15,8 @@ and records are fictional.
    - `GRAINE_BASE_URL` — leave as is (`https://www.graine.ai`) unless you were given another server.
    - `GRAINE_HELP_PUBLISHABLE_KEY` — optional: a second agent (the pack's help desk) for the **Help** tab.
      Without it, the Help tab says how to add one.
-2. Recreate the agent from `../agent-setup/<pack>/` so its identity field, actions and call settings
-   match the pack you demo.
+2. Recreate the agent from `../agent-setup/<pack>/` so its identity field, memory, actions and call
+   settings match the pack you demo.
 3. Open `GraineDemo.xcodeproj` and run the **GraineDemo** scheme.
 
 The project is generated from `project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen)
@@ -105,7 +105,16 @@ calls cannot ring or connect there, and a ring shows as missed. The pictures in
 
 ## Memory, in two minutes
 
-Sign in with memory on, tell the assistant one of the pack's `memoryExamples` (`tell`) in the chat and close
-the app. Open it again: the chat continues where it was. Tap **New conversation** in the chat's header and ask
-the `ask` question: it answers from memory, and the **Memory** tab lists it. Sign in as another user: nothing
-is shared. Switch back: it is there. **Erase everything** removes it.
+The app identifies the user with the pack's field (`patient_id`, `customer_id` or `shopper_id`) before any chat
+or call opens; the agent's **Who is the user?** must be that same field, or every conversation is a stranger. At
+the start of each chat, Talk or call, what the agent remembers about the user goes into what the model reads,
+after its prompt. What is said is saved every few messages and when the conversation ends, ready about a minute
+later — never contact details, ID or card numbers, codes or medical details. More: the root README's
+[Memory QA script](../README.md#memory-qa-script).
+
+Sign in with memory on, tell the assistant the pack's two `memoryExamples` (`tell`) in the chat, close the app
+and wait about a minute. Open it again and sign in as the same user: the chat continues where it was. Tap **New
+conversation** in the chat's header and ask "What do you remember about me?": it answers with both, and the
+**Memory** tab lists them (so does the dashboard's Agent → Memory → **People**). Sign in as another user: nothing
+is shared. Switch back: it is there. **Erase everything**, or erasing the user on the dashboard's **People** tab,
+removes it; memory off on the sign-in screen or the **Memory** tab opts the user out.

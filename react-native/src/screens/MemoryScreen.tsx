@@ -70,7 +70,7 @@ export function MemoryScreen() {
       </View>
 
       {settings.memoryEnabled === false ? (
-        <Notice>{`This agent does not remember conversations. In the dashboard: Memory & identity → Remembers users across chats and calls.`}</Notice>
+        <Notice>{`This agent does not remember conversations. In the dashboard: Users & memory → Remembers users across chats and calls.`}</Notice>
       ) : null}
 
       {error ? <ErrorText>{describeError(error, { agentName: pack.agentName })}</ErrorText> : null}

@@ -64,7 +64,7 @@ const calls = [
 const helpCalls = [];
 // What the agent remembers about whoever is signed in — the pack's memory examples, as the agent keeps them.
 const REMEMBERED = {
-  "health-coach": ["Takes metformin at 8 pm, after an evening walk", "Feels dizzy when breakfast is skipped", "Prefers check-in calls after 6 pm"],
+  "health-coach": ["Wants to walk 30 minutes every evening, after dinner", "Prefers check-in calls after 7 pm", "Finds early mornings hard for exercise"],
   "banking-support": ["Travels to Singapore every March for work", "Wants calls only after 6 pm on weekdays", "Uses the card mostly for travel bookings"],
   "retail-shopping": ["Wears size 7 in running shoes", "Wants parcels left with the building security desk", "Prefers delivery updates by call"],
 };

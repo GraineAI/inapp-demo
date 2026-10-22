@@ -56,7 +56,8 @@ fun MemoryScreen(model: AppModel) {
                 }
                 Text(
                     if (model.agentMemoryEnabled == false) "Memory is turned off for this assistant, so nothing is remembered whatever you choose here."
-                    else "Applies from your next conversation. What $agent remembers about you is never used for anyone else.",
+                    else "Applies from your next conversation. What $agent remembers about you is never used for anyone else. " +
+                        "Contact details, ID and card numbers, passwords and codes, dates of birth, health conditions, medicines and diagnoses are never kept.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -70,8 +71,10 @@ fun MemoryScreen(model: AppModel) {
                     Text(
                         when {
                             model.memoriesLoading -> "Loading…"
-                            example != null -> "Nothing yet. Tell $agent something like “$example” and it will be remembered next time."
-                            else -> "Nothing yet. Tell $agent about yourself and it will be remembered next time."
+                            example != null -> "Nothing yet. Tell $agent something like “$example” in a chat or a call. " +
+                                "About a minute after the conversation ends, it shows here (pull to refresh), and $agent knows it next time."
+                            else -> "Nothing yet. Tell $agent about yourself in a chat or a call. " +
+                                "About a minute after the conversation ends, it shows here (pull to refresh), and $agent knows it next time."
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("memory_empty"),

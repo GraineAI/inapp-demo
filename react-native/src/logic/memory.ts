@@ -3,7 +3,7 @@ import type { ChipTone } from "./scheduling";
 import type { UseCasePack } from "./pack";
 
 export interface MemoryState {
-  /** The agent remembers people at all (Memory & identity). null until the session is read. */
+  /** The agent remembers people at all (Users & memory). null until the session is read. */
   agentMemory: boolean | null;
   /** This person agreed to be remembered (the consent switch). */
   consent: boolean;

@@ -82,7 +82,7 @@ export default { agentId: "offline", publishableKey: "pk_test_offline", loaderUr
 | Chat | The chat opens in the assistant's panel; the pack's suggestions copy into it | `open()` |
 | The list (Medicines · Cards · Orders) | The visitor's rows with status chips and buttons; the assistant can open a screen, open a row or set a row's status | `defineAction(name, handler)` for every pack action, `setScreen(context)` |
 | Scheduled calls (Check-in calls · Callbacks · Delivery calls) | The pack's booking button (`call.bookLabel`, e.g. "Schedule a consultation call") opens the widget's own booking sheet — the day, the time, the visitor's time zone and an optional note, in the agent's design — its "What's it about?" starting with the pack's first reason. The button is on while the loader says this visitor can book; otherwise it stays, disabled, with "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID." After a booking the list is read again. Status chips; cancel with a confirmation. The call rings the **phone app**, never the browser | `bookingAvailable`, `openBooking({ reason })`, `scheduledCalls()`, `cancelScheduledCall(id)` |
-| Memory | What the assistant remembers about this person (newest first), the consent switch, erase everything with a confirmation, and the pack's try-it script | `memories()`, `setMemory(enabled)`, `forgetMemory()` |
+| Memory | What the assistant remembers about this person (newest first), the consent switch, erase everything with a confirmation, and the pack's try-it script (with the minute to wait, and what is never kept) | `memories()`, `setMemory(enabled)`, `forgetMemory()` |
 | Profile | The person's details, memory, this browser's install ID and loader version, theme, sign out | `identify(null)` |
 | Help | The **second agent**: while Help is open the page's assistant is the help agent — its voice, chat and suggestions, and booking with its own button and reason in its own booking sheet; every other section puts the main agent back. The same person stays signed in. Without a help agent in `config.js` it says how to add one | `load()` again with the other agent, which switches the page's assistant |
 
@@ -112,22 +112,28 @@ the page instead of failing quietly:
 
 ## Memory QA script
 
-Use a key for the agent, memory on in the dashboard and on the sign-in screen. The Memory screen
-shows the pack's own sentences under **Try it**; for Graine Care:
+Use a key for the agent, memory on in the dashboard and on the sign-in screen. The page identifies
+the visitor with the pack's field (`identify({ patient_id: … }, { memory })`), which must be the
+agent's **Who is the user?**. At the start of each chat or Talk, what the agent remembers about them
+goes into what the model reads, after its prompt; what is said is ready about a minute after the
+conversation ends, and contact details, ID and card numbers, codes and medical details are never kept.
+The Memory screen shows the pack's own sentences under **Try it**; for Graine Care:
 
-1. Sign in as **Riya Sharma**. Open the chat and tell Asha "I take metformin at 8 pm, after my
-   evening walk." End the chat.
+1. Sign in as **Riya Sharma**. Open the chat and tell Asha "My goal is to walk 30 minutes every
+   evening, after dinner." and "Please call me for check-ins after 7 pm." End the chat and wait
+   about a minute.
 2. Reload the page and open the chat: it continues where it was. Press **New conversation** in the
    chat's header — the chat starts fresh, so what Asha knows now comes from memory — and ask "What
-   do I take in the evening?" — Asha answers "Metformin at 8 pm, after your evening walk."
-3. Open **Memory** and press **Refresh**: the sentence is listed.
+   do you remember about me?" — Asha answers with the walking goal and check-ins after 7 pm.
+3. Open **Memory** and press **Refresh**: both are listed, as on the dashboard's Agent → Memory →
+   **People**.
 4. Profile → **Sign out**, sign in as **Arjun Mehta**, ask the same question — Asha does not know.
-   Memory shows Arjun's own list, without Riya's sentence.
+   Memory shows Arjun's own list, without Riya's.
 5. Sign out, sign in as Riya again, press **New conversation** and ask again — Asha knows.
-6. Memory → **Erase everything Asha remembers** → **Erase**. The list is empty; a new chat does not
-   know.
-7. Switch **Let Asha remember our conversations** off, tell Asha something new, start again — it is
-   not remembered.
+6. Memory → **Erase everything Asha remembers** → **Erase**, or erase Riya on the dashboard's
+   **People** tab. The list is empty; a new chat does not know.
+7. Switch **Let Asha remember our conversations** off, tell Asha something new, end the chat, wait a
+   minute and start again — it is not remembered.
 
 The same steps work for Graine Bank and Graine Store with their **Try it** sentences.
 
@@ -136,7 +142,7 @@ The same steps work for Graine Bank and Graine Store with their **Try it** sente
 | What you see | Why |
 |---|---|
 | No launcher | The page's host is not in Allowed domains, or the key is wrong — see the notice. |
-| Memory: "signed in on the most devices allowed" | The person is already bound to another device (the agent-setup kit sets **Devices per user** to 1). Sign out there, raise the limit, or reset their devices in the dashboard. Using the website and a phone as the same person needs 2. |
+| Memory: "signed in on the most devices allowed" | The person is already bound to as many devices as **Devices per user** allows (the agent-setup kit sets 2: the website and one phone). Sign out on one, raise the limit, or reset their devices in the dashboard. |
 | The booking button is off | "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID.": the agent does not take bookings from users (Calls & scheduling → Users, from your app), or nobody is signed in. A notice at the top naming `openBooking()` means the loaded loader has no booking sheet yet. |
 | A booking is refused | The booking sheet says why, in one line: too soon or too far for the agent's window, outside its calling hours, or too many calls waiting. |
 | A booked call never rings | It rings the phone app, signed in as the same person. With no such phone seen in the last 30 days it ends as "No device". |

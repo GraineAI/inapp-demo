@@ -36,7 +36,7 @@
     "identifierField": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]{0,39}$",
-      "description": "The trait that identifies a user. Must equal the agent's Memory & identity → Who is the user? setting (Custom field)."
+      "description": "The trait that identifies a user. Must equal the agent's Memory → Settings → Who is the user? setting (Custom field)."
     },
     "identifierLabel": { "type": "string", "minLength": 1, "maxLength": 30, "description": "How the identifier is labelled on Profile, e.g. \"Patient ID\"." },
     "userNoun": { "type": "string", "minLength": 1, "maxLength": 20, "description": "Singular, lower case: \"patient\", \"customer\", \"shopper\". Used in sign-in copy." },
@@ -121,7 +121,7 @@
       "type": "array",
       "minItems": 1,
       "maxItems": 4,
-      "description": "The memory QA script: say `tell` in one chat, start a new chat, say `ask`; the agent answers with `expect`. Signed in as someone else, it does not.",
+      "description": "The memory QA script: say `tell` in one chat, end it, wait about a minute, start a new chat, say `ask`; the agent answers with `expect`. Signed in as someone else, it does not. Use facts memory keeps: contact details, ID and card numbers, codes and medical details are removed before saving.",
       "items": { "$ref": "#/$defs/memoryExample" }
     },
     "starters": {

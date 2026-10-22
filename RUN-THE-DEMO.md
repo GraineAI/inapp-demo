@@ -24,7 +24,9 @@ agent (the Help screen). Each is built from `agent-setup/<pack>/`, step by step 
    **Welcome message** and **Custom Variables** from `settings.md` (including `who_called` = `customer` and
    an empty `call_reason`). **Calling Window**: 08:00–21:00.
 2. **Memory → Settings**: remembers users **on**; **Who is the user?** → **Custom field** → `patient_id` —
-   exactly the pack's field, or nobody is recognised; Devices per user 2.
+   exactly the pack's field, or nobody is recognised; Devices per user 2; **What to remember — and what never
+   to**: the text block in `settings.md`. The **Memory** section of `prompt.md`, already in the prompt, makes
+   Asha use what she remembers.
 3. **Embed & Widgets**:
    - **Install & domains → Allowed domains**: `app://` (every app) and the website's host — `localhost` on
      your machine, your own domain when you host it.
@@ -259,7 +261,9 @@ the iPhone, **Run** (calls and rings need a real iPhone).
 **Talk** → the voice bar connects and the agent greets you (an emulator's microphone is silent: you hear the
 greeting); **Calls** → the pack's booking button opens the SDK's own booking sheet when that agent can be booked
 here, or is off with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID." (`bookingAvailable`: Graine rings this phone, the
-agent lets users book, and the user is identified with the agent's **Who is the user?** field — the pack's).
+agent lets users book, and the user is identified with the agent's **Who is the user?** field — the pack's);
+**Memory** → the test in [`kmp/README.md`](kmp/README.md#memory-in-a-few-minutes) (two facts in **Chat**, close it,
+a minute later **New conversation** → "What do you remember about me?").
 Then Home → **Your own design** and the same again, every screen drawn by the app: **Chat** (send, close, reopen — it
 continues), **Talk** (it starts only on its **Start**), **Call** (the app's call screen, its **Connection** card live
 and, after the call, final), the booking button (the app's own picker of the SDK's times), and **Public state** (every
@@ -269,14 +273,15 @@ value, live). Back to **Graine's screens**, and the SDK's own screens are there 
 
 **Before the meeting** (once): both agents set up (section 1), credentials **Verified** (section 2), the app
 installed on a **real phone** from your own build, signed in once as **Riya Sharma** (allow the microphone and
-notifications). The day before, tell Asha *"I take metformin at 8 pm, after my evening walk."* in the chat and
-close the app, so memory has something to show. Keep the dashboard open on Asha's **Calls & scheduling** and on
-**Call History**.
+notifications). The day before, tell Asha *"My goal is to walk 30 minutes every evening, after dinner."* and
+*"Please call me for check-ins after 7 pm."* in the chat and close the app, so memory has something to show (a
+medicine or a symptom would not do: medical details are never kept). Keep the dashboard open on Asha's **Calls &
+scheduling**, **Memory → People** and **Call History**.
 
 | Time | Show | Do | What they see |
 |---|---|---|---|
 | 0:00 | Sign in | Graine Care → **Riya Sharma**, memory switch on → Continue | Home, with **Memory on** and the next booked call |
-| 1:00 | Memory | Open **Memory**: what Asha remembers about Riya. Then **Chat** → **New conversation** → *"What do I take in the evening?"* | Asha answers from memory, in a fresh conversation |
+| 1:00 | Memory | Open **Memory**: what Asha remembers about Riya. Then **Chat** → **New conversation** → *"What do you remember about me?"* | Asha answers from memory, in a fresh conversation: the walking goal and check-ins after 7 pm; the dashboard's **People** tab shows the same |
 | 2:30 | A component | In the chat: *"Let's do my daily check-in."* | The daily check-in card; a tap answers it |
 | 3:30 | An action | *"Open my medicines"*, then *"I have taken my metformin"* | The app moves to Medicines; Metformin 500 mg turns **Taken today** |
 | 4:30 | Call the agent | Home → **Call Asha** | A phone-style call; Asha knows who is calling and where they were |
@@ -302,8 +307,9 @@ close the app, so memory has something to show. Keep the dashboard open on Asha'
    `scripts/use-local-sdks.sh local flutter` with `../inapp-flutter` cloned.
 5. **Memory stays empty, or the agent does not recognise the person** — Memory is off for the agent, **Who is
    the user?** is not the pack's field (`patient_id`, `customer_id`, `shopper_id`), the person turned memory
-   off at sign-in, or they are past **Devices per user**. And ask after **New conversation**: a conversation
-   that continues knows what was said in it, memory or not.
+   off at sign-in, or they are past **Devices per user**. And ask after **New conversation**, about a minute
+   after the earlier conversation ended: a conversation that continues knows what was said in it, memory or
+   not, and what is said is ready for the next one about a minute after it ends.
 6. **The booking button is off ("Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID."), or the sheet says "Booking a call
    isn't available right now"** — Calls & scheduling → **Users, from your app** is off, Graine cannot ring
    this phone yet (Workspace settings → In-app calling has no credentials for this platform), or the person

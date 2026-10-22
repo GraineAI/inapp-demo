@@ -38,14 +38,25 @@ the matching file in `../usecases/`; the names here must stay identical to it.
    Make sure all three are selected for this agent. The prompt already names them.
 
 ## 3. Memory — 1 minute
-**Agent → Memory → Settings**:
+**Agent → Memory → Settings** (the same page as Embed & Widgets → **Users & memory**):
 - **Remembers users across chats and calls**: on.
 - **Who is the user?** → **Custom field** → the field from `settings.md` (`patient_id`, `customer_id` or
-  `shopper_id`). It must match the app, or nobody is recognised and nothing is remembered.
+  `shopper_id`). It must be exactly the field the app identifies the user with, or nobody is recognised and
+  nothing is remembered. Keep it once real users are on it: a new field starts new people. Phone calls are
+  recognised by the caller's number, so the app user and the caller are one person only with **Phone number**
+  here (and an app that identifies people by their number).
 - **Devices per user**: 2 — so the same person can use the website and a phone (or two phones); a third
-  device is still recognised but not remembered. **Shared with**: this agent only. **Keep memories for**:
+  device still works, without that person's memory. **Shared with**: this agent only. **Keep memories for**:
   365 days.
-- **What to remember — and what never to**: paste the text from `settings.md`.
+- **What to remember — and what never to**: paste the text block from `settings.md` (at most 1,000
+  characters; it replaces the default rules). Contact details, ID and card numbers, passwords and codes,
+  dates of birth, and medical conditions, prescriptions and diagnoses are removed before anything is saved,
+  whatever the rules say.
+- **The prompt** from step 1 already has the lines that make the agent use what it remembers: its **Memory**
+  section (the preferred language, a fact confirmed instead of asked again, a follow-up on what was agreed).
+  Memory gives the agent facts, placed after its prompt at the start of each chat, Talk or call; the prompt
+  decides what it does with them. For a flow agent, put those lines in the flow's **Agent information**
+  (every node reads it, and the memory goes there too), and node-specific ones in that node.
 
 ## 4. Calls & scheduling — 1 minute
 **Agent → Calls & scheduling**: the agent may book **on**, users may book **on** (the app's booking sheet —
@@ -73,7 +84,9 @@ one of the fictional people, then run the QA checklist in the root README.
 - **The app says the key was refused** → Allowed domains lacks `app://`, or the key is from another agent.
 - **The agent says it cannot do something the app shows** → App actions were imported but not saved.
 - **Memory stays empty** → Memory is off, *Who is the user?* is not the pack's field, or the person turned
-  memory off on the sign-in screen.
+  memory off on the sign-in screen. What is said is ready about a minute after the conversation ends: ask
+  after **New conversation**, not in the same chat.
+- **The agent remembers a fact but does not act on it** → the prompt's **Memory** section is missing.
 - **Booking says "does not take bookings from the app"** → *Users, from your app* is off.
 - **A booked call never rings** → In-app calling is not verified for this app's bundle ID / package, or
   the phone is a simulator (rings need a real device).

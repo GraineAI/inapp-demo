@@ -32,19 +32,30 @@ apps exactly (they read them from `usecases/retail-shopping.json`).
 | Return reason | quick_actions | `show_return_reasons` |
 | Delivery call times | calendar_slots | `show_delivery_call_times` |
 
-## Memory (Agent → Memory → Settings)
+## Memory (Agent → Memory → Settings, the same page as Embed & Widgets → Users & memory)
 
 | Setting | Value |
 |---|---|
 | Remembers users across chats and calls | **On** |
-| Who is the user? | **Custom field → `shopper_id`** |
+| Who is the user? | **Custom field → `shopper_id`** — the field the apps identify the shopper with; with any other field nobody is recognised |
 | Devices per user | 2 (the same person on the website and on a phone, or on two phones) |
 | What the agent remembers → Shared with | This agent only |
-| Keep memories for | 365 days |
-| What to remember — and what never to | Remember: sizes, where to leave parcels and the best delivery times, styles and brands the shopper likes, gift occasions. Never remember: payment details, full addresses, phone numbers. |
+| What the agent remembers → Keep memories for | 365 days |
+| What the agent remembers → What to remember — and what never to | the text below, as it is (at most 1,000 characters; it replaces the default rules) |
+
+```text
+Remember the shopper's sizes, the styles, colours and brands they like or dislike, where parcels
+should be left (for example with the security desk) and their best delivery times, gift occasions
+they mention, and returns or deliveries they are still waiting on.
+Never remember payment details, full addresses, phone numbers or order amounts.
+```
+
+Payment details, addresses and phone numbers are removed before anything is saved, whatever these rules say.
+What Tara does with what she remembers is set by the **Memory** section of `prompt.md` (part of the prompt you
+pasted): a size confirmed instead of asked again, a follow-up on a return or a delivery still open.
 
 Agent → Memory → **People** shows everyone the agent has talked to while they were identified and what it
-remembers about each — useful during QA.
+remembers about each — useful during QA. Erase a person there and the agent forgets them at once.
 
 ## Calls & scheduling (Agent → Calls & scheduling)
 

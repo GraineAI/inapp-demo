@@ -32,19 +32,32 @@ apps exactly (they read them from `usecases/banking-support.json`).
 | Report a transaction | lead_form | `show_dispute_form` |
 | Callback times | calendar_slots | `show_callback_times` |
 
-## Memory (Agent → Memory → Settings)
+## Memory (Agent → Memory → Settings, the same page as Embed & Widgets → Users & memory)
 
 | Setting | Value |
 |---|---|
 | Remembers users across chats and calls | **On** |
-| Who is the user? | **Custom field → `customer_id`** |
+| Who is the user? | **Custom field → `customer_id`** — the field the apps identify the customer with; with any other field nobody is recognised |
 | Devices per user | 2 (the same person on the website and on a phone, or on two phones) |
 | What the agent remembers → Shared with | This agent only |
-| Keep memories for | 365 days |
-| What to remember — and what never to | Remember: travel plans, when the customer prefers to be called, how they like to be addressed, payees they mention by name. Never remember: card numbers, PINs, one-time passwords, passwords, CVVs, security answers, balances. |
+| What the agent remembers → Keep memories for | 365 days |
+| What the agent remembers → What to remember — and what never to | the text below, as it is (at most 1,000 characters; it replaces the default rules) |
+
+```text
+Remember how the customer likes to be addressed, their preferred language, when they prefer to be
+called, travel plans they mention (where and when), and requests still open from last time (a
+callback, a payment they reported).
+Never remember card numbers, PINs, one-time passwords, passwords, CVVs, security answers, balances
+or amounts.
+```
+
+Card and bank details, ID numbers, passwords and codes are removed before anything is saved, whatever these
+rules say. What Kabir does with what he remembers is set by the **Memory** section of `prompt.md` (part of the
+prompt you pasted): the preferred name and language, a trip confirmed instead of asked again, a follow-up on an
+open request.
 
 Agent → Memory → **People** shows everyone the agent has talked to while they were identified and what it
-remembers about each — useful during QA.
+remembers about each — useful during QA. Erase a person there and the agent forgets them at once.
 
 ## Calls & scheduling (Agent → Calls & scheduling)
 

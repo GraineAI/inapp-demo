@@ -167,14 +167,14 @@
   },
   "memoryExamples": [
     {
-      "tell": "I take metformin at 8 pm, after my evening walk.",
-      "ask": "What do I take in the evening?",
-      "expect": "Metformin at 8 pm, after your evening walk."
+      "tell": "My goal is to walk 30 minutes every evening, after dinner.",
+      "ask": "What is my walking goal?",
+      "expect": "30 minutes every evening, after dinner."
     },
     {
-      "tell": "I feel dizzy if I skip breakfast.",
-      "ask": "What happens when I skip breakfast?",
-      "expect": "You told me you feel dizzy."
+      "tell": "Please call me for check-ins after 7 pm.",
+      "ask": "When should you call me for check-ins?",
+      "expect": "After 7 pm."
     }
   ],
   "starters": [

@@ -263,33 +263,54 @@ works on **real devices**, with the app installed from your own build:
 
 ### Memory QA script
 
-What is said is remembered when a conversation ends, so end each conversation before the next step: close the
-app completely, or sign out and back in. A person who comes back finds their conversation where they left it,
-so to show what **memory** knows — not the conversation — tap **New conversation** in the chat's header before
-asking: the chat starts fresh, and memory stays. Each pack has its own sentences (`memoryExamples` in its file):
+**How memory reaches the agent.** The app identifies the person with the pack's field (`patient_id`,
+`customer_id` or `shopper_id`) before any chat or call opens, and the agent's **Who is the user?** must be that
+same field: with no identity, or another field, every conversation is a stranger. A phone call is recognised by the
+caller's number: the app user and the caller are one person only when **Who is the user?** is Phone number (and the
+app identifies people by their number); with the pack's field they are two. At the start of each chat, Talk
+or call, what the agent remembers about the person goes into what the model reads, before its first reply: after
+the agent's prompt (for a flow agent, into the flow's agent information). What is said is saved every few messages
+and when the conversation ends, and is ready about a minute later. Contact details, ID and card numbers, passwords
+and codes, dates of birth, and medical conditions, prescriptions and diagnoses are removed before saving, whatever
+the agent's rules say. How the agent uses what it remembers is up to its prompt (the **Memory** section of
+`agent-setup/<pack>/prompt.md`).
 
-| Pack | Tell | Then ask | Expect |
-|---|---|---|---|
-| Care coach | "I take metformin at 8 pm, after my evening walk." | "What do I take in the evening?" | Metformin at 8 pm |
-| Banking | "I travel to Singapore every March for work." | "When do I usually travel abroad?" | Every March, to Singapore |
-| Shopping | "I wear size 7 in running shoes." | "What size do I wear in running shoes?" | Size 7 |
+A person who comes back finds their conversation where they left it, so to show what **memory** knows — not the
+conversation — tap **New conversation** in the chat's header before asking: the chat starts fresh, and memory
+stays. Each pack has two facts to tell (`memoryExamples` in its file):
 
-1. Sign in as the first person (memory on). In **Chat**, tell the assistant the sentence. End the conversation.
-2. Open the app again: the chat continues where it was. Tap **New conversation**, then ask the question — the
-   assistant knows.
-3. Open **Memory**: the list shows it (pull to refresh). The dashboard shows it too: Agent → Memory → People.
-4. Sign out, sign in as the second person, ask the same question — the assistant does not know, and their
-   Memory list does not show it.
-5. Sign out, sign in as the first person again, tap **New conversation** and ask — the assistant knows again.
-6. **Erase everything** → confirm → the list is empty; in a new conversation the assistant no longer knows.
-7. Turn memory off, tell it something new, end the conversation — in a new conversation it does not know it.
+| Pack | Tell, in one chat | Expect, in a new conversation |
+|---|---|---|
+| Care coach | "My goal is to walk 30 minutes every evening, after dinner." · "Please call me for check-ins after 7 pm." | The walking goal, and check-ins after 7 pm |
+| Banking | "I travel to Singapore every March for work." · "Please call me only after 6 pm on weekdays." | Singapore every March, and calls after 6 pm on weekdays |
+| Shopping | "I wear size 7 in running shoes." · "Please leave my parcels with the building security desk." | Size 7, and parcels with the security desk |
+
+1. Sign in as the first person (memory on). In **Chat**, tell the assistant both sentences. End the
+   conversation — close the app completely, or sign out and back in — and wait about a minute.
+2. Open the chat as the same person: it continues where it was. Tap **New conversation** and ask "What do you
+   remember about me?" — the assistant answers with both facts.
+3. **Memory** lists them (pull to refresh). So does the dashboard: Agent → Memory → **People**.
+4. Sign out, sign in as the second person, ask the same — the assistant does not know, and their Memory list
+   does not show it.
+5. Sign in as the first person again, tap **New conversation** and ask — the assistant knows again.
+6. Erase: **Erase everything** → confirm, or erase the person on the dashboard's **People** tab. The list is
+   empty, and in a new conversation the assistant no longer knows.
+7. Opt out: turn memory off (on the sign-in screen or the Memory screen), tell it something new, end the
+   conversation and wait a minute — in a new conversation it does not know it.
+8. Phone calls, if the agent has a phone number: call it, say a fact, hang up, wait a minute and call again from
+   the same number — it knows.
 
 ## Troubleshooting
 
 - **"The app's publishable key was refused"** — Allowed domains lacks `app://` (apps) or `localhost` (website),
   or the key belongs to another agent.
 - **Memory stays empty** — Memory is off for the agent, *Who is the user?* is not the pack's field, the user
-  turned memory off, or the user is already on two other devices (Devices per user).
+  turned memory off, or the user is already on two other devices (Devices per user). Or it is too soon: what
+  is said is ready about a minute after the conversation ends.
+- **The assistant never remembers a medicine or a symptom** — by design: medical details are removed before
+  anything is saved. It remembers goals, routines and preferences.
+- **The assistant remembers a fact but does not act on it** — the agent's prompt lacks the pack's **Memory**
+  section (`agent-setup/<pack>/prompt.md`).
 - **The booking button is disabled (the line under it says what to set)** — Calls & scheduling → Users,
   from your app is off, the workspace has no in-app calling for this platform (Workspace settings → In-app
   calling), or the person is not identified with the pack's field (**Who is the user?**).

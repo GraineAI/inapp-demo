@@ -63,9 +63,9 @@ keeps them equal to `agents.main`.
 identify({ [identifierField]: user.id, name: user.name, ...user.traits }, { memory: consent })
 ```
 
-`identifierField` must equal the agent's **Memory & identity → Who is the user? → Custom field**, or nobody is
-recognised and nothing is remembered. Sign out is `identify(null)`. Switching pack signs the current user
-out first.
+`identifierField` must equal the agent's **Memory → Settings → Who is the user? → Custom field** (also under
+Embed & Widgets → Users & memory), or nobody is recognised and nothing is remembered. Sign out is
+`identify(null)`. Switching pack signs the current user out first.
 
 ## Actions
 
@@ -118,7 +118,7 @@ are per user.
 | `items` | `title`, `screenName`, `itemNoun`, `emptyText`, `rows[]` (`id`, `title`, `subtitle`, `status?`, `fields[]` of `name`/`label`/`value`, `actions[]`, `userIds?`) |
 | `actions[]` | `name`, `effect`, `label` (button text), `description` (for the model), `status` (set_status), `args[]` (`name`, `type`, `required`, `description`, `enum?`) |
 | `call` | `callName` (name on the incoming call — match the dashboard), `title` (the screen), `bookLabel` (the button that opens the SDK's booking sheet), `reasons[]` (2–4, at most 120 characters each; the first starts the sheet's "What's it about?", which the user may change), `quickTimes[]` (one-tap times, `{label, inMinutes}` or `{label, day: "today"/"tomorrow", time: "HH:MM"}`, for an app that draws its own booking screen; the SDK's sheet does not use them), `placeReason` (reason on a call the user places) |
-| `memoryExamples[]` | `tell` / `ask` / `expect` — the memory QA script in the root README |
+| `memoryExamples[]` | `tell` / `ask` / `expect` — the memory QA script in the root README and the Memory screen's hint. Use facts memory keeps (a goal, a preference, a time to call): contact details, ID and card numbers, codes and medical details are removed before saving, so an example with one never passes |
 | `starters[]` | Up to four chat chips, 40 characters each |
 
 ## Adding a pack

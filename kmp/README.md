@@ -25,8 +25,8 @@ and voice bar as composables).
    **Help** tab), `graine.applicationId` and `graine.baseUrl`.
 2. iOS: copy `iosApp/Config.example.xcconfig` to `iosApp/Config.xcconfig` (git-ignored) and set your team,
    bundle id and the same keys.
-3. Recreate the agent from `../agent-setup/<pack>/` so its identity field, actions and call settings
-   match the pack you demo.
+3. Recreate the agent from `../agent-setup/<pack>/` so its identity field, memory, actions and call
+   settings match the pack you demo ([Memory, in a few minutes](#memory-in-a-few-minutes)).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
@@ -158,7 +158,30 @@ screens configures calls without it, and the SDK's own screen is back. Where a p
 
 ## Memory, in a few minutes
 
-Sign in as the first user, tell the assistant one of the pack's `memoryExamples` in the chat and close the
-app. Open it again — the chat continues where it was — tap **New conversation** in the chat's header and ask
-its question — it knows. **Memory** lists what it remembers; sign out and pick another user —
-it does not; switch back — it does; **Erase everything** — gone.
+**How it works.** At sign-in the app identifies the user by the pack's field (`patient_id`, `customer_id` or
+`shopper_id`) with their memory choice — `Graine.identify(traits, memory)` in `GraineService.kt` — before any chat,
+Talk or call opens. The agent's **Who is the user?** must be that same field, or every conversation is a stranger.
+A phone call to or from the agent is recognised by the caller's number instead: the app user and the caller are one
+person only when **Who is the user?** is Phone number and the app identifies the user by that number (with the
+pack's field, they are two). At the start of each chat, Talk or call, what the agent remembers about the user goes into what the model reads,
+before its first reply: after the agent's prompt (for a flow agent, into the flow's agent information). During a
+live chat or call, when the user refers to an earlier conversation ("last time", "I told you", "pichli baar"…), the
+agent also looks its memory up before answering (shipping with the next platform update). What is said is saved
+every few messages and when the conversation ends, and is ready about a minute later — never contact details, ID or
+card numbers, passwords or codes, dates of birth, or health conditions, medicines and diagnoses, whatever the
+agent's memory rules say. How the agent uses what it remembers is up to its prompt: the Memory section of
+`../agent-setup/<pack>/prompt.md`.
+
+**Try it**, with the agent set up from `../agent-setup/<pack>/settings.md` (Memory):
+
+1. Sign in as the first user, memory on. In **Chat**, tell the assistant the pack's two `memoryExamples` — for
+   Graine Care, "My goal is to walk 30 minutes every evening, after dinner." and "Please call me for check-ins
+   after 7 pm." Close the chat and wait about a minute.
+2. Open **Chat** — it continues where it was — tap **New conversation** in its header and ask "What do you
+   remember about me?": it answers with both. **Memory** lists them (pull to refresh), and so does the dashboard,
+   Agent → Memory → **People**.
+3. Sign out and pick another user: the assistant knows none of it. Sign in as the first again: it does.
+4. **Erase everything** on **Memory**, or erase the user on the dashboard's **People** tab: in a new conversation
+   it no longer knows.
+5. Opt out: memory off on the sign-in screen or on **Memory** (`identify(…, memory = false)`, `setMemory(false)`):
+   from the next conversation on, nothing is remembered or recalled.

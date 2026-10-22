@@ -459,9 +459,10 @@ export function memoryView(ctx) {
     card("Try it",
       h("ol", { class: "steps" }, pack.memoryExamples.map((ex) => h("li", null,
         h("p", null, "Tell ", pack.agentName, ": ", h("q", null, ex.tell)),
-        h("p", { class: "muted" }, "In a new conversation, ask: ", h("q", null, ex.ask)),
+        h("p", { class: "muted" }, "End the chat, wait about a minute, then in a new conversation ask: ", h("q", null, ex.ask)),
         h("p", { class: "muted" }, `${pack.agentName} should answer: `, h("q", null, ex.expect))))),
-      h("p", { class: "help" }, `Signed in as someone else, ${pack.agentName} does not know any of it.`)),
+      h("p", { class: "help" }, `Signed in as someone else, ${pack.agentName} does not know any of it. ` +
+        "Contact details, ID and card numbers, passwords and codes, dates of birth and medical details are never kept.")),
     h("section", { class: "card card-danger" },
       h("h2", { class: "card-title" }, "Erase"),
       h("p", { class: "muted" }, "Erasing cannot be undone. Your scheduled calls are not affected."),
