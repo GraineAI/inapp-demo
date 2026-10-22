@@ -36,6 +36,17 @@ class PackTest {
     }
 
     @Test
+    fun identifySendsTheIdUnderThePacksFieldAndUnderUserId() {
+        val health = UseCasePacks.load().first { it.id == "health-coach" }
+        val user = health.users[0]
+        val traits = health.traitsFor(user)
+        assertEquals(user.id, traits[health.identifierField], "the pack's own field")
+        assertEquals(user.id, traits["user_id"], "and User ID, so an agent set to it still knows the user")
+        val explicit = user.copy(traits = user.traits + ("user_id" to "kept-as-sent"))
+        assertEquals("kept-as-sent", health.traitsFor(explicit)["user_id"], "a user_id the person already has is kept")
+    }
+
+    @Test
     fun eachPackMapsItsPeopleToTheAgentsVariablesAsAnApiCallWould() {
         val health = UseCasePacks.load().first { it.id == "health-coach" }
         assertEquals(mapOf("callee_name" to "name", "age" to "age"), health.variables)
