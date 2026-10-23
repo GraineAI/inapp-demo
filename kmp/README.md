@@ -40,6 +40,14 @@ so both platforms read the same files); edit them there.
 GraineInAppRTC from Swift Package Manager (`iosApp/iosApp.xcodeproj`). With 0.14.3 published, nothing is set:
 build and run as below.
 
+**Your own app.** The multiplatform library calls Graine's iOS SDK and does not carry it, so an iOS app built
+with it links GraineInApp itself, at the same version: add `https://github.com/GraineAI/inapp-ios` (and
+`https://github.com/GraineAI/inapp-ios-rtc` for WebRTC calls) with Swift Package Manager to the **app target**, or
+`pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.3'` to its Podfile, and
+build the shared framework static (`isStatic = true`, as `composeApp/build.gradle.kts` does). A link error naming
+`_OBJC_CLASS_$_GraineObjC` means the app target does not link GraineInApp: add it to the target (General →
+Frameworks, Libraries, and Embedded Content), clean the build folder and build again.
+
 Before a version is published (or to try a fix that is not released), build against the SDK's sources — the
 multiplatform SDK with the Android SDK beside it (folders `kmp` and `android` side by side), and the iOS SDK with
 its WebRTC module beside it (`ios` and `ios-rtc`), all of the same version:
