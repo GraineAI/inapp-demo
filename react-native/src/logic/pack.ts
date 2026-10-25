@@ -90,9 +90,16 @@ export interface UseCasePack {
 
 export const SCREEN_KEYS: ReadonlyArray<ScreenKey> = ["home", "chat", "items", "calls", "memory", "profile"];
 
-/** What identify() is given: the identifier under the pack's field, the name, and the person's traits. */
+/**
+ * What identify() is given: the identifier under the pack's field, the name, and the person's traits — and the same
+ * identifier under `user_id` too, so the user is recognised whether the agent's "Who is the user?" names the pack's
+ * field or User ID (the dashboard's usual choice). The SDK reads only the field the agent names; any other key is a
+ * detail for the agent.
+ */
 export function identifyTraits(pack: UseCasePack, user: PackUser): Record<string, string> {
-  return { ...user.traits, name: user.name, [pack.identifierField]: user.id };
+  const traits: Record<string, string> = { ...user.traits, name: user.name, [pack.identifierField]: user.id };
+  if (traits.user_id == null) traits.user_id = user.id; // a user_id the person already has is kept
+  return traits;
 }
 
 /** A pack that names no variables: the person's name as `callee_name`, what greetings and Call History read. */

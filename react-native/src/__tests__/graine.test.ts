@@ -103,8 +103,9 @@ describe("identity and memory", () => {
   it("signs in with the pack's identifier trait and the consent choice", () => {
     graine.signIn(health, health.users[0], false);
     const client = graine.currentClient() as any;
+    // The id rides under the pack's field and under user_id, so either "Who is the user?" choice recognises the user.
     expect(client.identify).toHaveBeenCalledWith(
-      { patient_id: "MRN-000981", name: "Riya Sharma", plan: "Diabetes care", care_team: "Dr. Kavya Rao", age: "34" },
+      { patient_id: "MRN-000981", name: "Riya Sharma", plan: "Diabetes care", care_team: "Dr. Kavya Rao", age: "34", user_id: "MRN-000981" },
       { memory: false },
     );
   });

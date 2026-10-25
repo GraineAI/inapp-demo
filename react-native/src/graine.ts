@@ -94,8 +94,9 @@ const c = (): GraineInAppClient => currentClient();
 // ── Who is signed in, and memory ───────────────────────────────────────────
 
 /**
- * identify() with the pack's identifier trait (patient_id, customer_id…), the name and the person's
- * traits. The identifier keys memory and booked calls; it is never a prompt variable. `memory` is
+ * identify() with the pack's identifier trait (patient_id, customer_id…) and the same id under user_id,
+ * the name and the person's traits (identifyTraits). The identifier keys memory and booked calls; it is
+ * never a prompt variable. `memory` is
  * the consent switch. A new identity applies from the next conversation. Returns at once; the SDK
  * sends what it must (a sign-out of the previous person) by itself.
  *

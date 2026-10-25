@@ -3,7 +3,7 @@ import { execFileSync } from "child_process";
 import { readdirSync } from "fs";
 import path from "path";
 import { DEFAULT_PACK_ID, PACKS } from "../usecases";
-import { variableNames, variablesFor } from "../logic/pack";
+import { identifyTraits, variableNames, variablesFor } from "../logic/pack";
 
 const root = path.resolve(__dirname, "../../..");
 
@@ -25,6 +25,16 @@ it("gives every pack a main agent (the top-level one) and a help agent of its ow
     expect(p.agents.help.name).not.toBe(p.agentName);
     expect(p.agents.help.reasons.length).toBeGreaterThanOrEqual(2);
   }
+});
+
+it("identify sends the id under the pack's field and under user_id", () => {
+  const health = PACKS.find((p) => p.id === "health-coach")!;
+  const user = health.users[0];
+  const traits = identifyTraits(health, user);
+  expect(traits[health.identifierField]).toBe(user.id); // the pack's own field
+  expect(traits.user_id).toBe(user.id); // and User ID, so an agent set to it still knows the user
+  const explicit = { ...user, traits: { ...user.traits, user_id: "kept-as-sent" } };
+  expect(identifyTraits(health, explicit).user_id).toBe("kept-as-sent"); // a user_id the person already has is kept
 });
 
 it("maps each pack's people to the agent's variables, as an API call would", () => {
