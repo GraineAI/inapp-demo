@@ -168,7 +168,8 @@ screens configures calls without it, and the SDK's own screen is back. Where a p
 
 **How it works.** At sign-in the app identifies the user by the pack's field (`patient_id`, `customer_id` or
 `shopper_id`) with their memory choice — `Graine.identify(traits, memory)` in `GraineService.kt` — before any chat,
-Talk or call opens. The agent's **Who is the user?** must be that same field, or every conversation is a stranger.
+Talk or call opens. The same id also goes under `user_id`, so the user is recognised whether the agent's
+**Who is the user?** is the pack's field or **User ID** (the dashboard's usual choice).
 A phone call to or from the agent is recognised by the caller's number instead: the app user and the caller are one
 person only when **Who is the user?** is Phone number and the app identifies the user by that number (with the
 pack's field, they are two). At the start of each chat, Talk or call, what the agent remembers about the user goes into what the model reads,
