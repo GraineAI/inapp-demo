@@ -67,7 +67,8 @@ final class AppModelTests: XCTestCase {
 
     func testSignInIdentifiesTheUserWithTheirConsent() {
         model.signIn(riya, memory: false)
-        XCTAssertEqual(fake.identified.last?.0, ["patient_id": "P-1", "name": "Riya Sharma", "plan": "Diabetes care"])
+        // The id rides under the pack's field and under user_id, so either "Who is the user?" choice recognises the user.
+        XCTAssertEqual(fake.identified.last?.0, ["patient_id": "P-1", "name": "Riya Sharma", "plan": "Diabetes care", "user_id": "P-1"])
         XCTAssertEqual(fake.identified.last?.1, false)
         XCTAssertFalse(model.memoryOn)
         XCTAssertEqual(model.memoryStatus.label, "Memory: off")

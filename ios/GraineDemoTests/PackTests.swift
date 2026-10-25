@@ -43,6 +43,16 @@ final class BundledPackTests: XCTestCase {
         }
     }
 
+    func testIdentifySendsTheIdUnderThePacksFieldAndUnderUserId() throws {
+        let health = try XCTUnwrap(UseCasePacks.load().first { $0.id == "health-coach" })
+        let user = health.users[0]
+        let traits = health.traits(for: user)
+        XCTAssertEqual(traits[health.identifierField], user.id, "the pack's own field")
+        XCTAssertEqual(traits["user_id"], user.id, "and User ID, so an agent set to it still knows the user")
+        let explicit = UseCasePack.User(id: user.id, name: user.name, traits: user.traits.merging(["user_id": "kept-as-sent"]) { $1 })
+        XCTAssertEqual(health.traits(for: explicit)["user_id"], "kept-as-sent", "a user_id the person already has is kept")
+    }
+
     func testEachPackMapsItsPeopleToTheAgentsVariablesAsAnAPICallWould() throws {
         let health = try XCTUnwrap(UseCasePacks.load().first { $0.id == "health-coach" })
         XCTAssertEqual(health.variables, ["callee_name": "name", "age": "age"])
@@ -73,7 +83,7 @@ final class PackModelTests: XCTestCase {
     private let pack = TestPack.pack
 
     func testTraitsCarryTheIdentifierUnderTheAgentsField() {
-        XCTAssertEqual(pack.traits(for: pack.users[0]), ["patient_id": "P-1", "name": "Riya Sharma", "plan": "Diabetes care"])
+        XCTAssertEqual(pack.traits(for: pack.users[0]), ["patient_id": "P-1", "name": "Riya Sharma", "plan": "Diabetes care", "user_id": "P-1"])
     }
 
     func testRowsAreTheUsersOwnPlusTheShared() {

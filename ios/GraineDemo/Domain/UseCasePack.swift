@@ -197,11 +197,15 @@ struct UseCasePack: Codable, Identifiable, Equatable {
     /// A pack that names no variables: the person's name as `callee_name`, what greetings and Call History read.
     static let defaultVariables = ["callee_name": "name"]
 
-    /// `identify`'s traits: the identifier under the agent's identity field, the name, and the extra traits.
+    /// `identify`'s traits: the identifier under the pack's identity field, the name, and the extra traits —
+    /// and the same identifier under `user_id` too, so the user is recognised whether the agent's
+    /// "Who is the user?" names the pack's field or User ID (the dashboard's usual choice). The SDK
+    /// reads only the field the agent names; any other key is a detail for the agent.
     func traits(for user: User) -> [String: String] {
         var out = user.traits
         out["name"] = user.name
         out[identifierField] = user.id
+        if out["user_id"] == nil { out["user_id"] = user.id }   // a user_id the person already has is kept
         return out
     }
 
