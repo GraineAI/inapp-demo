@@ -34,8 +34,8 @@ import kotlinx.coroutines.delay
 
 /**
  * The layers, bottom to top: the app (sign-in or the tabs), the chat, the
- * voice bar and a notice. The call screen is the SDK's own full-screen
- * activity, so it comes up over everything by itself.
+ * voice bar, Past sessions and a notice. The call screen is the SDK's own
+ * full-screen activity, so it comes up over everything by itself.
  */
 @Composable
 fun DemoApp(model: AppModel) {
@@ -61,6 +61,12 @@ fun DemoApp(model: AppModel) {
                             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(bottom = 80.dp),
                         )
                     }
+                }
+
+                // Past sessions, over the chat it was opened from; Back closes the transcript first.
+                model.pastSessionsAgent?.let { agent ->
+                    BackHandler { if (model.transcript != null) model.closeTranscript() else model.closePastSessions() }
+                    PastSessionsScreen(model, agent)
                 }
 
                 model.notice?.let { text ->

@@ -82,7 +82,7 @@ below is only for building against SDK sources on your machine:
 |---|:-:|---|
 | Swift Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.13.1) | yes | iOS; the Kotlin Multiplatform app's iOS side |
 | npm (`@graineai/inapp-react-native` 0.44.1, `@graineai/inapp-react-native-calls` 0.5.1) | yes | React Native |
-| Maven Central (`ai.graine:inapp-android` 0.13.1, `ai.graine:inapp-kmp` 0.13.1) | yes | Android, Kotlin Multiplatform |
+| Maven Central (`ai.graine:inapp-android` 0.14.3, `ai.graine:inapp-kmp` 0.13.1) | yes | Android, Kotlin Multiplatform |
 | pub.dev (`graine_inapp` 0.13.1) | yes | Flutter |
 | CocoaPods trunk (`GraineInApp` 0.13.1) | yes | not used by these apps |
 
@@ -125,10 +125,10 @@ offline demo draws every screen in the simulator: [`ios/README.md`](ios/README.m
 
 Android Studio, JDK 17. Copy `android/local.properties.example` to `android/local.properties` and set
 `sdk.dir`, `graine.publishableKey`, `graine.helpPublishableKey`, `graine.applicationId`. The SDK comes from Maven
-Central (0.13.1). Optional — to build against SDK sources on your machine instead, the switch:
+Central (0.14.3). Optional — to build against SDK sources on your machine instead, the switch:
 
 ```sh
-git clone --branch 0.13.1 https://github.com/GraineAI/inapp-android ../inapp-android
+git clone --branch 0.14.3 https://github.com/GraineAI/inapp-android ../inapp-android
 echo "graine.sdkDir=../../inapp-android" >> android/local.properties
 
 cd android

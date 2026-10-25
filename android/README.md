@@ -2,7 +2,7 @@
 
 A Kotlin app (Jetpack Compose, Android 8.0+, target 36) that shows every in-app feature of the Graine
 SDK: the assistant in a voice bar, the chat window with components, phone-style calls rung by FCM,
-identity and memory, calls the user books, and screen context with actions. Every domain word comes from
+identity and memory, past sessions, calls the user books, and screen context with actions. Every domain word comes from
 a use-case pack in `../usecases/` (care coach by default, or banking or shopping — switch on the sign-in
 screen). All people and records are fictional.
 
@@ -24,12 +24,12 @@ screen). All people and records are fictional.
 
 The packs are bundled from `../usecases/*.json` at build time (task `bundleUseCases`); edit them there.
 
-**The app depends on `ai.graine:inapp-android:0.13.1`. Until Maven Central has it**, build against the
-SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.13.1` once it is
+**The app depends on `ai.graine:inapp-android:0.14.3`. Until Maven Central has it**, build against the
+SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.14.3` once it is
 published (or any checkout of the SDK's sources). Beside this repository:
 
 ```sh
-git clone --branch 0.13.1 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
+git clone --branch 0.14.3 https://github.com/GraineAI/inapp-android ../inapp-android   # from the repository root
 ```
 
 and in `local.properties`:
@@ -39,16 +39,17 @@ graine.sdkDir=../../inapp-android
 ```
 
 (or `-Pgraine.sdkDir=…`, or `GRAINE_ANDROID_SDK_DIR`). Gradle then builds the SDK from that checkout in place
-of the published artifact. Remove the line once Maven Central has 0.13.1.
+of the published artifact. Remove the line once Maven Central has 0.14.3.
 
 ## What is where
 
 | | |
 |---|---|
-| `app/src/main/java/ai/graine/demo/graine/GraineService.kt` | The one file that calls the SDK (identify, memory, screen context, actions, scheduling, voice, chat, calls) |
-| `…/domain/` | The pack model, the Items list, call presentation — no SDK rules re-implemented |
+| `app/src/main/java/ai/graine/demo/graine/GraineService.kt` | The one file that calls the SDK (identify, memory, screen context, actions, scheduling, voice, chat, calls, past sessions) |
+| `…/graine/PastSessionsSdk.kt` | Past sessions read from the SDK (`chat.pastSessions`, `sessionTranscript`) into the app's own state |
+| `…/domain/` | The pack model, the Items list, call presentation, how past sessions read — no SDK rules re-implemented |
 | `…/ui/AppModel.kt` | The app's state and the agent's actions, run by effect in the pack's words |
-| `…/ui/*Screen.kt` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Call activity |
+| `…/ui/*Screen.kt` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Call activity · Past sessions |
 | `…/notify/NotificationAccess.kt` | Notification permission (Android 13+) and full-screen calls (Android 14+) |
 | `app/src/test/` | Unit tests against a fake SDK client: `./gradlew testDebugUnitTest` |
 
@@ -70,6 +71,17 @@ drawn in the agent's design — so the app has no booking screen of its own. The
 which starts the sheet's "What's it about?". The button is enabled while the agent's `bookingAvailable` is
 true; otherwise it stays on screen, disabled, with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID." After a booking,
 the **Calls** list is read again; there each call has its status and, while it can be, **Cancel**.
+
+## Past sessions
+
+**Past sessions**, at the top of the chat (Chat, and the help desk's chat on **Help**), lists the signed-in user's
+earlier sessions with that agent, newest first: the date and time, chat, voice or call (and who started it), how
+long, how it ended, how many messages, the first words, and the session id with **Copy**. The SDK has no screen for
+it: the app draws it from `chat.pastSessions` (`PastSessionsScreen.kt`), calls `refreshPastSessions()` when it opens
+and `loadMorePastSessions()` at the end of the list, and says when the list is empty, loading or refused ("Sign in
+to see past sessions", "Not available on this device"). A tap opens `chat.sessionTranscript(id)`, read only, each
+line with its time. The session open now is never listed: a chat closes 15 seconds after its screen does (the demo
+sets `GraineConfig(chatCloseDelaySeconds = 15)`, the SDK's default) and is listed once it has closed.
 
 ## Calls on a real device
 

@@ -5,6 +5,8 @@ import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreenContext
+import ai.graine.demo.domain.PastSessionsState
+import ai.graine.demo.domain.SessionTranscript
 import ai.graine.inapp.ActionResult
 import ai.graine.inapp.GraineAgentBarView
 import ai.graine.inapp.GraineCall
@@ -20,6 +22,7 @@ import ai.graine.inapp.GraineField
 import ai.graine.inapp.GraineInApp
 import ai.graine.inapp.GraineListener
 import ai.graine.inapp.GraineMemory
+import ai.graine.inapp.GrainePastSessions
 import ai.graine.inapp.GraineScheduledCall
 import ai.graine.inapp.GraineScreen
 import ai.graine.inapp.SessionConfig
@@ -91,9 +94,21 @@ interface GraineClient {
     /** The call's id, or null when another call is live. Needs the activity in front. */
     fun startNativeCall(activity: Activity, reason: String, variables: Map<String, String>, agent: DemoAgent): String?
 
+    // Past sessions: the signed-in user's earlier sessions with an agent, newest first, and one session's transcript
+    /** The list as the SDK holds it now (chat.pastSessions): the sessions loaded so far, loading, more to load, the last error. */
+    fun pastSessions(agent: DemoAgent): PastSessionsState
+    /** Load the first page again (chat.refreshPastSessions). */
+    fun refreshPastSessions(agent: DemoAgent)
+    /** Load the next page (chat.loadMorePastSessions). */
+    fun loadMorePastSessions(agent: DemoAgent)
+    /** [done] hears one session's lines, oldest first (chat.sessionTranscript), or why not: `not_found` for one that is not this user's. */
+    fun sessionTranscript(id: String, agent: DemoAgent, done: (SessionTranscript?, GraineError?) -> Unit)
+
     // What the SDK reports
     var onSessionReady: (() -> Unit)?
     var onCallEvent: ((CallEvent) -> Unit)?
+    /** An agent's past sessions changed (loading, a page arrived, a refusal, or another user signed in). */
+    var onPastSessions: ((DemoAgent, PastSessionsState) -> Unit)?
 }
 
 /**
@@ -115,6 +130,7 @@ class GraineService private constructor(private val main: GraineInApp, private v
     private val registered = mutableListOf<() -> Unit>()
     override var onSessionReady: (() -> Unit)? = null
     override var onCallEvent: ((CallEvent) -> Unit)? = null
+    override var onPastSessions: ((DemoAgent, PastSessionsState) -> Unit)? = null
 
     // Held here: the SDK keeps listeners in a set, and these live as long as the app.
     private val sessionListener = object : GraineListener {
@@ -142,10 +158,25 @@ class GraineService private constructor(private val main: GraineInApp, private v
     private fun agentOf(callId: String): DemoAgent? =
         main.calls.callAgent?.takeIf { main.calls.call?.callId == callId }?.let { DemoAgent.ofSdkName(it.name) }
 
+    /**
+     * Each agent's chat tells its change listeners about every change (a message, typing, the connection); the app
+     * hears only when that agent's past sessions changed. Held here, like the listeners above.
+     */
+    private val pastWatchers: Map<DemoAgent, Runnable> = DemoAgent.values().associateWith { agent ->
+        var last: GrainePastSessions? = null
+        Runnable {
+            val now = sdk(agent)?.chat?.pastSessions ?: return@Runnable
+            if (now == last) return@Runnable
+            last = now
+            onPastSessions?.invoke(agent, PastSessionsSdk.state(now))
+        }
+    }
+
     init {
         main.addListener(sessionListener)
         help?.addListener(sessionListener)
         main.calls.addListener(callListener)
+        agents.forEach { agent -> sdk(agent)?.chat?.addChangeListener(pastWatchers.getValue(agent)) }
     }
 
     override val agents: List<DemoAgent> get() = if (help == null) listOf(DemoAgent.MAIN) else listOf(DemoAgent.MAIN, DemoAgent.HELP)
@@ -254,6 +285,24 @@ class GraineService private constructor(private val main: GraineInApp, private v
         return main.calls.startCall(activity, reason = reason, variables = variables, agent = agent.sdkName)
     }
 
+    // ── past sessions (PastSessionsSdk reads the SDK's state) ──────────────
+
+    override fun pastSessions(agent: DemoAgent): PastSessionsState =
+        sdk(agent)?.chat?.pastSessions?.let { PastSessionsSdk.state(it) } ?: PastSessionsState(error = GraineErrorCode.UNAVAILABLE.wire)
+
+    override fun refreshPastSessions(agent: DemoAgent) {
+        sdk(agent)?.chat?.refreshPastSessions()
+    }
+
+    override fun loadMorePastSessions(agent: DemoAgent) {
+        sdk(agent)?.chat?.loadMorePastSessions()
+    }
+
+    override fun sessionTranscript(id: String, agent: DemoAgent, done: (SessionTranscript?, GraineError?) -> Unit) {
+        val graine = sdk(agent) ?: return done(null, noAgent)
+        graine.chat.sessionTranscript(id) { transcript, error -> done(transcript?.let { PastSessionsSdk.transcript(it) }, error) }
+    }
+
     // ── the SDK's own views, and the activity's plumbing ────────────────────
 
     /** Mount the voice engine on the first activity (it follows the user from activity to activity). */
@@ -282,10 +331,20 @@ class GraineService private constructor(private val main: GraineInApp, private v
     companion object {
         @Volatile private var instance: GraineService? = null
 
+        /** How long a chat session stays open after the chat screen closes, in seconds (GraineConfig.chatCloseDelaySeconds). */
+        const val CHAT_CLOSE_DELAY_SECONDS = 15
+
         /** Configure the agents and the calls. Once, in Application.onCreate. */
         fun start(app: Application, config: AppConfig, callName: String, appVersion: String, debug: Boolean): GraineService {
             instance?.let { return it }
-            fun agentConfig(key: String) = GraineConfig(baseUrl = config.baseUrl, publishableKey = key, appVersion = appVersion, debug = debug)
+            // A chat session closes this long after its screen closes (the SDK's default, set here so it is plain to see).
+            fun agentConfig(key: String) = GraineConfig(
+                baseUrl = config.baseUrl,
+                publishableKey = key,
+                appVersion = appVersion,
+                debug = debug,
+                chatCloseDelaySeconds = CHAT_CLOSE_DELAY_SECONDS,
+            )
             val main = GraineInApp.init(app, agentConfig(config.publishableKey))
             val help = if (config.hasHelpKey) GraineInApp.init(app, agentConfig(config.helpPublishableKey), DemoAgent.HELP.sdkName) else null
             return GraineService(main, help).also {

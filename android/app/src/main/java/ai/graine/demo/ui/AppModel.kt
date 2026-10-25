@@ -13,7 +13,10 @@ import ai.graine.demo.domain.DemoFormat
 import ai.graine.demo.domain.DemoScreen
 import ai.graine.demo.domain.DemoScreenContext
 import ai.graine.demo.domain.ItemsState
+import ai.graine.demo.domain.PastSessionsState
+import ai.graine.demo.domain.PastSessionsText
 import ai.graine.demo.domain.RowMatch
+import ai.graine.demo.domain.SessionTranscript
 import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.domain.UseCasePacks
 import ai.graine.demo.graine.CallEvent
@@ -105,12 +108,29 @@ class AppModel(
     /** A short message for the user: what just happened, or why it did not. */
     var notice by mutableStateOf<String?>(null)
 
+    /** The Past sessions screen is open, for this agent's sessions (from the chat). */
+    var pastSessionsAgent by mutableStateOf<DemoAgent?>(null)
+        private set
+    /** That agent's past sessions, as the SDK holds them (chat.pastSessions). */
+    var pastSessions by mutableStateOf(PastSessionsState())
+        private set
+    /** The past session whose transcript is open on it. */
+    var transcript by mutableStateOf<SessionTranscript?>(null)
+        private set
+    /** The id of the transcript on its way. */
+    var transcriptLoading by mutableStateOf<String?>(null)
+        private set
+    /** Why the last transcript could not be opened, in plain words. */
+    var transcriptError by mutableStateOf<String?>(null)
+        private set
+
     /** The activity in front: a native call is placed from it, and the booking sheet shown over it. Set by MainActivity. */
     var activity: Activity? = null
 
     init {
         graine.onSessionReady = { sessionArrived() }
         graine.onCallEvent = { record(it) }
+        graine.onPastSessions = { agent, state -> if (agent == pastSessionsAgent) pastSessions = state }
         registerActions()
         refreshBookable()
         agentMemoryEnabled = graine.agentMemoryEnabled
@@ -183,6 +203,7 @@ class AppModel(
         memories = emptyList()
         chatAgent = null
         voiceAgent = null
+        closePastSessions()
         profileOpen = false
         callLogOpen = false
         tab = DemoTab.HOME
@@ -272,6 +293,7 @@ class AppModel(
     fun select(next: DemoTab) {
         tab = next
         chatAgent = null
+        closePastSessions()
         profileOpen = false
         callLogOpen = false
         describeScreen()
@@ -325,6 +347,53 @@ class AppModel(
 
     fun voiceBarClosed() {
         voiceAgent = null
+    }
+
+    // ── past sessions ───────────────────────────────────────────────────────
+
+    /** The Past sessions screen for [agent]: the SDK loads the first page again, newest first. */
+    fun openPastSessions(agent: DemoAgent) {
+        if (user == null || !isAvailable(agent)) return
+        pastSessionsAgent = agent
+        pastSessions = graine.pastSessions(agent)
+        closeTranscript()
+        graine.refreshPastSessions(agent)
+    }
+
+    fun closePastSessions() {
+        pastSessionsAgent = null
+        closeTranscript()
+    }
+
+    fun refreshPastSessions() {
+        pastSessionsAgent?.let { graine.refreshPastSessions(it) }
+    }
+
+    /** The next page, at the end of the list: only while there is more and nothing is on its way. */
+    fun loadMorePastSessions() {
+        val agent = pastSessionsAgent ?: return
+        val state = graine.pastSessions(agent)
+        if (state.loading || !state.hasMore) return
+        graine.loadMorePastSessions(agent)
+    }
+
+    /** A past session's transcript, read only: what was said, oldest first. */
+    fun openTranscript(id: String) {
+        val agent = pastSessionsAgent ?: return
+        transcriptLoading = id
+        transcriptError = null
+        graine.sessionTranscript(id, agent) { result, error ->
+            if (pastSessionsAgent != agent || transcriptLoading != id) return@sessionTranscript
+            transcriptLoading = null
+            if (result != null) transcript = result
+            else transcriptError = PastSessionsText.transcriptError(error?.code?.wire) ?: words(error)
+        }
+    }
+
+    fun closeTranscript() {
+        transcript = null
+        transcriptLoading = null
+        transcriptError = null
     }
 
     /** "Call": a native call with that agent on the phone's call screen, carrying the pack's placeReason. */

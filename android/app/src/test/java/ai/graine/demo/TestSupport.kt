@@ -3,6 +3,8 @@ package ai.graine.demo
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreenContext
+import ai.graine.demo.domain.PastSessionsState
+import ai.graine.demo.domain.SessionTranscript
 import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
@@ -125,8 +127,29 @@ class FakeGraineClient : GraineClient {
     var nativeCallId: String? = "call_1"
     val nativeCalls = mutableListOf<Triple<String, Map<String, String>, DemoAgent>>()
 
+    /** Each agent's past sessions as the SDK holds them; set with [pastChanged] to tell the app, as the SDK's listeners do. */
+    val past = mutableMapOf<DemoAgent, PastSessionsState>()
+    val pastRefreshes = mutableListOf<DemoAgent>()
+    val pastMores = mutableListOf<DemoAgent>()
+    /** What each transcript asked for answers: the transcript, or why not. Unset ids are not answered (still on their way). */
+    val transcripts = mutableMapOf<String, Pair<SessionTranscript?, GraineError?>>()
+
     override var onSessionReady: (() -> Unit)? = null
     override var onCallEvent: ((CallEvent) -> Unit)? = null
+    override var onPastSessions: ((DemoAgent, PastSessionsState) -> Unit)? = null
+
+    /** The SDK's past sessions for [agent] changed. */
+    fun pastChanged(agent: DemoAgent, state: PastSessionsState) {
+        past[agent] = state
+        onPastSessions?.invoke(agent, state)
+    }
+
+    override fun pastSessions(agent: DemoAgent): PastSessionsState = past[agent] ?: PastSessionsState()
+    override fun refreshPastSessions(agent: DemoAgent) { pastRefreshes += agent }
+    override fun loadMorePastSessions(agent: DemoAgent) { pastMores += agent }
+    override fun sessionTranscript(id: String, agent: DemoAgent, done: (SessionTranscript?, GraineError?) -> Unit) {
+        transcripts[id]?.let { (t, e) -> done(t, e) }
+    }
 
     override fun identify(traits: Map<String, String>?, memory: Boolean?) { identified += traits to memory }
     override fun setVariables(values: Map<String, String?>) { variables += values }

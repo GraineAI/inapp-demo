@@ -18,7 +18,7 @@ rootProject.name = "graine-demo-android"
 include(":app")
 
 /*
- * THE LOCAL-SDK SWITCH. The app depends on the published ai.graine:inapp-android:0.13.1. To build it
+ * THE LOCAL-SDK SWITCH. The app depends on the published ai.graine:inapp-android:0.14.3. To build it
  * against SDK sources on this machine instead (a version not on Maven Central yet), set in
  * local.properties — for a checkout of https://github.com/GraineAI/inapp-android beside this repository:
  *
