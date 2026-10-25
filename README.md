@@ -106,8 +106,9 @@ and [docs/integration-guide.pdf](docs/integration-guide.pdf).
 
 1. **Create the agent** for the use case you want — [`agent-setup/SETUP.md`](agent-setup/SETUP.md) walks
    through it in ten minutes from `agent-setup/<pack>/` (prompt, actions, components, settings). Two settings
-   must match the pack exactly: **Memory → Who is the user? → Custom field** (`patient_id`, `customer_id` or
-   `shopper_id`) and **Calls & scheduling → Users, from your app** (on).
+   must match the pack: **Memory → Who is the user? → Custom field** (`patient_id`, `customer_id` or
+   `shopper_id`) — or **User ID**: the apps send the same id under `user_id` too — and
+   **Calls & scheduling → Users, from your app** (on).
 2. **Allow the apps and the website**: Agent → Embed & Widgets → Allowed domains: `app://` for the apps,
    `localhost` for the website on your machine.
 3. **Copy the publishable key** (`pk_live_…`, Agent → Embed & Widgets) into each app's configuration:
@@ -264,8 +265,9 @@ works on **real devices**, with the app installed from your own build:
 ### Memory QA script
 
 **How memory reaches the agent.** The app identifies the person with the pack's field (`patient_id`,
-`customer_id` or `shopper_id`) before any chat or call opens, and the agent's **Who is the user?** must be that
-same field: with no identity, or another field, every conversation is a stranger. A phone call is recognised by the
+`customer_id` or `shopper_id`) before any chat or call opens. The same id also goes under `user_id`, so the person
+is recognised whether the agent's **Who is the user?** is the pack's field or **User ID** (the dashboard's usual
+choice): with no identity, or another field, every conversation is a stranger. A phone call is recognised by the
 caller's number: the app user and the caller are one person only when **Who is the user?** is Phone number (and the
 app identifies people by their number); with the pack's field they are two. At the start of each chat, Talk
 or call, what the agent remembers about the person goes into what the model reads, before its first reply: after
@@ -304,16 +306,16 @@ stays. Each pack has two facts to tell (`memoryExamples` in its file):
 
 - **"The app's publishable key was refused"** — Allowed domains lacks `app://` (apps) or `localhost` (website),
   or the key belongs to another agent.
-- **Memory stays empty** — Memory is off for the agent, *Who is the user?* is not the pack's field, the user
-  turned memory off, or the user is already on two other devices (Devices per user). Or it is too soon: what
-  is said is ready about a minute after the conversation ends.
+- **Memory stays empty** — Memory is off for the agent, *Who is the user?* is neither the pack's field nor
+  User ID, the user turned memory off, or the user is already on two other devices (Devices per user). Or it is
+  too soon: what is said is ready about a minute after the conversation ends.
 - **The assistant never remembers a medicine or a symptom** — by design: medical details are removed before
   anything is saved. It remembers goals, routines and preferences.
 - **The assistant remembers a fact but does not act on it** — the agent's prompt lacks the pack's **Memory**
   section (`agent-setup/<pack>/prompt.md`).
 - **The booking button is disabled (the line under it says what to set)** — Calls & scheduling → Users,
   from your app is off, the workspace has no in-app calling for this platform (Workspace settings → In-app
-  calling), or the person is not identified with the pack's field (**Who is the user?**).
+  calling), or **Who is the user?** is neither the pack's field nor User ID.
 - **A booked call never rings** — In-app calling is not verified for this bundle ID or package, the phone is a
   simulator, or (Android) the build has no `google-services.json`.
 - **Flutter keeps the previous use case** — that pack's agents have other keys; close and reopen the app.

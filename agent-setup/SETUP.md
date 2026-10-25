@@ -41,10 +41,10 @@ the matching file in `../usecases/`; the names here must stay identical to it.
 **Agent → Memory → Settings** (the same page as Embed & Widgets → **Users & memory**):
 - **Remembers users across chats and calls**: on.
 - **Who is the user?** → **Custom field** → the field from `settings.md` (`patient_id`, `customer_id` or
-  `shopper_id`). It must be exactly the field the app identifies the user with, or nobody is recognised and
-  nothing is remembered. Keep it once real users are on it: a new field starts new people. Phone calls are
-  recognised by the caller's number, so the app user and the caller are one person only with **Phone number**
-  here (and an app that identifies people by their number).
+  `shopper_id`). The apps identify the user with that field and with the same id under `user_id`, so **User ID**
+  works too; with any other field nobody is recognised and nothing is remembered. Keep it once real users are
+  on it: a new field starts new people. Phone calls are recognised by the caller's number, so the app user and
+  the caller are one person only with **Phone number** here (and an app that identifies people by their number).
 - **Devices per user**: 2 — so the same person can use the website and a phone (or two phones); a third
   device still works, without that person's memory. **Shared with**: this agent only. **Keep memories for**:
   365 days.
@@ -83,9 +83,9 @@ one of the fictional people, then run the QA checklist in the root README.
 ## Check your set-up
 - **The app says the key was refused** → Allowed domains lacks `app://`, or the key is from another agent.
 - **The agent says it cannot do something the app shows** → App actions were imported but not saved.
-- **Memory stays empty** → Memory is off, *Who is the user?* is not the pack's field, or the person turned
-  memory off on the sign-in screen. What is said is ready about a minute after the conversation ends: ask
-  after **New conversation**, not in the same chat.
+- **Memory stays empty** → Memory is off, *Who is the user?* is neither the pack's field nor User ID, or the
+  person turned memory off on the sign-in screen. What is said is ready about a minute after the conversation
+  ends: ask after **New conversation**, not in the same chat.
 - **The agent remembers a fact but does not act on it** → the prompt's **Memory** section is missing.
 - **Booking says "does not take bookings from the app"** → *Users, from your app* is off.
 - **A booked call never rings** → In-app calling is not verified for this app's bundle ID / package, or

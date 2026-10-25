@@ -37,7 +37,7 @@ apps exactly (they read them from `usecases/health-coach.json`).
 | Setting | Value |
 |---|---|
 | Remembers users across chats and calls | **On** |
-| Who is the user? | **Custom field → `patient_id`** — the field the apps identify the patient with; with any other field nobody is recognised |
+| Who is the user? | **Custom field → `patient_id`** — the field the apps identify the patient with (they send the same id under `user_id` too, so **User ID** also works); with any other field nobody is recognised |
 | Devices per user | 2 (the same person on the website and on a phone, or on two phones) |
 | What the agent remembers → Shared with | This agent only |
 | What the agent remembers → Keep memories for | 365 days |

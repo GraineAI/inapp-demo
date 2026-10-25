@@ -24,9 +24,10 @@ agent (the Help screen). Each is built from `agent-setup/<pack>/`, step by step 
    **Welcome message** and **Custom Variables** from `settings.md` (including `who_called` = `customer` and
    an empty `call_reason`). **Calling Window**: 08:00–21:00.
 2. **Memory → Settings**: remembers users **on**; **Who is the user?** → **Custom field** → `patient_id` —
-   exactly the pack's field, or nobody is recognised; Devices per user 2; **What to remember — and what never
-   to**: the text block in `settings.md`. The **Memory** section of `prompt.md`, already in the prompt, makes
-   Asha use what she remembers.
+   the pack's field (or **User ID**: the apps send the same id under `user_id` too); with any other field
+   nobody is recognised; Devices per user 2; **What to remember — and what never to**: the text block in
+   `settings.md`. The **Memory** section of `prompt.md`, already in the prompt, makes Asha use what she
+   remembers.
 3. **Embed & Widgets**:
    - **Install & domains → Allowed domains**: `app://` (every app) and the website's host — `localhost` on
      your machine, your own domain when you host it.
@@ -261,7 +262,7 @@ the iPhone, **Run** (calls and rings need a real iPhone).
 **Talk** → the voice bar connects and the agent greets you (an emulator's microphone is silent: you hear the
 greeting); **Calls** → the pack's booking button opens the SDK's own booking sheet when that agent can be booked
 here, or is off with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID." (`bookingAvailable`: Graine rings this phone, the
-agent lets users book, and the user is identified with the agent's **Who is the user?** field — the pack's);
+agent lets users book, and the user is identified with the agent's **Who is the user?** field — the pack's or User ID);
 **Memory** → the test in [`kmp/README.md`](kmp/README.md#memory-in-a-few-minutes) (two facts in **Chat**, close it,
 a minute later **New conversation** → "What do you remember about me?").
 Then Home → **Your own design** and the same again, every screen drawn by the app: **Chat** (send, close, reopen — it
@@ -306,10 +307,11 @@ scheduling**, **Memory → People** and **Call History**.
 4. **`flutter pub get`: version solving failed for `graine_inapp`** — pub.dev does not have 0.7.0 yet: run
    `scripts/use-local-sdks.sh local flutter` with `../inapp-flutter` cloned.
 5. **Memory stays empty, or the agent does not recognise the person** — Memory is off for the agent, **Who is
-   the user?** is not the pack's field (`patient_id`, `customer_id`, `shopper_id`), the person turned memory
-   off at sign-in, or they are past **Devices per user**. And ask after **New conversation**, about a minute
-   after the earlier conversation ended: a conversation that continues knows what was said in it, memory or
-   not, and what is said is ready for the next one about a minute after it ends.
+   the user?** is neither the pack's field (`patient_id`, `customer_id`, `shopper_id`) nor **User ID**, the
+   person turned memory off at sign-in, or they are past **Devices per user**. And ask after
+   **New conversation**, about a minute after the earlier conversation ended: a conversation that continues
+   knows what was said in it, memory or not, and what is said is ready for the next one about a minute after
+   it ends.
 6. **The booking button is off ("Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID."), or the sheet says "Booking a call
    isn't available right now"** — Calls & scheduling → **Users, from your app** is off, Graine cannot ring
    this phone yet (Workspace settings → In-app calling has no credentials for this platform), or the person

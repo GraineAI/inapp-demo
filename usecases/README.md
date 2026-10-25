@@ -60,11 +60,13 @@ keeps them equal to `agents.main`.
 ## Signing in
 
 ```
-identify({ [identifierField]: user.id, name: user.name, ...user.traits }, { memory: consent })
+identify({ ...user.traits, name: user.name, [identifierField]: user.id, user_id: user.traits.user_id ?? user.id }, { memory: consent })
 ```
 
-`identifierField` must equal the agent's **Memory → Settings → Who is the user? → Custom field** (also under
-Embed & Widgets → Users & memory), or nobody is recognised and nothing is remembered. Sign out is
+The same id also goes under `user_id` (a `user_id` the person already has is kept), so the user is recognised
+whether the agent's **Memory → Settings → Who is the user?** (also under Embed & Widgets → Users & memory) is
+**Custom field** → `identifierField` or **User ID** (the dashboard's usual choice); the SDK reads only the field
+the agent names. With any other field nobody is recognised and nothing is remembered. Sign out is
 `identify(null)`. Switching pack signs the current user out first.
 
 ## Actions
