@@ -60,7 +60,7 @@ All people, cards and orders are fictional.
 | Call outcomes logged in the app, with the agent each call was with | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | Two agents in one app: a Help screen on a second agent (chat, voice, calls, booking), one sign-in for both, both agents' calls listed by name | ✓ ⁵ | ✓ ⁵ | ✓ | ✓ | ✓ | ✓ |
 | Your own design: the chat, voice, the call screen (with its connection report), booking and components drawn by the app from the SDK's public state, and a live Public state screen | — | — | — | — | — | ✓ ⁶ |
-| Past sessions: the user's earlier chats, voice conversations and calls with the agent, newest first, and each one's transcript, drawn by the app from the SDK's `chat.pastSessions` | — ⁷ | ✓ | ✓ | ✓ | — ⁸ | ✓ ⁶ |
+| Past sessions: the user's earlier chats, voice conversations and calls with the agent, newest first, and each one's transcript, drawn by the app from the SDK's `chat.pastSessions` | — ⁷ | ✓ | ✓ | ✓ | ✓ ⁸ | ✓ ⁶ |
 
 1. Flutter starts the chosen use case's two agents at launch: choosing a use case whose agents have other
    publishable keys takes effect the next time the app is opened (the app says so).
@@ -76,8 +76,9 @@ All people, cards and orders are fictional.
 6. Home's switch, **Graine's screens / Your own design** ([`kmp/README.md`](kmp/README.md#your-own-design)): the
    same features with no SDK screen at all, for apps that draw every screen in their own design system.
 7. React Native: past sessions come with `@graineai/inapp-react-native` 0.47.2 (calls 0.8.2), not on npm yet.
-8. Website: the loader offers past sessions to pages that draw their own chat (`load({ headless: true })`); this page
-   uses the loader's own widget.
+8. Website: the loader offers `chat.pastSessions` to pages that draw their own chat (`load({ headless: true })`); this
+   page shows the loader's widget, so it reads the same public routes (`/api/embed/sessions/list`, `/transcript`) with
+   the agent's key, the browser's install ID and the visitor's identifier ([`web/README.md`](web/README.md)).
 
 ## What the SDK does, and what your app does
 

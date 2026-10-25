@@ -26,6 +26,12 @@ const EXPLAINED = new Set(["unsupported", "not_loaded", "not_configured"]);
 
 const emptyList = () => ({ list: [], loading: false, error: null, helpError: null, loaded: false });
 
+/** One agent's past sessions as this page holds them, and the transcript open from them. */
+const emptyPast = () => ({
+  sessions: [], loading: false, hasMore: false, cursor: null, error: null, message: null, loaded: false, gen: 0,
+  transcript: null, opening: null, transcriptError: null,
+});
+
 const state = {
   config: {},
   packs: [],
@@ -40,6 +46,8 @@ const state = {
   statuses: {},
   calls: emptyList(),
   memories: emptyList(),
+  /** Each agent's past sessions (the Chat section shows the main agent's, Help the help agent's). */
+  past: { main: emptyPast(), help: emptyPast() },
   signIn: { userId: null, memory: true },
   busy: { memory: false, erase: false, cancel: null },
   theme: "system",
@@ -185,6 +193,7 @@ function viewContext() {
     statuses: state.user ? statusesFor(state.user.id) : {},
     calls: state.calls,
     memories: state.memories,
+    past: state.past,
     signIn: state.signIn,
     busy: state.busy,
     theme: state.theme,
@@ -288,6 +297,8 @@ function enter(screen) {
   switchTo(screenAgent(screen));
   if (screen === "calls" || screen === "home" || screen === "help") refreshCalls();
   if (screen === "memory") refreshMemories();
+  if (screen === "chat") refreshPast("main");
+  if (screen === "help" && graine.hasAgent("help")) refreshPast("help");
 }
 
 // ── Signing in and out ──────────────────────────────────────────────────────
@@ -327,6 +338,7 @@ function bookingReason(screen) {
 function resetPersonData() {
   state.calls = emptyList();
   state.memories = emptyList();
+  state.past = { main: emptyPast(), help: emptyPast() };
   state.openRowId = null;
   state.busy = { memory: false, erase: false, cancel: null };
 }
@@ -415,6 +427,66 @@ async function refreshMemories() {
     if (!state.user || state.user.id !== who) return;
     state.memories = { ...state.memories, loading: false, loaded: true, error: EXPLAINED.has(e.code) ? null : L.messageFor(e.code, e.message) };
   }
+  render();
+}
+
+// ── Past sessions ───────────────────────────────────────────────────────────
+
+/**
+ * `agent`'s past sessions with the signed-in person: the first page again (a refresh, which replaces
+ * what was loaded and supersedes a page still on its way), or with `more` the next one, appended —
+ * only while there is one and nothing is on its way. A refusal keeps what was loaded, and the page
+ * asked for: asking again asks for it again.
+ */
+async function refreshPast(agent, { more = false } = {}) {
+  if (!state.user || !graine.hasAgent(agent)) return;
+  const p = state.past[agent];
+  if (more && (p.loading || !p.hasMore || !p.cursor)) return;
+  if (!more) p.gen += 1;
+  const gen = p.gen;
+  const who = state.user.id;
+  const stale = () => !state.user || state.user.id !== who || state.past[agent] !== p || p.gen !== gen;
+  p.loading = true;
+  p.error = null;
+  p.message = null;
+  render();
+  await state.switching;
+  await state.identifying;
+  try {
+    const page = await graine.pastSessionsOf(agent, who, more ? p.cursor : null);
+    if (stale()) return;
+    p.sessions = L.pastSessionsAfter(p.sessions, page.sessions, { more });
+    p.cursor = page.next;
+    p.hasMore = page.next != null;
+    p.error = null;
+  } catch (e) {
+    if (stale()) return;
+    p.error = (e && e.code) || "unknown";
+    p.message = (e && e.message) || null;
+  }
+  p.loading = false;
+  p.loaded = true;
+  render();
+}
+
+/** A past session's transcript, read only; or why it could not be opened, in plain words. */
+async function openTranscript(agent, id) {
+  if (!state.user) return;
+  const p = state.past[agent];
+  const who = state.user.id;
+  const stale = () => !state.user || state.user.id !== who || state.past[agent] !== p || p.opening !== id;
+  p.opening = id;
+  p.transcriptError = null;
+  render();
+  try {
+    const transcript = await graine.sessionTranscriptOf(agent, who, id);
+    if (stale()) return;
+    p.transcript = transcript;
+  } catch (e) {
+    if (stale()) return;
+    p.transcriptError = L.transcriptError(e && e.code) || L.messageFor(e && e.code, e && e.message);
+  }
+  p.opening = null;
   render();
 }
 
@@ -544,6 +616,21 @@ const handlers = {
 
   refreshCalls: () => refreshCalls(),
   refreshMemories: () => refreshMemories(),
+
+  refreshPast: (agent) => refreshPast(agent),
+  /** The next page: from Load more, Try again, or the end of the list coming into view. */
+  loadMorePast: (agent) => refreshPast(agent, { more: true }),
+  openTranscript: (agent, id) => openTranscript(agent, id),
+  closeTranscript(agent) {
+    const p = state.past[agent];
+    p.transcript = null;
+    p.opening = null;
+    p.transcriptError = null;
+    render({ focus: false });
+  },
+  async copySessionId(id) {
+    toast((await copyText(id)) ? "Session id copied." : `Session id: ${id}`);
+  },
 
   async setMemory(on) {
     const name = state.pack.agentName;

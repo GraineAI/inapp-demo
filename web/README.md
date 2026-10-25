@@ -79,17 +79,24 @@ export default { agentId: "offline", publishableKey: "pk_test_offline", loaderUr
 |---|---|---|
 | Sign in | Pick a use case (remembered in this browser; switching loads that pack's agent) and a person; the memory consent switch | `identify({ …traits, name, <identifier>: id, user_id: id }, { memory })` |
 | Home | Memory: on / off, the next booked call, the pack's cards; **Talk to …** opens the assistant | `open()`, `scheduledCalls()` |
-| Chat | The chat opens in the assistant's panel; the pack's suggestions copy into it | `open()` |
+| Chat | The chat opens in the assistant's panel; the pack's suggestions copy into it. **Past sessions**: the visitor's earlier chats, voice conversations and calls with the agent, newest first — when, how long, how it ended, how many messages, the first words, the session id with Copy — the next page at the end of the list, and a session's transcript, read only; empty, loading and refused ("Sign in to see past sessions", "Not available on this device") in plain words | `open()`; past sessions through the public routes (below) |
 | The list (Medicines · Cards · Orders) | The visitor's rows with status chips and buttons; the assistant can open a screen, open a row or set a row's status | `defineAction(name, handler)` for every pack action, `setScreen(context)` |
 | Scheduled calls (Check-in calls · Callbacks · Delivery calls) | The pack's booking button (`call.bookLabel`, e.g. "Schedule a consultation call") opens the widget's own booking sheet — the day, the time, the visitor's time zone and an optional note, in the agent's design — its "What's it about?" starting with the pack's first reason. The button is on while the loader says this visitor can book; otherwise it stays, disabled, with "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID." After a booking the list is read again. Status chips; cancel with a confirmation. The call rings the **phone app**, never the browser | `bookingAvailable`, `openBooking({ reason })`, `scheduledCalls()`, `cancelScheduledCall(id)` |
 | Memory | What the assistant remembers about this person (newest first), the consent switch, erase everything with a confirmation, and the pack's try-it script (with the minute to wait, and what is never kept) | `memories()`, `setMemory(enabled)`, `forgetMemory()` |
 | Profile | The person's details, memory, this browser's install ID and loader version, theme, sign out | `identify(null)` |
-| Help | The **second agent**: while Help is open the page's assistant is the help agent — its voice, chat and suggestions, and booking with its own button and reason in its own booking sheet; every other section puts the main agent back. The same person stays signed in. Without a help agent in `config.js` it says how to add one | `load()` again with the other agent, which switches the page's assistant |
+| Help | The **second agent**: while Help is open the page's assistant is the help agent — its voice, chat and suggestions, booking with its own button and reason in its own booking sheet, and its own **Past sessions**; every other section puts the main agent back. The same person stays signed in. Without a help agent in `config.js` it says how to add one | `load()` again with the other agent, which switches the page's assistant |
 
 **Scheduled calls lists both agents' calls**, each with its agent's name. The website loader holds one
 agent at a time, so the calls of the agent that is not on the page are read (and cancelled) through the
 same public calls route the loader uses, with that agent's key, this browser's install ID and the
-signed-in identifier — the only place the page speaks to Graine without the loader.
+signed-in identifier.
+
+**Past sessions** are read the same way, for either agent: `POST /api/embed/sessions/list` (a page at a time,
+`cursor` for the next) and `/api/embed/sessions/transcript` (`id`), with the agent's key, this browser's
+install ID and the identifier (`graine.js` → `pastSessionsOf`, `sessionTranscriptOf`). The loader offers
+`chat.pastSessions` only to pages that draw their own chat (`load({ headless: true })`), and this page shows the
+loader's widget. These routes and the calls route are the only places the page speaks to Graine without the
+loader.
 
 Every screen reports what is on it with `setScreen` (the same fields on every platform —
 `usecases/README.md` → Screen context). Memory text never goes into it, only the count.

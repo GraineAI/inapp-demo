@@ -15,6 +15,7 @@ const ICONS = {
   phone: ["M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"],
   refresh: ["M20 11a8 8 0 1 0-2.3 5.7", "M20 4v7h-7"],
   chevron: ["M9 6l6 6-6 6"],
+  back: ["M15 6l-6 6 6 6"],
   info: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z", "M12 16v-4", "M12 8h.01"],
 };
 
@@ -149,6 +150,123 @@ function callList(ctx, title, items, empty, options) {
     items.length ? h("ul", { class: "list" }, items.map((c) => callRow(ctx, c, options))) : h("p", { class: "muted" }, empty));
 }
 
+// ── Past sessions ───────────────────────────────────────────────────────────
+
+/** Why past sessions cannot be read right now, in words — or null when they can. */
+function pastGap(ctx) {
+  switch (ctx.assistant.state) {
+    case "not_configured": return "The assistant is not configured for this page, so this is unavailable. See web/README.md.";
+    case "unavailable": return "The Graine loader did not load, so this is unavailable. See the notice at the top of the page.";
+    default: return null;
+  }
+}
+
+/** Run `onEnd` once `el` comes into view: the next page at the end of the list. */
+function whenInView(el, onEnd) {
+  if (typeof IntersectionObserver !== "function") return el;
+  const seen = new IntersectionObserver((entries) => {
+    if (!entries.some((e) => e.isIntersecting)) return;
+    seen.disconnect();
+    onEnd();
+  });
+  seen.observe(el);
+  return el;
+}
+
+function pastSessionRow(ctx, agent, s) {
+  const p = ctx.past[agent];
+  const opening = p.opening === s.id;
+  const when = L.formatWhen(s.startedAt, ctx.now);
+  return h("li", { class: "list-row", "data-session": s.id },
+    h("div", { class: "list-main" },
+      h("p", { class: "list-title" }, when),
+      h("p", { class: "list-sub" }, L.sessionSummary(s)),
+      s.preview ? h("p", { class: "session-preview" }, `“${s.preview}”`) : null,
+      button(`${L.shortId(s.id)} Copy`, {
+        variant: "link", class: "btn btn-link session-id", onClick: () => ctx.on.copySessionId(s.id),
+        "aria-label": `Copy the session id of ${when}`,
+      })),
+    h("div", { class: "list-side" },
+      chip(L.sessionStatus(s.status), "neutral", { "data-status": s.status }),
+      button(opening ? "Opening…" : "Transcript", {
+        variant: "link", disabled: opening, onClick: () => ctx.on.openTranscript(agent, s.id),
+        "aria-label": `Open the transcript of ${when}`,
+      })));
+}
+
+/** Under the list: the next page on its way, why it did not come, more to load, or the end. */
+function pastSessionsFooter(ctx, agent) {
+  const p = ctx.past[agent];
+  if (p.loading) return h("p", { class: "muted list-end", "aria-live": "polite" }, "Loading…");
+  if (p.error) {
+    return h("div", { class: "list-end" },
+      issue(L.pastSessionsError(p.error)),
+      button("Try again", { variant: "link", onClick: () => ctx.on.loadMorePast(agent) }));
+  }
+  if (p.hasMore) {
+    return whenInView(h("div", { class: "list-end" },
+      button("Load more", { variant: "link", id: `past-more-${agent}`, onClick: () => ctx.on.loadMorePast(agent) })),
+    () => ctx.on.loadMorePast(agent));
+  }
+  return h("p", { class: "muted list-end" }, "No earlier sessions.");
+}
+
+/** Nothing listed: why not, still loading, or none yet. */
+function pastSessionsEmpty(ctx, agent) {
+  const p = ctx.past[agent];
+  const words = L.pastSessionsError(p.error);
+  if (words) {
+    return h("div", { id: `past-error-${agent}` },
+      issue(["unsupported", "not_loaded", "not_configured"].includes(p.error) && p.message ? p.message : words),
+      L.pastSessionsCanRetry(p.error) ? button("Try again", { onClick: () => ctx.on.refreshPast(agent) }) : null);
+  }
+  return h("p", { class: "muted", id: `past-empty-${agent}` }, p.loading || !p.loaded ? L.PAST_SESSIONS_LOADING : L.PAST_SESSIONS_EMPTY);
+}
+
+/** One past session, read only: its lines oldest first, each with its time; who said it by the side it sits on. */
+function transcriptCard(ctx, agent, name) {
+  const t = ctx.past[agent].transcript;
+  const time = (d) => new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(d);
+  return h("section", { class: "card", id: `past-transcript-${agent}`, "data-transcript": t.id },
+    h("div", { class: "card-head" },
+      button("Past sessions", { variant: "link", iconName: "back", id: `past-back-${agent}`, onClick: () => ctx.on.closeTranscript(agent) }),
+      button(L.shortId(t.id), {
+        variant: "link", class: "btn btn-link session-id", onClick: () => ctx.on.copySessionId(t.id), "aria-label": "Copy the session id",
+      })),
+    h("h2", { class: "card-title" }, L.formatWhen(t.startedAt, ctx.now)),
+    h("p", { class: "help" }, L.transcriptSummary(t)),
+    t.turns.length
+      ? h("ol", { class: "transcript" }, t.turns.map((line) => {
+        const mine = L.isCustomerTurn(line);
+        return h("li", { class: `transcript-line${mine ? " is-mine" : ""}` },
+          h("p", { class: "bubble" }, line.text),
+          h("p", { class: "bubble-meta" }, `${mine ? "You" : name} · ${time(line.at)}`));
+      }))
+      : h("p", { class: "muted" }, "This session has no messages."));
+}
+
+/**
+ * PAST SESSIONS, DRAWN BY THIS PAGE — the signed-in visitor's closed sessions with `agent` ("main" in
+ * Chat, "help" in Help), newest first: when, chat or call, how long, how it ended, how many messages,
+ * the first words, and the session id shortened with Copy. The next page loads at the end of the list;
+ * empty, loading and refused lists say so in plain words. Transcript opens one, read only.
+ */
+function pastSessionsCard(ctx, agent) {
+  const p = ctx.past[agent];
+  const name = agent === "help" && ctx.agents.help ? ctx.agents.help.name : ctx.agents.main.name;
+  if (p.transcript) return transcriptCard(ctx, agent, name);
+  const gap = pastGap(ctx);
+  return h("section", { class: "card", id: `past-sessions-${agent}` },
+    h("div", { class: "card-head" },
+      h("h2", { class: "card-title" }, "Past sessions"),
+      button("Refresh", { iconName: "refresh", id: `past-refresh-${agent}`, disabled: p.loading || !!gap, onClick: () => ctx.on.refreshPast(agent) })),
+    h("p", { class: "help" }, `With ${name} · newest first · drawn by this app`),
+    gap ? issue(gap) : p.sessions.length
+      ? [h("ul", { class: "list" }, p.sessions.map((s) => pastSessionRow(ctx, agent, s))), pastSessionsFooter(ctx, agent)]
+      : pastSessionsEmpty(ctx, agent),
+    p.transcriptError ? issue(p.transcriptError) : null);
+}
+
 // ── Sign in ─────────────────────────────────────────────────────────────────
 
 export function signInView(ctx) {
@@ -270,7 +388,8 @@ export function chatView(ctx) {
     card("Suggestions",
       h("p", { class: "help" }, "Choose one to copy it, then paste it into the chat."),
       h("div", { class: "chips" }, pack.starters.map((s) =>
-        h("button", { type: "button", class: "chip chip-button", onClick: () => ctx.on.starter(s) }, s)))));
+        h("button", { type: "button", class: "chip chip-button", onClick: () => ctx.on.starter(s) }, s)))),
+    pastSessionsCard(ctx, "main"));
 }
 
 // ── Items ───────────────────────────────────────────────────────────────────
@@ -399,7 +518,8 @@ export function helpView(ctx) {
     }),
     calls.helpError ? issue(`Calls with ${help.name}: ${calls.helpError}`) : null,
     callList(ctx, `Your calls with ${help.name}`, [...mine.upcoming, ...mine.past],
-      calls.loading && !calls.loaded ? "Loading…" : "No calls booked.", { showAgent: false }));
+      calls.loading && !calls.loaded ? "Loading…" : "No calls booked.", { showAgent: false }),
+    pastSessionsCard(ctx, "help"));
 }
 
 // ── Memory ──────────────────────────────────────────────────────────────────

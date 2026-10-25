@@ -305,3 +305,55 @@ test("the pack's two agents: main repeats the top level, help comes from agents.
   assert.equal(L.agentInfo(sample, "help"), null);
   assert.equal(L.screenTitle("help", sample), "Help");
 });
+
+// ── Past sessions: the same words as the apps, and the contract's paging (sdk/contract/past-sessions.json) ──
+
+test("past sessions read as kind, length and messages, in the apps' words", () => {
+  const chat = { id: "ex-7a1c0001", channel: "chat", direction: null, durationSeconds: 276, status: "completed", turns: 9 };
+  const call = { id: "ex-31f00002", channel: "call", direction: "outbound", durationSeconds: 192, status: "completed", turns: 14 };
+  assert.equal(L.sessionSummary(chat), "Chat · 4:36 · 9 messages");
+  assert.equal(L.sessionSummary(call), "Call · outbound · 3:12 · 14 messages");
+  assert.equal(L.sessionSummary({ channel: "call", direction: "outbound", durationSeconds: null, turns: 0 }), "Call · outbound · 0 messages");
+  assert.equal(L.sessionStatus("completed"), "Completed");
+  assert.equal(L.sessionStatus("no_answer"), "No answer");
+  assert.equal(L.sessionStatus(""), "Ended");
+  assert.equal(L.sessionMessages(1), "1 message");
+  assert.equal(L.sessionLength(3723), "1:02:03");
+  assert.equal(L.sessionLength(null), null);
+  assert.equal(L.transcriptSummary({ channel: "voice", direction: "inbound", durationSeconds: 276, status: "" }), "Voice · inbound · 4:36 · Ended");
+  assert.equal(L.shortId("ex-7a1c0001"), "…1c0001");
+  assert.equal(L.shortId("a1"), "a1");
+  assert.ok(L.isCustomerTurn({ role: "customer" }));
+  assert.ok(!L.isCustomerTurn({ role: "agent" }));
+  assert.equal(L.PAST_SESSIONS_EMPTY, "No past sessions yet. A session appears here once it has closed.");
+  assert.equal(L.PAST_SESSIONS_LOADING, "Loading past sessions…");
+});
+
+test("past sessions: refusals in plain words, and Try again only where it can help", () => {
+  assert.equal(L.pastSessionsError("identity_required"), "Sign in to see past sessions.");
+  assert.equal(L.pastSessionsError("device_limit"), "Not available on this device.");
+  assert.equal(L.pastSessionsError("rate_limited"), "Too many requests. Try again in a few minutes.");
+  assert.equal(L.pastSessionsError("unavailable"), "Past sessions could not be loaded. Try again.");
+  assert.equal(L.pastSessionsError("not_found"), "Past sessions could not be loaded. Try again.", "the list itself is never \"that session\"");
+  assert.equal(L.pastSessionsError(null), null);
+  assert.equal(L.transcriptError("not_found"), "That session is not available.");
+  assert.equal(L.transcriptError("device_limit"), "Not available on this device.");
+  assert.ok(!L.pastSessionsCanRetry("identity_required"));
+  assert.ok(!L.pastSessionsCanRetry("device_limit"));
+  assert.ok(L.pastSessionsCanRetry("unavailable"));
+});
+
+test("past sessions: a refresh replaces what was loaded; more appends, an id already kept not added twice", () => {
+  const s = (id) => ({ id });
+  // refresh, then load more, then the end
+  let kept = L.pastSessionsAfter([], [s("a1")], { more: false });
+  assert.deepEqual(kept.map((x) => x.id), ["a1"]);
+  kept = L.pastSessionsAfter(kept, [s("a2")], { more: true });
+  assert.deepEqual(kept.map((x) => x.id), ["a1", "a2"]);
+  // a refresh replaces what was loaded; an id already kept is not added twice
+  kept = L.pastSessionsAfter([], [s("a1")], { more: false });
+  kept = L.pastSessionsAfter(kept, [s("a1"), s("a3")], { more: true });
+  assert.deepEqual(kept.map((x) => x.id), ["a1", "a3"]);
+  kept = L.pastSessionsAfter(kept, [s("a4")], { more: false });
+  assert.deepEqual(kept.map((x) => x.id), ["a4"]);
+});

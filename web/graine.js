@@ -21,6 +21,8 @@
  * Two agents (MULTI-AGENT.md → Website): the main one, and a help one when configured. The loader
  * holds one at a time; useAgent() moves the page between them with load() again — only on a loader
  * that switches cleanly — and the other agent's calls are read through the public calls route.
+ * Past sessions are read through the public sessions routes, for either agent: the loader gives
+ * them (`chat.pastSessions`) to headless pages only, and this page draws the loader's widget.
  *
  * Notices go into the element with id `graine-notices` when the page has one, else the console.
  *
@@ -149,6 +151,82 @@ export function normaliseCall(raw) {
     isUpcoming: typeof raw.isUpcoming === "boolean" ? raw.isUpcoming : status === "scheduled" || status === "ringing",
     canCancel: typeof raw.canCancel === "boolean" ? raw.canCancel : status === "scheduled",
   };
+}
+
+// ── Past sessions (sdk/contract/past-sessions.json), read the way every SDK reads them ──
+
+/** An ISO-8601 time as the wire writes it, as a Date; null for anything else (a number, "yesterday"). */
+function wireDate(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+const wireWord = (v) => (typeof v === "string" ? v.trim().toLowerCase() : "");
+
+/** Whole seconds: a finite number ≥ 0, rounded; null for anything else. */
+function wireSeconds(v) {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null;
+}
+
+/** The session fields shared by a list's rows and a transcript. */
+function sessionFields(raw) {
+  const channel = wireWord(raw.channel);
+  const direction = wireWord(raw.direction);
+  return {
+    startedAt: wireDate(raw.startedAt),
+    endedAt: wireDate(raw.endedAt),
+    durationSeconds: wireSeconds(raw.durationSeconds),
+    channel: channel === "voice" || channel === "call" ? channel : "chat",
+    direction: direction === "inbound" || direction === "outbound" ? direction : null,
+    status: typeof raw.status === "string" ? raw.status : "",
+  };
+}
+
+/**
+ * One of the visitor's past sessions — `{ id, startedAt, endedAt, durationSeconds, channel, direction,
+ * status, turns, preview }`, times as Dates — or null without an id or a readable `startedAt`. A channel
+ * other than voice/call is the chat; a direction other than inbound/outbound is null; `turns` not a whole
+ * number ≥ 0 is 0; `status` and `preview` not text are "".
+ */
+export function normalisePastSession(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const id = typeof raw.id === "string" && raw.id.trim() ? raw.id : null;
+  const fields = sessionFields(raw);
+  if (!id || !fields.startedAt) return null;
+  const turns = typeof raw.turns === "number" && Number.isInteger(raw.turns) && raw.turns >= 0 ? raw.turns : 0;
+  return { id, ...fields, turns, preview: typeof raw.preview === "string" ? raw.preview : "" };
+}
+
+/** A page of `sessions/list`: its sessions, newest first (an id repeated is kept once), and the next page's cursor (null at the end). */
+export function normalisePastSessionsPage(body) {
+  const seen = new Set();
+  const sessions = [];
+  for (const raw of listOf(body, "sessions")) {
+    const s = normalisePastSession(raw);
+    if (s && !seen.has(s.id)) { seen.add(s.id); sessions.push(s); }
+  }
+  const next = body && typeof body.next === "string" && body.next.trim() ? body.next : null;
+  return { sessions, next };
+}
+
+/**
+ * One session's transcript, oldest line first: the session's fields and `turns: [{ role, text, at }]`.
+ * The wire's `user` is the visitor (`customer`), its `assistant` the agent (`agent`); a line with any
+ * other role, no text or no readable `at` is skipped. `asked` is the id when the answer does not say.
+ */
+export function normaliseSessionTranscript(body, asked) {
+  const raw = body && typeof body === "object" ? body : {};
+  const turns = [];
+  for (const t of Array.isArray(raw.turns) ? raw.turns : []) {
+    if (!t || typeof t !== "object") continue;
+    const word = wireWord(t.role);
+    const role = word === "user" ? "customer" : word === "assistant" ? "agent" : null;
+    const at = wireDate(t.at);
+    if (!role || typeof t.text !== "string" || !at) continue;
+    turns.push({ role, text: t.text, at });
+  }
+  return { id: typeof raw.id === "string" && raw.id.trim() ? raw.id : asked, ...sessionFields(raw), turns };
 }
 
 /** A status the loader returned (cancelScheduledCall's answer), in the SDK types' names; null when it said none. */
@@ -491,16 +569,18 @@ export function createGraine(env = {}) {
     return arrived;
   }
 
-  // ── The agent that is not on the page ────────────────────────────────────
+  // ── The public routes: the agent that is not on the page, and past sessions ──
 
   /**
    * The website loader holds one agent at a time (MULTI-AGENT.md: load() again switches it). To
    * list or cancel the OTHER agent's calls without taking the visitor's assistant off the page,
    * this asks the same public route the loader uses (WIRE.md → calls/list, calls/cancel) with that
    * agent's publishable key, this browser's install id and the signed-in identifier — the identity
-   * channel's only fields. It is the one place this page speaks the wire itself.
+   * channel's only fields. Past sessions go the same way for either agent (sessions/list,
+   * sessions/transcript): the loader serves `chat.pastSessions` only to headless pages, and this
+   * page draws the loader's widget. These are the only places this page speaks the wire itself.
    */
-  async function otherAgentPost(path, agent, identity, extra) {
+  async function otherAgentPost(path, agent, identity, extra, what = "the other agent's calls") {
     if (arrived) await arrived;
     const a = api();
     let installId = null;
@@ -508,7 +588,7 @@ export function createGraine(env = {}) {
       installId = a && (typeof a.installId === "string" ? a.installId : typeof a.getInstallId === "function" ? a.getInstallId() : null);
     } catch (e) { installId = null; }
     if (!a || typeof installId !== "string" || !installId) {
-      throw new GraineError("unsupported", "The Graine loader on this page does not show its install id, so the other agent's calls cannot be read.");
+      throw new GraineError("unsupported", `The Graine loader on this page does not show its install id, so ${what} cannot be read.`);
     }
     let base;
     try { base = new URL(loaderUrl, win.location.href).origin; } catch (e) { base = DEFAULT_BASE_URL; }
@@ -610,6 +690,33 @@ export function createGraine(env = {}) {
       if (name === current) return normaliseStatus(await call("cancelScheduledCall", [id]));
       const data = await otherAgentPost("/api/embed/calls/cancel", target, identity, { callId: id });
       return normaliseStatus(data && data.status ? data.status : "cancelled");
+    },
+
+    /**
+     * `name`'s past sessions with the signed-in person (`identity` = their identifier), newest first, a
+     * page at a time: `{ sessions, next }` — `cursor` is the previous page's `next`. Through the public
+     * route for either agent (the loader's `chat.pastSessions` is for headless pages). Rejects with a
+     * GraineError: `identity_required`, `device_limit`, `rate_limited`, `unavailable`, `network`, …
+     */
+    async pastSessionsOf(name, identity, cursor) {
+      const target = agents[name];
+      if (!target) throw new GraineError("not_configured", `No ${name} agent is configured for this page.`);
+      const data = await otherAgentPost("/api/embed/sessions/list", target, identity, cursor ? { cursor } : {}, "past sessions");
+      return normalisePastSessionsPage(data);
+    },
+
+    /**
+     * One of `name`'s past sessions in full, oldest line first (`turns: [{ role: "customer" | "agent",
+     * text, at }]`). Rejects with a GraineError: `not_found` for an unknown session or another person's,
+     * `identity_required`, `device_limit`, `unavailable`, `network`, …
+     */
+    async sessionTranscriptOf(name, identity, id) {
+      const target = agents[name];
+      if (!target) throw new GraineError("not_configured", `No ${name} agent is configured for this page.`);
+      const wanted = typeof id === "string" ? id.trim() : "";
+      if (!wanted) throw new GraineError("invalid_request", "No session id.");
+      const data = await otherAgentPost("/api/embed/sessions/transcript", target, identity, { id: wanted }, "past sessions");
+      return normaliseSessionTranscript(data, wanted);
     },
     onState(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     get loaderUrl() { return loaderUrl; },

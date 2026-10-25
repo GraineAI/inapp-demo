@@ -3,8 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  createGraine, GraineError, loaderSwitchesAgents, normaliseCall, normaliseMemory, normaliseStatus,
-  toGraineError, versionAtLeast,
+  createGraine, GraineError, loaderSwitchesAgents, normaliseCall, normaliseMemory, normalisePastSession,
+  normalisePastSessionsPage, normaliseSessionTranscript, normaliseStatus, toGraineError, versionAtLeast,
 } from "../graine.js";
 
 const FAST = { scriptWaitMs: 30, startWaitMs: 40, pollMs: 2 };
@@ -426,4 +426,128 @@ test("versions and switch detection", () => {
   assert.equal(loaderSwitchesAgents({ version: "1.3.0" }), true);
   assert.equal(loaderSwitchesAgents({ version: "9.0.0", switchesAgents: false }), false, "the loader's own word wins");
   assert.equal(loaderSwitchesAgents(null), false);
+});
+
+// ── Past sessions (sdk/contract/past-sessions.json): the public routes, for either agent ──────────
+
+const INSTALL = "1b4e28ba-2fa1-41d2-883f-0016d3cca427";
+const answer = (status, data) => ({ ok: status >= 200 && status < 300, status, headers: { get: () => null }, json: async () => data });
+const plain = (s) => ({ ...s, startedAt: s.startedAt && s.startedAt.toISOString(), endedAt: s.endedAt && s.endedAt.toISOString() });
+
+test("past sessions: pages read as the contract's vectors say", () => {
+  const first = normalisePastSessionsPage({
+    sessions: [
+      { id: "ex-7a1c0001", startedAt: "2026-10-21T12:00:05Z", endedAt: "2026-10-21T12:04:41Z", durationSeconds: 276, channel: "chat", direction: null, status: "completed", turns: 9, preview: "Can I move my check-in call to Friday?" },
+      { id: "ex-31f00002", startedAt: "2026-10-20T08:00:00Z", endedAt: "2026-10-20T08:03:12Z", durationSeconds: 192, channel: "call", direction: "outbound", status: "completed", turns: 14, preview: "Hi, yes I can talk now." },
+    ],
+    next: "c2",
+  });
+  assert.equal(first.next, "c2");
+  assert.deepEqual(first.sessions.map(plain), [
+    { id: "ex-7a1c0001", startedAt: "2026-10-21T12:00:05.000Z", endedAt: "2026-10-21T12:04:41.000Z", durationSeconds: 276, channel: "chat", direction: null, status: "completed", turns: 9, preview: "Can I move my check-in call to Friday?" },
+    { id: "ex-31f00002", startedAt: "2026-10-20T08:00:00.000Z", endedAt: "2026-10-20T08:03:12.000Z", durationSeconds: 192, channel: "call", direction: "outbound", status: "completed", turns: 14, preview: "Hi, yes I can talk now." },
+  ]);
+  // Unreadable items are skipped and loose fields fall back.
+  const loose = normalisePastSessionsPage({
+    sessions: [
+      { startedAt: "2026-10-21T12:00:05Z", channel: "chat", turns: 3, preview: "no id" },
+      { id: "ex-bad-time", startedAt: "yesterday", channel: "chat", turns: 3, preview: "bad time" },
+      { id: "ex-loose0003", startedAt: "2026-10-19T18:30:00Z", endedAt: "soon", durationSeconds: "long", channel: "sms", direction: "sideways", status: "missed", turns: -2, preview: 42 },
+    ],
+    next: null,
+  });
+  assert.equal(loose.next, null);
+  assert.deepEqual(loose.sessions.map(plain), [
+    { id: "ex-loose0003", startedAt: "2026-10-19T18:30:00.000Z", endedAt: null, durationSeconds: null, channel: "chat", direction: null, status: "missed", turns: 0, preview: "" },
+  ]);
+  // A voice session and an unknown status word pass through; an id repeated on a page is kept once.
+  const voice = { id: "ex-voice0004", startedAt: "2026-10-18T09:00:00Z", endedAt: "2026-10-18T09:01:00Z", durationSeconds: 60, channel: "voice", direction: "inbound", status: "ended_by_agent", turns: 4, preview: "What time is my appointment?" };
+  const page = normalisePastSessionsPage({ sessions: [voice, voice] });
+  assert.deepEqual(page.sessions.map((s) => [s.id, s.channel, s.direction, s.status]), [["ex-voice0004", "voice", "inbound", "ended_by_agent"]]);
+  assert.equal(normalisePastSession(null), null);
+  assert.deepEqual(normalisePastSessionsPage(null), { sessions: [], next: null });
+});
+
+test("past sessions: a transcript's lines oldest first, the wire's user and assistant as customer and agent", () => {
+  const t = normaliseSessionTranscript({
+    id: "ex-7a1c0001", startedAt: "2026-10-21T12:00:05Z", endedAt: "2026-10-21T12:04:41Z", durationSeconds: 276, channel: "chat", direction: null, status: "completed",
+    turns: [
+      { role: "assistant", text: "Hi Meera, how can I help?", at: "2026-10-21T12:00:05Z" },
+      { role: "user", text: "Can I move my check-in call to Friday?", at: "2026-10-21T12:00:20Z" },
+      { role: "system", text: "dropped", at: "2026-10-21T12:00:21Z" },
+      { role: "assistant", text: 7, at: "2026-10-21T12:00:22Z" },
+      { role: "assistant", text: "Done: Friday at 10:00.", at: "not a time" },
+      { role: "assistant", text: "Done: Friday at 10:00.", at: "2026-10-21T12:00:25Z" },
+    ],
+  }, "asked");
+  assert.deepEqual(t.turns.map((l) => [l.role, l.text, l.at.toISOString()]), [
+    ["agent", "Hi Meera, how can I help?", "2026-10-21T12:00:05.000Z"],
+    ["customer", "Can I move my check-in call to Friday?", "2026-10-21T12:00:20.000Z"],
+    ["agent", "Done: Friday at 10:00.", "2026-10-21T12:00:25.000Z"],
+  ]);
+  assert.deepEqual([t.id, t.channel, t.direction, t.status, t.durationSeconds], ["ex-7a1c0001", "chat", null, "completed", 276]);
+  assert.equal(normaliseSessionTranscript({}, "ex-asked").id, "ex-asked", "the id asked for when the answer does not say");
+});
+
+test("past sessions: either agent through the public routes — the key, the install id, the identifier, the cursor and the id", async () => {
+  const sent = [];
+  const replies = [
+    answer(200, { sessions: [{ id: "a1", startedAt: "2026-10-21T10:00:00Z", channel: "chat", status: "completed", turns: 2, preview: "One" }], next: "c2" }),
+    answer(200, { sessions: [{ id: "a2", startedAt: "2026-10-20T10:00:00Z", channel: "call", direction: "outbound", status: "completed", turns: 6, preview: "Two" }], next: null }),
+    answer(200, { sessions: [], next: null }),
+    answer(200, { id: "a1", startedAt: "2026-10-21T10:00:00Z", channel: "chat", status: "completed", turns: [{ role: "user", text: "One", at: "2026-10-21T10:00:00Z" }] }),
+  ];
+  const t = setup((win) => switchingLoader(win), {
+    fetch: async (url, init) => { sent.push({ url, body: JSON.parse(init.body) }); return replies.shift(); },
+  });
+  await t.g.start(TWO);
+  const one = await t.g.pastSessionsOf("main", "M-001");
+  assert.deepEqual([one.sessions.map((s) => s.id), one.next], [["a1"], "c2"]);
+  const two = await t.g.pastSessionsOf("main", "M-001", "c2");
+  assert.deepEqual([two.sessions.map((s) => [s.id, s.channel, s.direction]), two.next], [[["a2", "call", "outbound"]], null]);
+  const help = await t.g.pastSessionsOf("help", "M-001");
+  assert.deepEqual(help, { sessions: [], next: null });
+  const tr = await t.g.sessionTranscriptOf("main", "M-001", " a1 ");
+  assert.deepEqual(tr.turns.map((l) => [l.role, l.text]), [["customer", "One"]]);
+  assert.deepEqual(sent, [
+    { url: "http://127.0.0.1:9/api/embed/sessions/list", body: { publishableKey: "pk_test_adapter", installId: INSTALL, identity: { value: "M-001" } } },
+    { url: "http://127.0.0.1:9/api/embed/sessions/list", body: { publishableKey: "pk_test_adapter", installId: INSTALL, cursor: "c2", identity: { value: "M-001" } } },
+    { url: "http://127.0.0.1:9/api/embed/sessions/list", body: { publishableKey: "pk_test_help", installId: INSTALL, identity: { value: "M-001" } } },
+    { url: "http://127.0.0.1:9/api/embed/sessions/transcript", body: { publishableKey: "pk_test_adapter", installId: INSTALL, id: "a1", identity: { value: "M-001" } } },
+  ]);
+  assert.equal(t.loader.calls.filter((c) => c[0] === "load").length, 1, "reading them never moves the page to another agent");
+  await assert.rejects(t.g.sessionTranscriptOf("main", "M-001", "  "), { code: "invalid_request" });
+  assert.equal(sent.length, 4, "a blank id asks nothing");
+});
+
+test("past sessions: refusals keep the route's code — identity_required, device_limit, not_found, rate_limited, unavailable, network", async () => {
+  const refusals = [
+    [400, { error: "Sign the user in first.", code: "identity_required" }, "identity_required"],
+    [403, { error: "This device is not one of the user's.", code: "device_limit" }, "device_limit"],
+    [404, { error: "Session not found.", code: "not_found" }, "not_found"],
+    [429, { error: "Slow down.", code: "rate_limited" }, "rate_limited"],
+    [503, {}, "unavailable"],
+  ];
+  let next = null;
+  const t = setup((win) => switchingLoader(win), {
+    fetch: async () => { if (next === "offline") throw new TypeError("Failed to fetch"); return answer(next[0], next[1]); },
+  });
+  await t.g.start(TWO);
+  for (const r of refusals) {
+    next = r;
+    await assert.rejects(t.g.pastSessionsOf("main", "M-001"), (e) => e instanceof GraineError && e.code === r[2], `list ${r[0]}`);
+    await assert.rejects(t.g.sessionTranscriptOf("help", "M-001", "ex-1"), (e) => e instanceof GraineError && e.code === r[2], `transcript ${r[0]}`);
+  }
+  next = "offline";
+  await assert.rejects(t.g.pastSessionsOf("main", "M-001"), { code: "network" });
+});
+
+test("past sessions: not on a page without the agent, nor with a loader that does not show its install id", async () => {
+  const one = setup((win) => switchingLoader(win), { fetch: async () => { throw new Error("must not be asked"); } });
+  await one.g.start(CONFIG);
+  await assert.rejects(one.g.pastSessionsOf("help", "M-001"), { code: "not_configured" });
+  await assert.rejects(one.g.sessionTranscriptOf("help", "M-001", "ex-1"), { code: "not_configured" });
+  const old = setup((win) => releasedLoader(win), { fetch: async () => { throw new Error("must not be asked"); } });
+  await old.g.start(CONFIG);
+  await assert.rejects(old.g.pastSessionsOf("main", "M-001"), (e) => e.code === "unsupported" && /past sessions cannot be read/.test(e.message));
 });

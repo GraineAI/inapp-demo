@@ -230,23 +230,64 @@
     return list.filter(function (c) { return c.status === "scheduled"; }).length;
   }
 
-  // ── The public calls routes, for the agent that is not on the page ────────
+  // ── The public routes: calls for the agent that is not on the page, and past sessions ──
+
+  /**
+   * The signed-in visitor's past sessions with the main agent (the first loaded), newest first, as
+   * sessions/list answers them — the help agent has none yet. Three to a page, so "Load more" shows.
+   */
+  function pastSessionsFor(key, who) {
+    if (!who || key !== firstKey) return [];
+    var day = 24 * 60 * 60 * 1000, now = Date.now();
+    function session(id, ago, channel, direction, status, lines) {
+      var start = now - ago;
+      var turns = lines.map(function (l, i) { return { role: l[0], text: l[1], at: new Date(start + i * 25000).toISOString() }; });
+      var first = turns.filter(function (t) { return t.role === "user"; })[0];
+      return {
+        id: id, startedAt: new Date(start).toISOString(), endedAt: new Date(start + (turns.length * 25 + 20) * 1000).toISOString(),
+        durationSeconds: turns.length ? turns.length * 25 + 20 : null, channel: channel, direction: direction, status: status,
+        turns: turns, preview: first ? first.text.slice(0, 120) : "",
+      };
+    }
+    return [
+      session("ex-offline-0004", day, "chat", null, "completed", [["assistant", "Hi, how can I help?"], ["user", "Can I move my next call to Friday?"], ["assistant", "Done: Friday at 10:00."]]),
+      session("ex-offline-0003", 2 * day, "call", "outbound", "completed", [["assistant", "Hi, is now a good time?"], ["user", "Yes, now is a good time."], ["assistant", "Thank you. Goodbye."]]),
+      session("ex-offline-0002", 4 * day, "voice", "inbound", "completed", [["user", "What is due today?"], ["assistant", "Here is what I found."]]),
+      session("ex-offline-0001", 6 * day, "call", "outbound", "missed", []),
+    ];
+  }
 
   var realFetch = window.fetch ? window.fetch.bind(window) : null;
   window.fetch = function (input, init) {
     var url;
     try { url = new URL(typeof input === "string" ? input : input.url, location.href); } catch (e) { url = null; }
     var path = url && url.origin === location.origin ? url.pathname : "";
-    if (path !== "/api/embed/calls/list" && path !== "/api/embed/calls/cancel") {
+    var routes = ["/api/embed/calls/list", "/api/embed/calls/cancel", "/api/embed/sessions/list", "/api/embed/sessions/transcript"];
+    if (routes.indexOf(path) === -1) {
       return realFetch ? realFetch(input, init) : Promise.reject(new TypeError("no fetch"));
     }
     var body = {};
     try { body = JSON.parse((init && init.body) || "{}"); } catch (e) { body = {}; }
-    log.push(["route", path, { publishableKey: body.publishableKey, installId: body.installId, identity: body.identity, callId: body.callId }]);
+    log.push(["route", path, { publishableKey: body.publishableKey, installId: body.installId, identity: body.identity, callId: body.callId, cursor: body.cursor, id: body.id }]);
     var answer = function (status, data) {
       return Promise.resolve(new Response(JSON.stringify(data), { status: status, headers: { "Content-Type": "application/json" } }));
     };
     if (!body.publishableKey || body.installId !== INSTALL_ID) return answer(400, { error: "That request was not accepted.", code: "invalid_request" });
+    if (path === "/api/embed/sessions/list" || path === "/api/embed/sessions/transcript") {
+      var who = body.identity && body.identity.value;
+      if (!who) return answer(400, { error: "Sign the user in first.", code: "identity_required" });
+      var all = pastSessionsFor(body.publishableKey, who);
+      if (path === "/api/embed/sessions/transcript") {
+        var found = all.filter(function (x) { return x.id === body.id; })[0];
+        if (!found) return answer(404, { error: "Session not found.", code: "not_found" });
+        var t = JSON.parse(JSON.stringify(found));
+        delete t.preview;
+        return answer(200, t);
+      }
+      var from = Math.max(0, Number(body.cursor) || 0);
+      var rows = all.slice(from, from + 3).map(function (x) { var r = JSON.parse(JSON.stringify(x)); r.turns = x.turns.length; return r; });
+      return answer(200, { sessions: rows, next: from + 3 < all.length ? String(from + 3) : null });
+    }
     var list = calls[bucket(body.publishableKey, body.identity && body.identity.value)] || [];
     if (path === "/api/embed/calls/list") return answer(200, { calls: JSON.parse(JSON.stringify(list)) });
     for (var i = 0; i < list.length; i++) {

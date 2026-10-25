@@ -405,11 +405,11 @@ async function sdkTypes(page, origin) {
   await page.eval(`__t.click("[data-fake=booking-close]")`);
   await page.waitFor(`!__t.sheet()`, "the sheet closed");
   check((await page.eval(`__t.texts(".list-row").length`)) === listed, "closing the sheet books nothing");
-  // While the loader says this visitor cannot book, the button stays, disabled, and says so.
+  // While the loader says this visitor cannot book, the button stays — the sheet itself says why — with one line saying so.
   await page.eval(`__graineFake.setUsersCanBook(false); true`);
   await page.eval(`__t.click("#calls-refresh")`);
-  await page.waitFor(`__t.$("#book-open").disabled && __t.text("#book-unavailable") === "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID."`,
-    "the button off, with one line saying why");
+  await page.waitFor(`!__t.$("#book-open").disabled && __t.text("#book-unavailable") === "Booking needs, in Graine UI: users may book (Calls & scheduling) and Who is the user? set to this pack's ID."`,
+    "the button stays, with one line saying why");
   await page.shot("sdk-booking-unavailable");
   await page.eval(`__graineFake.setUsersCanBook(true); true`);
   await page.eval(`__t.click("#calls-refresh")`);
@@ -428,6 +428,25 @@ async function sdkTypes(page, origin) {
   await page.waitFor(`__t.texts(".list-row [data-status]").includes("Cancelled")`, "the cancelled chip");
   await page.waitFor(`__graineFake.screens.at(-1).fields[0].value === "0"`, "the calls screen context to count no upcoming calls");
 
+  // Past sessions on Chat, drawn by the page from the public routes: newest first, three to a page, then a transcript.
+  await go(page, "chat", "Asha");
+  await page.waitFor(`__t.texts("#past-sessions-main .list-row").length >= 3`, "the main agent's past sessions");
+  await page.eval(`if (__t.$("#past-more-main")) __t.click("#past-more-main"); true`);
+  await page.waitFor(`__t.texts("#past-sessions-main .list-row").length === 4 && /No earlier sessions/.test(__t.text("#past-sessions-main"))`, "the next page, then the end");
+  check((await page.eval(`__t.texts("#past-sessions-main .list-sub")[0]`)) === "Chat · 1:35 · 3 messages", "a session reads as kind, length and messages");
+  check((await page.eval(`__t.texts("#past-sessions-main [data-status]").join("|")`)) === "Completed|Completed|Completed|Missed", "how each one ended");
+  const pastRoute = await page.eval(`__graineFake.log.find((c) => c[0] === "route" && c[1] === "/api/embed/sessions/list")`);
+  check(pastRoute && pastRoute[2].publishableKey === "pk_test_headless" && pastRoute[2].identity.value === "MRN-000981" && pastRoute[2].installId === "6f1d2c3b-4a59-4e7f-9a1b-0c2d3e4f5a6b",
+    "past sessions are read with the agent's key, this browser's install id and the identifier", js(pastRoute));
+  check(!!(await page.eval(`__graineFake.log.find((c) => c[0] === "route" && c[1] === "/api/embed/sessions/list" && c[2].cursor === "3")`)), "the next page asks with the cursor");
+  await page.eval(`__t.click(__t.$('#past-sessions-main [data-session="ex-offline-0004"] .list-side button'))`);
+  await page.waitFor(`!!__t.$("#past-transcript-main")`, "the transcript");
+  check(js(await page.eval(`__t.texts("#past-transcript-main .bubble")`)) === js(["Hi, how can I help?", "Can I move my next call to Friday?", "Done: Friday at 10:00."]), "the transcript, oldest first");
+  check(await page.eval(`__t.texts("#past-transcript-main .is-mine .bubble").join("|") === "Can I move my next call to Friday?"`), "the visitor's line on the visitor's side");
+  await page.shot("sdk-past-session");
+  await page.eval(`__t.click("#past-back-main")`);
+  await page.waitFor(`!!__t.$("#past-sessions-main")`, "back to the list");
+
   // Help: the second agent takes the page's assistant; the same person stays signed in.
   await go(page, "help", "Billing & appointments help");
   await page.waitFor(`__t.text("#assistant-status") === "Billing & appointments help: Ready"`, "the help agent on the page");
@@ -436,6 +455,9 @@ async function sdkTypes(page, origin) {
   check((await page.eval(`__graineFake.identity()`)) === "MRN-000981", "the same person is still signed in");
   await page.waitFor(`__graineFake.screens.at(-1).screen === "help"`, "the help screen context");
   check(js(await page.eval(`__graineFake.screens.at(-1)`)) === js({ screen: "help", title: "Billing & appointments help", fields: [] }), "the help screen context");
+  await page.waitFor(`__t.text("#past-empty-help") === "No past sessions yet. A session appears here once it has closed."`, "the help agent's past sessions: none yet");
+  check(!!(await page.eval(`__graineFake.log.find((c) => c[0] === "route" && c[1] === "/api/embed/sessions/list" && c[2].publishableKey === "pk_test_help")`)),
+    "the help agent's past sessions are read with its own key");
   await page.eval(`__t.click("#help-talk")`);
   await page.waitFor(`__graineFake.opened() >= 1 && !!document.querySelector('[data-fake=panel][data-agent="agent_help"]')`, "Talk opens the help agent");
   await page.waitFor(`!__t.$("#book-open").disabled`, "booking with the help agent");

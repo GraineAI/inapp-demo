@@ -291,7 +291,7 @@ scheduling**, **Memory → People** and **Call History**.
 | 7:30 | The second agent | Open **Help** (Billing & appointments help) → *"Why was I charged twice?"* | Another agent, its own chat — and it already knows it is Riya |
 | 8:30 | Call History | Dashboard → **Call History** | Each conversation and call, with who it was: *Patient ID · MRN-000981* |
 | 9:15 | Continuity | Close the app completely, open it again, open **Chat** | The chat where they left it: the earlier messages under a day line, the call as one "Voice call" row; **New conversation** in the header |
-| 9:40 | Past sessions | In the chat, **Past sessions** (Kotlin Multiplatform: in **Your own design**, the chat's menu) → tap the newest | Riya's earlier chats, voice conversations and calls with Asha, newest first — when, how long, how it ended, the first words — and the tapped one's transcript, read only: the same sessions as the dashboard's **Call History** |
+| 9:40 | Past sessions | In the chat, **Past sessions** (the website: the **Chat** section's Past sessions; Kotlin Multiplatform: in **Your own design**, the chat's menu) → open the newest | Riya's earlier chats, voice conversations and calls with Asha, newest first — when, how long, how it ended, the first words — and the tapped one's transcript, read only: the same sessions as the dashboard's **Call History** |
 
 ## 6. Troubleshooting
 

@@ -345,6 +345,95 @@ export function messageFor(code, serverMessage) {
   }
 }
 
+// ── Past sessions ───────────────────────────────────────────────────────────
+//
+// The signed-in visitor's earlier sessions with an agent — each chat, voice conversation and call,
+// newest first, like the dashboard's history — and one session's transcript, in the same words as
+// the apps (sdk/contract/past-sessions.json for the fields).
+
+export const PAST_SESSIONS_EMPTY = "No past sessions yet. A session appears here once it has closed.";
+export const PAST_SESSIONS_LOADING = "Loading past sessions…";
+
+/** Why the list did not load, in plain words: the two the list names first, then the rest. */
+export function pastSessionsError(code) {
+  if (code == null || code === "") return null;
+  switch (code) {
+    case "identity_required": return "Sign in to see past sessions.";
+    case "device_limit": return "Not available on this device.";
+    case "rate_limited": return "Too many requests. Try again in a few minutes.";
+    default: return "Past sessions could not be loaded. Try again.";
+  }
+}
+
+/** A refused list offers Try again, except when signing in or another device is the answer. */
+export function pastSessionsCanRetry(code) {
+  return code !== "identity_required" && code !== "device_limit";
+}
+
+/** Why a transcript did not open: an unknown session, or another person's, is `not_found`; the rest as for the list. */
+export function transcriptError(code) {
+  return code === "not_found" ? "That session is not available." : pastSessionsError(code);
+}
+
+/** "Chat", "Voice", "Call · outbound". */
+export function sessionKind(channel, direction) {
+  const c = String(channel || "").toLowerCase();
+  const base = c === "chat" ? "Chat" : c === "voice" ? "Voice" : c === "call" ? "Call" : c.charAt(0).toUpperCase() + c.slice(1);
+  return !direction || !String(direction).trim() || direction === "none" ? base : `${base} · ${direction}`;
+}
+
+/** How it ended, as a word on a chip: the session's word, readable; "Ended" when it said none. */
+export function sessionStatus(status) {
+  const s = typeof status === "string" ? status.trim() : "";
+  if (!s) return "Ended";
+  const words = s.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** "4 messages", "1 message". */
+export function sessionMessages(turns) {
+  return turns === 1 ? "1 message" : `${turns} messages`;
+}
+
+/** A session's length: "4:36", "1:02:03", or null when it is not known. */
+export function sessionLength(seconds) {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) return null;
+  const s = Math.round(seconds);
+  const pad = (n) => String(n).padStart(2, "0");
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
+}
+
+/** A row's second line: kind · length · messages. */
+export function sessionSummary(s) {
+  return [sessionKind(s.channel, s.direction), sessionLength(s.durationSeconds), sessionMessages(s.turns)].filter(Boolean).join(" · ");
+}
+
+/** A transcript's line under its title: kind · length · how it ended. */
+export function transcriptSummary(t) {
+  return [sessionKind(t.channel, t.direction), sessionLength(t.durationSeconds), sessionStatus(t.status)].filter(Boolean).join(" · ");
+}
+
+/** Whose line it is, for a transcript bubble. */
+export function isCustomerTurn(turn) {
+  const role = String((turn && turn.role) || "").toLowerCase();
+  return role === "customer" || role === "user";
+}
+
+/** A session id as a row shows it: enough to tell two apart, never the whole of it (Copy takes all of it). */
+export function shortId(id) {
+  if (typeof id !== "string" || !id) return "—";
+  return id.length <= 8 ? id : `…${id.slice(-6)}`;
+}
+
+/** The list after a page: a refresh replaces what was loaded; more appends it, an id already kept not added twice. */
+export function pastSessionsAfter(kept, page, { more = false } = {}) {
+  if (!more) return page.slice();
+  const seen = new Set(kept.map((s) => s.id));
+  return kept.concat(page.filter((s) => !seen.has(s.id) && seen.add(s.id)));
+}
+
 // ── Screen context ──────────────────────────────────────────────────────────
 
 /**
