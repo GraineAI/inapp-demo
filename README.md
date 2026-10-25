@@ -185,7 +185,7 @@ release.
 | iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.14.3 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
 | Android | `ai.graine:inapp-android:0.14.3` and `ai.graine:inapp-android-rtc:0.14.3` | Maven Central |
 | Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.3 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.3 | Maven Central, Swift Package Manager |
-| Flutter | `graine_inapp: ^0.13.1` | pub.dev |
+| Flutter | `graine_inapp: ^0.14.3` | pub.dev |
 | React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — |
 
@@ -193,7 +193,7 @@ To build against the SDK's sources instead (for example a fix that is not releas
 switch with one script, from the repository root:
 
 ```bash
-git clone --branch 0.13.1 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
+git clone --branch 0.14.3 https://github.com/GraineAI/inapp-flutter ../inapp-flutter
 scripts/use-local-sdks.sh local flutter    # flutter/pubspec_overrides.yaml → ../inapp-flutter
 GRAINE_SDK_RN_DIR=/path/to/sdk scripts/use-local-sdks.sh local rn
                                           # the folder holding the React Native SDK's inapp/ and inapp-calls/

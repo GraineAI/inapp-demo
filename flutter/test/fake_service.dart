@@ -146,6 +146,36 @@ class FakeGraineService implements GraineService {
   @override
   void endVoice({DemoAgent agent = DemoAgent.main}) {}
 
+  /// Each agent's past sessions as the SDK holds them; a test sets them, as the SDK would after a page.
+  final Map<DemoAgent, ValueNotifier<PastSessionsState>> past = {
+    DemoAgent.main: ValueNotifier<PastSessionsState>(const PastSessionsState()),
+    DemoAgent.help: ValueNotifier<PastSessionsState>(const PastSessionsState()),
+  };
+  final List<DemoAgent> pastRefreshes = <DemoAgent>[];
+  final List<DemoAgent> pastMores = <DemoAgent>[];
+
+  /// What each transcript asked for answers; an id not here is another user's (`notFound`).
+  final Map<String, SessionTranscript> transcripts = <String, SessionTranscript>{};
+
+  /// A refusal each transcript answers with instead.
+  final Map<String, GraineException> transcriptRefusals = <String, GraineException>{};
+
+  @override
+  ValueListenable<PastSessionsState> pastSessions(DemoAgent agent) => past[agent]!;
+
+  @override
+  Future<void> refreshPastSessions({DemoAgent agent = DemoAgent.main}) async => pastRefreshes.add(agent);
+
+  @override
+  Future<void> loadMorePastSessions({DemoAgent agent = DemoAgent.main}) async => pastMores.add(agent);
+
+  @override
+  Future<SessionTranscript> sessionTranscript(String id, {DemoAgent agent = DemoAgent.main}) async {
+    final refusal = transcriptRefusals[id];
+    if (refusal != null) throw refusal;
+    return transcripts[id] ?? (throw const GraineException('Session not found.', code: GraineErrorCode.notFound));
+  }
+
   @override
   Widget helpChat(String agentName) => Text('Chat with $agentName', key: const Key('fake-help-chat'));
 

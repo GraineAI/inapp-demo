@@ -13,8 +13,11 @@ import 'package:flutter/widgets.dart';
 import 'package:graine_inapp/graine_inapp.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'logic/past_sessions.dart';
 import 'logic/presentation.dart';
 import 'usecases.dart';
+
+export 'logic/past_sessions.dart';
 
 export 'package:graine_inapp/graine_inapp.dart'
     show
@@ -127,6 +130,20 @@ abstract class GraineService {
   Future<void> startVoice({DemoAgent agent = DemoAgent.main});
   void endVoice({DemoAgent agent = DemoAgent.main});
 
+  /// [agent]'s past sessions as the SDK holds them (`chat.pastSessions`): the sessions loaded so far, newest first,
+  /// whether a page is loading, whether there is another, and the last refusal's word — for a screen to redraw on.
+  ValueListenable<PastSessionsState> pastSessions(DemoAgent agent);
+
+  /// Load the first page again (`chat.refreshPastSessions()`). Never throws: a failure is the state's `error`.
+  Future<void> refreshPastSessions({DemoAgent agent = DemoAgent.main});
+
+  /// Load the next page and add it (`chat.loadMorePastSessions()`); nothing while a page is loading or at the end.
+  Future<void> loadMorePastSessions({DemoAgent agent = DemoAgent.main});
+
+  /// One session's lines, oldest first (`chat.sessionTranscript(id)`). Throws a [GraineException]: `notFound` for a
+  /// session that is not this user's, `deviceLimit`, `identityRequired`, `network`, …
+  Future<SessionTranscript> sessionTranscript(String id, {DemoAgent agent = DemoAgent.main});
+
   /// The help agent's chat window, full size.
   Widget helpChat(String agentName);
 
@@ -147,6 +164,47 @@ String describeError(Object err, UseCasePack pack, [String? agentName]) {
   return messageFor('unknown', '$err', agentName: name);
 }
 
+/// The SDK's past sessions (`chat.pastSessions`) as the app holds them.
+PastSessionsState pastSessionsOf(GrainePastSessions s) => PastSessionsState(
+      sessions: [for (final p in s.sessions) pastSessionOf(p)],
+      loading: s.loading,
+      hasMore: s.hasMore,
+      error: s.error,
+    );
+
+/// One of the SDK's past sessions as a row of the app's list.
+PastSession pastSessionOf(GrainePastSession p) => PastSession(
+      id: p.id,
+      startedAt: p.startedAt,
+      endedAt: p.endedAt,
+      durationSeconds: p.durationSeconds?.round(),
+      channel: p.channel.name,
+      direction: p.direction?.name,
+      status: _said(p.status),
+      turns: p.turns,
+      preview: _said(p.preview),
+    );
+
+/// The SDK's transcript (`chat.sessionTranscript(id)`) as the app shows it.
+SessionTranscript transcriptOf(GrainePastSessionTranscript t) => SessionTranscript(
+      id: t.id,
+      startedAt: t.startedAt,
+      endedAt: t.endedAt,
+      durationSeconds: t.durationSeconds?.round(),
+      channel: t.channel.name,
+      direction: t.direction?.name,
+      status: _said(t.status),
+      turns: [
+        for (final line in t.turns) TranscriptTurn(role: line.role == GrainePastSessionRole.customer ? 'customer' : 'agent', text: line.text, at: line.at),
+      ],
+    );
+
+/// The SDK's "" (it did not say) is the app's null.
+String? _said(String s) => s.trim().isEmpty ? null : s;
+
+/// How long a chat session stays open after the chat screen closes, in seconds (`GraineConfig.chatCloseDelaySeconds`).
+const int chatCloseDelaySeconds = 15;
+
 /// The name the help agent is configured under.
 const String helpAgentName = 'help';
 
@@ -166,6 +224,8 @@ class SdkGraineService implements GraineService {
           debug: kDebugMode,
           // The app asks for the microphone; the SDK grants it to the agent.
           requestMicrophone: () async => (await Permission.microphone.request()).isGranted,
+          // A chat session closes this long after its screen closes (the SDK's default, set here so it is plain to see).
+          chatCloseDelaySeconds: chatCloseDelaySeconds,
         );
     final main = GraineInApp.init(config(publishableKey));
     final help = helpKey == null || helpKey == publishableKey ? null : GraineInApp.init(config(helpKey), name: helpAgentName);
@@ -315,6 +375,37 @@ class SdkGraineService implements GraineService {
 
   @override
   void endVoice({DemoAgent agent = DemoAgent.main}) => _of(agent).voice.end();
+
+  // Past sessions: each agent's, read from the SDK's own state (`chat.pastSessions`) as the app's.
+  final Map<DemoAgent, ValueNotifier<PastSessionsState>> _past = <DemoAgent, ValueNotifier<PastSessionsState>>{};
+
+  /// The help agent the app has no key for has none.
+  bool _missing(DemoAgent agent) => agent == DemoAgent.help && _help == null;
+
+  @override
+  ValueListenable<PastSessionsState> pastSessions(DemoAgent agent) => _past.putIfAbsent(agent, () {
+        if (_missing(agent)) return ValueNotifier<PastSessionsState>(const PastSessionsState(error: 'unavailable'));
+        final source = _of(agent).chat.pastSessions;
+        final out = ValueNotifier<PastSessionsState>(pastSessionsOf(source.value));
+        source.addListener(() => out.value = pastSessionsOf(source.value));
+        return out;
+      });
+
+  @override
+  Future<void> refreshPastSessions({DemoAgent agent = DemoAgent.main}) async {
+    if (!_missing(agent)) await _of(agent).chat.refreshPastSessions();
+  }
+
+  @override
+  Future<void> loadMorePastSessions({DemoAgent agent = DemoAgent.main}) async {
+    if (!_missing(agent)) await _of(agent).chat.loadMorePastSessions();
+  }
+
+  @override
+  Future<SessionTranscript> sessionTranscript(String id, {DemoAgent agent = DemoAgent.main}) async {
+    if (_missing(agent)) throw const GraineException('This app has no key for that agent.', code: GraineErrorCode.invalidKey);
+    return transcriptOf(await _of(agent).chat.sessionTranscript(id));
+  }
 
   @override
   Widget helpChat(String agentName) => GraineChat(app: _help, name: agentName);

@@ -56,7 +56,7 @@ rn_published() {
 }
 
 flutter_local() {
-  [ -f "$FLUTTER_SRC/pubspec.yaml" ] || { echo "No Flutter SDK at $FLUTTER_SRC (git clone --branch 0.10.1 https://github.com/GraineAI/inapp-flutter there, or set GRAINE_SDK_FLUTTER_DIR)"; exit 1; }
+  [ -f "$FLUTTER_SRC/pubspec.yaml" ] || { echo "No Flutter SDK at $FLUTTER_SRC (git clone --branch 0.14.3 https://github.com/GraineAI/inapp-flutter there, or set GRAINE_SDK_FLUTTER_DIR)"; exit 1; }
   cat > "$ROOT/flutter/pubspec_overrides.yaml" <<EOF
 # Written by scripts/use-local-sdks.sh — never committed. Delete it (or run the script with
 # "published") to build against graine_inapp from pub.dev.

@@ -12,6 +12,7 @@ import 'screens/chat_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/items_screen.dart';
 import 'screens/memory_screen.dart';
+import 'screens/past_sessions_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/sign_in_screen.dart';
 import 'state.dart';
@@ -121,7 +122,14 @@ class _ShellState extends State<_Shell> {
     final onTop = ModalRoute.of(context)?.isCurrent ?? true;
 
     return Scaffold(
-      appBar: AppBar(title: Text(current == ScreenKey.home ? pack.appTitle : pack.screenTitle(current))),
+      appBar: AppBar(
+        title: Text(current == ScreenKey.home ? pack.appTitle : pack.screenTitle(current)),
+        actions: [
+          // The user's past sessions with the agent, beside its chat.
+          if (current == ScreenKey.chat)
+            TextButton(key: const Key('past-sessions-open'), onPressed: () => openPastSessions(context, DemoAgent.main), child: const Text('Past sessions')),
+        ],
+      ),
       body: IndexedStack(
         index: _tabs.indexOf(current),
         children: [for (final k in _tabs) _opened.contains(k) ? _screen(k, onTop && k == current) : const SizedBox.shrink()],

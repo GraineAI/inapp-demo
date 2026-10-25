@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../graine_service.dart';
 import '../state.dart';
 import '../ui.dart';
+import 'past_sessions_screen.dart';
 
 /// Help: the pack's SECOND agent (for example "Billing & appointments help" beside Asha). Its chat, voice and
 /// calls use the help agent (configured as `GraineInApp.init(config, name: 'help')`), while Home and Chat keep
@@ -103,7 +104,13 @@ class _HelpScreenState extends State<HelpScreen> {
     ]);
 
     return Scaffold(
-      appBar: AppBar(title: Text(help.name)),
+      appBar: AppBar(
+        title: Text(help.name),
+        actions: [
+          // The user's past sessions with the help agent.
+          TextButton(key: const Key('help-past-sessions-open'), onPressed: () => openPastSessions(context, DemoAgent.help), child: const Text('Past sessions')),
+        ],
+      ),
       body: ScreenReport(
         active: true,
         screen: screen,
