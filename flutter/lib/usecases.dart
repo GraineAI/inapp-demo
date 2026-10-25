@@ -288,8 +288,12 @@ class UseCasePack {
   /// identifier). Set through the SDK at sign-in, as an API call sends `variables`.
   final Map<String, String> variables;
 
-  /// What identify() is given: the identifier under the pack's field, the name, and the person's traits.
-  Map<String, Object?> identifyTraits(PackUser user) => <String, Object?>{...user.traits, 'name': user.name, identifierField: user.id};
+  /// What identify() is given: the identifier under the pack's field, the name, and the person's traits — and the
+  /// same identifier under `user_id` too, so the user is recognised whether the agent's "Who is the user?" names the
+  /// pack's field or User ID (the dashboard's usual choice). The SDK reads only the field the agent names; any
+  /// other key is a detail for the agent.
+  Map<String, Object?> identifyTraits(PackUser user) => <String, Object?>{...user.traits, 'name': user.name, identifierField: user.id}
+    ..putIfAbsent('user_id', () => user.id); // a user_id the person already has is kept
 
   /// The agent's prompt variables for [user], from [variables] — set through the SDK exactly as an API call
   /// sends them. A field the person does not have is left out.

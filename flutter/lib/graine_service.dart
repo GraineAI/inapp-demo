@@ -60,8 +60,8 @@ abstract class GraineService {
   /// The app has a help agent (a help key was given).
   bool get hasHelpAgent;
 
-  /// identify() with the pack's identifier trait (patient_id, customer_id…), the name and the person's traits.
-  /// Once: the SDK shares who is signed in with every agent of the app. The identifier keys memory and booked
+  /// identify() with the pack's identifier trait (patient_id, customer_id…) and the same id under user_id, the name
+  /// and the person's traits (`UseCasePack.identifyTraits`). Once: the SDK shares who is signed in with every agent of the app. The identifier keys memory and booked
   /// calls; it is never a prompt variable. [memory] is the consent switch.
   void signIn(UseCasePack pack, PackUser user, {required bool memory});
 

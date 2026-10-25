@@ -40,6 +40,16 @@ void main() {
     }
   });
 
+  test("identify sends the id under the pack's field and under user_id", () {
+    final health = UseCasePack.fromJson(jsonDecode(File('assets/usecases/health-coach.json').readAsStringSync()) as Map<String, dynamic>);
+    final user = health.users[0];
+    final traits = health.identifyTraits(user);
+    expect(traits[health.identifierField], user.id, reason: "the pack's own field");
+    expect(traits['user_id'], user.id, reason: 'and User ID, so an agent set to it still knows the user');
+    final explicit = PackUser(id: user.id, name: user.name, traits: {...user.traits, 'user_id': 'kept-as-sent'});
+    expect(health.identifyTraits(explicit)['user_id'], 'kept-as-sent', reason: 'a user_id the person already has is kept');
+  });
+
   test("each pack maps its people to the agent's variables, as an API call would", () {
     final json = jsonDecode(File('assets/usecases/health-coach.json').readAsStringSync()) as Map<String, dynamic>;
     final health = UseCasePack.fromJson(json);

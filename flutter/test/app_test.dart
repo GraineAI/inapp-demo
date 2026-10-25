@@ -53,6 +53,8 @@ void main() {
     final (packId, traits, memory) = service.signIns.single;
     expect(packId, 'banking-support');
     expect(traits['customer_id'], 'CUST-10042');
+    // The id rides under the pack's field and under user_id, so either "Who is the user?" choice recognises the user.
+    expect(traits['user_id'], 'CUST-10042');
     expect(traits['name'], 'Rahul Verma');
     expect(memory, isFalse);
     expect(service.registered, ['open_screen', 'open_item', 'freeze_card', 'unfreeze_card']);
