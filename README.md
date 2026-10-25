@@ -60,6 +60,7 @@ All people, cards and orders are fictional.
 | Call outcomes logged in the app, with the agent each call was with | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | Two agents in one app: a Help screen on a second agent (chat, voice, calls, booking), one sign-in for both, both agents' calls listed by name | ✓ ⁵ | ✓ ⁵ | ✓ | ✓ | ✓ | ✓ |
 | Your own design: the chat, voice, the call screen (with its connection report), booking and components drawn by the app from the SDK's public state, and a live Public state screen | — | — | — | — | — | ✓ ⁶ |
+| Past sessions: the user's earlier chats, voice conversations and calls with the agent, newest first, and each one's transcript, drawn by the app from the SDK's `chat.pastSessions` | — ⁷ | ✓ | ✓ | ✓ | — ⁸ | ✓ ⁶ |
 
 1. Flutter starts the chosen use case's two agents at launch: choosing a use case whose agents have other
    publishable keys takes effect the next time the app is opened (the app says so).
@@ -74,6 +75,9 @@ All people, cards and orders are fictional.
 5. The help agent's key is optional: without it the Help screen says how to add one.
 6. Home's switch, **Graine's screens / Your own design** ([`kmp/README.md`](kmp/README.md#your-own-design)): the
    same features with no SDK screen at all, for apps that draw every screen in their own design system.
+7. React Native: past sessions come with `@graineai/inapp-react-native` 0.47.2 (calls 0.8.2), not on npm yet.
+8. Website: the loader offers past sessions to pages that draw their own chat (`load({ headless: true })`); this page
+   uses the loader's own widget.
 
 ## What the SDK does, and what your app does
 
@@ -176,7 +180,8 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 ### Where the SDKs come from
 
-Every app uses the published release, **0.10.1** (React Native 0.44.1, calls 0.5.1). The sources of the iOS (and its
+Every app uses a published release: **0.14.3** for iOS, Android, Flutter and Kotlin Multiplatform; React Native 0.44.1,
+calls 0.5.1. The sources of the iOS (and its
 WebRTC module), Android, Kotlin Multiplatform and Flutter SDKs are public repositories (MIT licence), tagged with each
 release.
 

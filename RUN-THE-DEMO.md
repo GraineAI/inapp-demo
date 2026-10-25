@@ -74,19 +74,19 @@ How to create them, step by step (the APNs key, the Firebase service account):
 
 ## 3. Run each app
 
-**Where the SDKs come from today** — the committed manifests name 0.10.1 (React Native 0.44.1 and calls 0.5.1),
-release 0.10.1 (the SDK's booking sheet, WebRTC calls, call permissions and the setup check). Every app includes the SDK's WebRTC module — iOS `GraineInAppRTC`, Android `inapp-android-rtc`, Flutter `GRAINE_WEBRTC` / `graineWebRtc`, React Native the calls plugin's `webrtc: true` — so calls and answered rings carry their audio over WebRTC. The apps build from the registries; the local-SDK switch
+**Where the SDKs come from today** — the committed manifests name 0.14.3 for iOS, Android, Flutter and Kotlin
+Multiplatform (past sessions, and a chat that closes 15 seconds after its screen) and React Native 0.44.1 with calls 0.5.1. Every app includes the SDK's WebRTC module — iOS `GraineInAppRTC`, Android `inapp-android-rtc`, Flutter `GRAINE_WEBRTC` / `graineWebRtc`, React Native the calls plugin's `webrtc: true` — so calls and answered rings carry their audio over WebRTC. The apps build from the registries; the local-SDK switch
 below is only for building against SDK sources on your machine:
 
 | Registry | Live | Used by |
 |---|:-:|---|
 | Swift Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.3) | yes | iOS; the Kotlin Multiplatform app's iOS side |
 | npm (`@graineai/inapp-react-native` 0.44.1, `@graineai/inapp-react-native-calls` 0.5.1) | yes | React Native |
-| Maven Central (`ai.graine:inapp-android` 0.14.3, `ai.graine:inapp-kmp` 0.13.1) | yes | Android, Kotlin Multiplatform |
+| Maven Central (`ai.graine:inapp-android` 0.14.3, `ai.graine:inapp-kmp` 0.14.3) | yes | Android, Kotlin Multiplatform |
 | pub.dev (`graine_inapp` 0.14.3) | yes | Flutter |
 | CocoaPods trunk (`GraineInApp` 0.13.1) | yes | not used by these apps |
 
-The local-SDK switches build against the SDK's public source repositories, tag `0.13.1` once it is published
+The local-SDK switches build against the SDK's public source repositories, tag `0.14.3` once it is published
 (or any checkout of the SDK's sources). Clone them beside this repository (commands below, run from the
 repository root); each switch is undone by removing it, and `node scripts/check-manifests.mjs` fails while a
 React Native or Flutter manifest still points at local sources.
@@ -291,6 +291,7 @@ scheduling**, **Memory → People** and **Call History**.
 | 7:30 | The second agent | Open **Help** (Billing & appointments help) → *"Why was I charged twice?"* | Another agent, its own chat — and it already knows it is Riya |
 | 8:30 | Call History | Dashboard → **Call History** | Each conversation and call, with who it was: *Patient ID · MRN-000981* |
 | 9:15 | Continuity | Close the app completely, open it again, open **Chat** | The chat where they left it: the earlier messages under a day line, the call as one "Voice call" row; **New conversation** in the header |
+| 9:40 | Past sessions | In the chat, **Past sessions** (Kotlin Multiplatform: in **Your own design**, the chat's menu) → tap the newest | Riya's earlier chats, voice conversations and calls with Asha, newest first — when, how long, how it ended, the first words — and the tapped one's transcript, read only: the same sessions as the dashboard's **Call History** |
 
 ## 6. Troubleshooting
 
@@ -334,4 +335,4 @@ scheduling**, **Memory → People** and **Call History**.
    in `ios-rtc`, or `GRAINE_IOS_RTC_SDK_PATH`) and build `kmp/iosApp/iosAppLocal.xcodeproj`.
 11. **iOS: the booking button stays off, or `presentBooking` fails with `Unavailable`, though the agent can be
    booked** — the app links a GraineInApp older than the multiplatform SDK (0.7.0 has no booking sheet): link the
-   same version, 0.13.1.
+   same version, 0.14.3.
