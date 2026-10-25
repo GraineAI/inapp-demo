@@ -87,9 +87,16 @@ export function humanize(key) {
   return words[0].charAt(0).toUpperCase() + words[0].slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
 }
 
-/** What `identify()` is given: the identifier under the pack's field, the name, then the traits. */
+/**
+ * What `identify()` is given: the identifier under the pack's field, the name, and the person's traits — and the
+ * same identifier under `user_id` too, so the visitor is recognised whether the agent's "Who is the user?" names
+ * the pack's field or User ID (the dashboard's usual choice). The loader reads only the field the agent names;
+ * any other key is a detail for the agent.
+ */
 export function traitsFor(pack, user) {
-  return { [pack.identifierField]: user.id, name: user.name, ...(user.traits || {}) };
+  const traits = { ...(user.traits || {}), name: user.name, [pack.identifierField]: user.id };
+  if (traits.user_id == null) traits.user_id = user.id; // a user_id the person already has is kept
+  return traits;
 }
 
 /** The signed-in user's rows: every row with no `userIds`, and the rows that name them. */

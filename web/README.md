@@ -29,9 +29,9 @@ git-ignored.
 ## Connect an agent
 
 1. Create the agent for the use case from `agent-setup/<pack>/` (prompt, components, actions,
-   settings). Two settings must match the pack exactly: **Memory → Who is the user? → Custom field**
-   is the pack's identifier (`patient_id`, `customer_id` or `shopper_id`), and **Calls & scheduling →
-   Users, from your app** is on.
+   settings). Two settings must match the pack: **Memory → Who is the user? → Custom field** is the
+   pack's identifier (`patient_id`, `customer_id` or `shopper_id`) — or **User ID**: the page sends the
+   same id under `user_id` too — and **Calls & scheduling → Users, from your app** is on.
 2. In the agent, **Embed & Widgets → Install → Allowed domains**: add `http://localhost:3000`. It is
    saved as `localhost` — the port does not matter — so open the site at `localhost`, not
    `127.0.0.1` (or add `127.0.0.1` too). Add your real host when you deploy.
@@ -77,7 +77,7 @@ export default { agentId: "offline", publishableKey: "pk_test_offline", loaderUr
 
 | Screen | What it demonstrates | Loader calls (all through `graine.js`) |
 |---|---|---|
-| Sign in | Pick a use case (remembered in this browser; switching loads that pack's agent) and a person; the memory consent switch | `identify({ <identifier>: id, name, …traits }, { memory })` |
+| Sign in | Pick a use case (remembered in this browser; switching loads that pack's agent) and a person; the memory consent switch | `identify({ …traits, name, <identifier>: id, user_id: id }, { memory })` |
 | Home | Memory: on / off, the next booked call, the pack's cards; **Talk to …** opens the assistant | `open()`, `scheduledCalls()` |
 | Chat | The chat opens in the assistant's panel; the pack's suggestions copy into it | `open()` |
 | The list (Medicines · Cards · Orders) | The visitor's rows with status chips and buttons; the assistant can open a screen, open a row or set a row's status | `defineAction(name, handler)` for every pack action, `setScreen(context)` |
@@ -113,11 +113,12 @@ the page instead of failing quietly:
 ## Memory QA script
 
 Use a key for the agent, memory on in the dashboard and on the sign-in screen. The page identifies
-the visitor with the pack's field (`identify({ patient_id: … }, { memory })`), which must be the
-agent's **Who is the user?**. At the start of each chat or Talk, what the agent remembers about them
-goes into what the model reads, after its prompt; what is said is ready about a minute after the
-conversation ends, and contact details, ID and card numbers, codes and medical details are never kept.
-The Memory screen shows the pack's own sentences under **Try it**; for Graine Care:
+the visitor with the pack's field (`identify({ patient_id: … }, { memory })`). The same id also goes
+under `user_id`, so the visitor is recognised whether the agent's **Who is the user?** is the pack's
+field or **User ID** (the dashboard's usual choice). At the start of each chat or Talk, what the agent
+remembers about them goes into what the model reads, after its prompt; what is said is ready about a
+minute after the conversation ends, and contact details, ID and card numbers, codes and medical details
+are never kept. The Memory screen shows the pack's own sentences under **Try it**; for Graine Care:
 
 1. Sign in as **Riya Sharma**. Open the chat and tell Asha "My goal is to walk 30 minutes every
    evening, after dinner." and "Please call me for check-ins after 7 pm." End the chat and wait

@@ -266,7 +266,8 @@ test("screen context: the same fields as every platform (usecases/README.md)", (
 });
 
 test("identify gets the identifier under the pack's field, the name and the traits", () => {
-  assert.deepEqual(L.traitsFor(sample, sample.users[0]), { member_id: "M-001", name: "Alex Rivera", tier: "Gold", city: "Pune" });
+  // The id rides under the pack's field and under user_id, so either "Who is the user?" choice recognises the user.
+  assert.deepEqual(L.traitsFor(sample, sample.users[0]), { member_id: "M-001", name: "Alex Rivera", tier: "Gold", city: "Pune", user_id: "M-001" });
   for (const pack of realPacks) {
     const traits = L.traitsFor(pack, pack.users[0]);
     assert.equal(traits[pack.identifierField], pack.users[0].id);
@@ -275,6 +276,16 @@ test("identify gets the identifier under the pack's field, the name and the trai
   assert.equal(L.humanize("patient_id"), "Patient ID");
   assert.equal(L.humanize("careTeam"), "Care team");
   assert.equal(L.firstName("Riya Sharma"), "Riya");
+});
+
+test("identify sends the id under the pack's field and under user_id", () => {
+  const health = realPacks.find((p) => p.id === "health-coach");
+  const user = health.users[0];
+  const traits = L.traitsFor(health, user);
+  assert.equal(traits[health.identifierField], user.id, "the pack's own field");
+  assert.equal(traits.user_id, user.id, "and User ID, so an agent set to it still knows the user");
+  const explicit = { ...user, traits: { ...user.traits, user_id: "kept-as-sent" } };
+  assert.equal(L.traitsFor(health, explicit).user_id, "kept-as-sent", "a user_id the person already has is kept");
 });
 
 test("the pack's two agents: main repeats the top level, help comes from agents.help", () => {

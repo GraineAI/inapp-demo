@@ -349,11 +349,11 @@ async function sdkTypes(page, origin) {
     __graineFake.seedMemories("MRN-000982", ["Prefers calls in the morning."]); true`);
   await page.shot("sdk-sign-in");
 
-  // Sign in: identify with the pack's identifier field, the name, the traits and the consent.
+  // Sign in: identify with the traits, the name, the pack's identifier field, the same id under user_id, and the consent.
   await signIn(page, "MRN-000981", "Riya");
   const id = await page.eval(`__graineFake.log.filter((c) => c[0] === "identify").at(-1)`);
-  check(js(id) === js(["identify", { patient_id: "MRN-000981", name: "Riya Sharma", plan: "Diabetes care", care_team: "Dr. Kavya Rao" }, { memory: true }]),
-    "identify gets patient_id, name, traits and memory: true", js(id));
+  check(js(id) === js(["identify", { plan: "Diabetes care", care_team: "Dr. Kavya Rao", age: "34", name: "Riya Sharma", patient_id: "MRN-000981", user_id: "MRN-000981" }, { memory: true }]),
+    "identify gets the traits, name, patient_id, user_id and memory: true", js(id));
   check((await page.eval(`__t.text("#memory-chip")`)) === "Memory: on", "Home shows Memory: on");
   check((await page.eval(`__t.texts("[data-card] .card-title").join("|")`)) === "Medicines due today|Check-in calls|What Asha remembers", "Home draws the pack's cards");
   const home = await page.eval(`__graineFake.screens.at(-1)`);
