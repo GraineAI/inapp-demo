@@ -150,11 +150,17 @@ data class UseCasePack(
 
     data class MemoryExample(val tell: String, val ask: String, val expect: String)
 
-    /** identify's traits: the identifier under the agent's identity field, the name, and the extra traits. */
+    /**
+     * identify's traits: the identifier under the pack's identity field, the name, and the extra traits —
+     * and the same identifier under `user_id` too, so the user is recognised whether the agent's
+     * "Who is the user?" names the pack's field or User ID (the dashboard's usual choice). The SDK
+     * reads only the field the agent names; any other key is a detail for the agent.
+     */
     fun traitsFor(user: User): Map<String, String> =
         LinkedHashMap(user.traits).apply {
             put("name", user.name)
             put(identifierField, user.id)
+            getOrPut("user_id") { user.id }
         }
 
     /**

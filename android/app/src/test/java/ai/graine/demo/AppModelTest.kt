@@ -79,7 +79,8 @@ class AppModelTest {
 
     @Test fun signInIdentifiesTheUserWithTheirConsent() {
         model.signIn(riya, false)
-        assertEquals(mapOf("plan" to "Diabetes care", "name" to "Riya Sharma", "patient_id" to "P-1") to false, fake.identified.last())
+        // The id rides under the pack's field and under user_id, so either "Who is the user?" choice recognises the user.
+        assertEquals(mapOf("plan" to "Diabetes care", "name" to "Riya Sharma", "patient_id" to "P-1", "user_id" to "P-1") to false, fake.identified.last())
         assertEquals("Memory: off" to false, model.memoryStatus)
         assertEquals("home", fake.lastScreen?.screen)
         assertEquals(listOf("metformin", "atorvastatin", "vitamin-d3"), model.items?.rows?.map { it.id })

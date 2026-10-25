@@ -86,11 +86,12 @@ the **Calls** list is read again; there each call has its status and, while it c
 ## Memory, in two minutes
 
 The app identifies the user with the pack's field (`patient_id`, `customer_id` or `shopper_id`) before any chat
-or call opens; the agent's **Who is the user?** must be that same field, or every conversation is a stranger. At
-the start of each chat, Talk or call, what the agent remembers about the user goes into what the model reads,
-after its prompt. What is said is saved every few messages and when the conversation ends, ready about a minute
-later — never contact details, ID or card numbers, codes or medical details. More: the root README's
-[Memory QA script](../README.md#memory-qa-script).
+or call opens. The same id also goes under `user_id`, so the user is recognised whether the agent's
+**Who is the user?** is the pack's field or **User ID** (the dashboard's usual choice); with any other field,
+every conversation is a stranger. At the start of each chat, Talk or call, what the agent remembers about the
+user goes into what the model reads, after its prompt. What is said is saved every few messages and when the
+conversation ends, ready about a minute later — never contact details, ID or card numbers, codes or medical
+details. More: the root README's [Memory QA script](../README.md#memory-qa-script).
 
 Sign in with memory on, tell the assistant the pack's two `memoryExamples` (`tell`) in the chat, close the app
 and wait about a minute. Open it again and sign in as the same user: the chat continues where it was. Tap **New

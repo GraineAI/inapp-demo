@@ -50,6 +50,16 @@ class BundledPackTest {
         }
     }
 
+    @Test fun identifySendsTheIdUnderThePacksFieldAndUnderUserId() {
+        val health = packs.first { it.id == "health-coach" }
+        val user = health.users[0]
+        val traits = health.traitsFor(user)
+        assertEquals("the pack's own field", user.id, traits[health.identifierField])
+        assertEquals("and User ID, so an agent set to it still knows the user", user.id, traits["user_id"])
+        val explicit = user.copy(traits = user.traits + ("user_id" to "kept-as-sent"))
+        assertEquals("a user_id the person already has is kept", "kept-as-sent", health.traitsFor(explicit)["user_id"])
+    }
+
     @Test fun eachPackMapsItsPeopleToTheAgentsVariablesAsAnApiCallWould() {
         val health = packs.first { it.id == "health-coach" }
         assertEquals(mapOf("callee_name" to "name", "age" to "age"), health.variables)
@@ -73,7 +83,7 @@ class PackModelTest {
     private val pack = TestPack.pack
 
     @Test fun traitsCarryTheIdentifierUnderTheAgentsField() {
-        assertEquals(mapOf("plan" to "Diabetes care", "name" to "Riya Sharma", "patient_id" to "P-1"), pack.traitsFor(pack.users[0]))
+        assertEquals(mapOf("plan" to "Diabetes care", "name" to "Riya Sharma", "patient_id" to "P-1", "user_id" to "P-1"), pack.traitsFor(pack.users[0]))
     }
 
     @Test fun rowsAreTheUsersOwnPlusTheShared() {
