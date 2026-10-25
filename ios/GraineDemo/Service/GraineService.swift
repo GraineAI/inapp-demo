@@ -25,12 +25,17 @@ final class GraineService: GraineClient {
     private let help: GraineInApp?
     private let relay = SDKRelay()
     private var callsWatch: AnyCancellable?
+    private var pastWatches: [AnyCancellable] = []
     private var callScreenShown = false
     private var registeredActions: [() -> Void] = []
 
     var onSessionReady: (@MainActor () -> Void)?
     var onCallEvent: (@MainActor (CallEvent) -> Void)?
     var onCallScreenChange: (@MainActor (Bool) -> Void)?
+    var onPastSessions: (@MainActor (DemoAgent, PastSessionsState) -> Void)?
+
+    /// How long a chat session stays open after the chat screen closes, in seconds (`GraineConfig.chatCloseDelaySeconds`).
+    static let chatCloseDelaySeconds = 15
 
     /// Configure the agents and the calls. Once, at launch.
     static func start(config: AppConfig, callName: String) -> GraineService {
@@ -40,8 +45,9 @@ final class GraineService: GraineClient {
         #else
         let debug = false
         #endif
+        // A chat session closes this long after its screen closes (the SDK's default, set here so it is plain to see).
         func agentConfig(_ key: String) -> GraineConfig {
-            GraineConfig(baseUrl: config.baseURL, publishableKey: key, appVersion: appVersion, debug: debug)
+            GraineConfig(baseUrl: config.baseURL, publishableKey: key, appVersion: appVersion, debug: debug, chatCloseDelaySeconds: chatCloseDelaySeconds)
         }
         let main = GraineInApp.configure(agentConfig(config.publishableKey))
         let help = config.hasHelpKey
@@ -74,6 +80,15 @@ final class GraineService: GraineClient {
         callsWatch = main.calls.objectWillChange.sink { [weak self] _ in
             // objectWillChange fires before the value changes: read it on the next turn.
             DispatchQueue.main.async { self?.publishCallScreen() }
+        }
+
+        // Each agent's past sessions, as the SDK publishes them (`chat.$pastSessions`): the app hears every change.
+        for agent in agents {
+            guard let graine = sdk(agent) else { continue }
+            pastWatches.append(graine.chat.$pastSessions.dropFirst().removeDuplicates().sink { [weak self] value in
+                let state = PastSessionsSdk.state(value)
+                DispatchQueue.main.async { self?.onPastSessions?(agent, state) }
+            })
         }
     }
 
@@ -213,6 +228,25 @@ final class GraineService: GraineClient {
         let id = main.calls.startCall(reason: reason, variables: variables, agent: agent.sdkName)
         if id != nil { publishCallScreen() }
         return id
+    }
+
+    // MARK: - Past sessions (PastSessionsSdk reads the SDK's state)
+
+    func pastSessions(agent: DemoAgent) -> PastSessionsState {
+        guard let graine = sdk(agent) else { return PastSessionsState(error: GraineErrorCode.unavailable.wire) }
+        return PastSessionsSdk.state(graine.chat.pastSessions)
+    }
+
+    func refreshPastSessions(agent: DemoAgent) {
+        sdk(agent)?.chat.refreshPastSessions()
+    }
+
+    func loadMorePastSessions(agent: DemoAgent) {
+        sdk(agent)?.chat.loadMorePastSessions()
+    }
+
+    func sessionTranscript(id: String, agent: DemoAgent) async throws -> SessionTranscript {
+        PastSessionsSdk.transcript(try await required(agent).chat.sessionTranscript(id: id))
     }
 
     // MARK: - The SDK's own views

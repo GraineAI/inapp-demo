@@ -80,7 +80,7 @@ below is only for building against SDK sources on your machine:
 
 | Registry | Live | Used by |
 |---|:-:|---|
-| Swift Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.13.1) | yes | iOS; the Kotlin Multiplatform app's iOS side |
+| Swift Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.3) | yes | iOS; the Kotlin Multiplatform app's iOS side |
 | npm (`@graineai/inapp-react-native` 0.44.1, `@graineai/inapp-react-native-calls` 0.5.1) | yes | React Native |
 | Maven Central (`ai.graine:inapp-android` 0.14.3, `ai.graine:inapp-kmp` 0.13.1) | yes | Android, Kotlin Multiplatform |
 | pub.dev (`graine_inapp` 0.13.1) | yes | Flutter |
@@ -100,11 +100,11 @@ host microphone turned on (Extended controls → Microphone).
 
 Xcode 16+. Copy `ios/Config.example.xcconfig` to `ios/Config.xcconfig` and set `GRAINE_PUBLISHABLE_KEY`,
 `GRAINE_HELP_PUBLISHABLE_KEY`, and for a phone `DEVELOPMENT_TEAM` and `PRODUCT_BUNDLE_IDENTIFIER`. Until
-Swift Package Manager has 0.13.1, the switch (XcodeGen; it writes `GraineDemoLocal.xcodeproj`, git-ignored —
+Swift Package Manager has 0.14.3, the switch (XcodeGen; it writes `GraineDemoLocal.xcodeproj`, git-ignored —
 use it in place of `GraineDemo.xcodeproj` below):
 
 ```sh
-git clone --branch 0.13.1 https://github.com/GraineAI/inapp-ios ../inapp-ios
+git clone --branch 0.14.3 https://github.com/GraineAI/inapp-ios ../inapp-ios
 ios/use-local-sdk.sh
 
 cd ios

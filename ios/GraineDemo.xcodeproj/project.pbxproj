@@ -10,6 +10,7 @@
 		016D838DF8D89716EB525CB2 /* ChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A85861443B4BEE49785E66C /* ChatScreen.swift */; };
 		0CCA066D6C5105DBA238926F /* usecases in Resources */ = {isa = PBXBuildFile; fileRef = C158AC161E2122E127110250 /* usecases */; };
 		0D8927356E6284518D6EE7FB /* PackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DB23F28558FF91DBBE0239 /* PackTests.swift */; };
+		10E0BD404ADAA9AD5FD7F80C /* PastSessionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1042DF058A94B73588D9ABE /* PastSessionsTests.swift */; };
 		12AFD5E53499A52455873705 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2D9A4F6685D1F711E4F611 /* HomeView.swift */; };
 		1A14B8B2D889C80545B3FD79 /* GraineService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9EF033BDB460243A471D01 /* GraineService.swift */; };
 		1C98430D466902CBF64B1232 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E9650E997787CCFC183F5F /* ProfileView.swift */; };
@@ -30,15 +31,18 @@
 		A388A7B82AAD75537EBEADC2 /* TestPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14AD8F42B3B833E36F79726 /* TestPack.swift */; };
 		A98B76D2A1515036A643C190 /* GraineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546214C3AAC6F0018E63EC4D /* GraineClient.swift */; };
 		AABD076AC27D815DEBAC3D0F /* TestClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B9A81DFBDD56BA44595F25 /* TestClock.swift */; };
+		C85A97BA6800EFAC80A47AC0 /* PastSessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E48F3343C57A514B83397A /* PastSessionsView.swift */; };
 		C891A249EF1833CC4850F3B5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E46D8EDACE36D9F55C97A3 /* Theme.swift */; };
 		C901F4B41889F3AA57B95B3E /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 094D57CAF2FFDD55BB57856B /* AppConfig.swift */; };
 		CBBF52FA4DA3D9C0A772CC75 /* CallTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE597B4E99CACACF746AAE06 /* CallTextTests.swift */; };
 		CF4A8C372679E58427B04ED0 /* FakeGraineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */; };
+		D868DBFFDE23717EE7A85453 /* PastSessionsSdk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E85B16626ABD5C38197906B /* PastSessionsSdk.swift */; };
 		DA4707D6DDEA9F1DC35F5380 /* GraineInApp in Frameworks */ = {isa = PBXBuildFile; productRef = C2DB785B6018B93C4A5D1DB9 /* GraineInApp */; };
 		DC8B330278FC199F3323BD39 /* CallLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 950AAFE1489AFA6CAAE2D52F /* CallLog.swift */; };
 		E6CF79A84A63AD1881504538 /* CallPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4BECBB0340824ADB0364BE /* CallPresentation.swift */; };
 		EB9A3463CB4AA644A7D1C199 /* ScheduledCallsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5E44D85D9920C3297A118E /* ScheduledCallsView.swift */; };
 		EE8912D8C60356E7E10E47CC /* OfflineGraineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB1277E8D520D72D5A59EDA2 /* OfflineGraineClient.swift */; };
+		F057C0AE893C142B4ED3F6DF /* PastSessions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 713D231EC886D4BCF300EF68 /* PastSessions.swift */; };
 		F4EAB8693A06A7A4CB631879 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F425410275459FC8075EBF82 /* SignInView.swift */; };
 /* End PBXBuildFile section */
 
@@ -53,9 +57,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01E48F3343C57A514B83397A /* PastSessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastSessionsView.swift; sourceTree = "<group>"; };
 		059A14E0E851E5703D4E08EE /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		094D57CAF2FFDD55BB57856B /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		0A85861443B4BEE49785E66C /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
+		0E85B16626ABD5C38197906B /* PastSessionsSdk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastSessionsSdk.swift; sourceTree = "<group>"; };
 		12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UseCasePack.swift; sourceTree = "<group>"; };
 		12E9650E997787CCFC183F5F /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeGraineClient.swift; sourceTree = "<group>"; };
@@ -69,6 +75,7 @@
 		573C587D8E88B069C483665D /* ItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemsView.swift; sourceTree = "<group>"; };
 		6A5E44D85D9920C3297A118E /* ScheduledCallsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledCallsView.swift; sourceTree = "<group>"; };
 		6F4EA1895F8C26DEA8855EA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		713D231EC886D4BCF300EF68 /* PastSessions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastSessions.swift; sourceTree = "<group>"; };
 		77DB23F28558FF91DBBE0239 /* PackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackTests.swift; sourceTree = "<group>"; };
 		874FDD19896A4486C336BA7E /* GraineDemo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GraineDemo.entitlements; sourceTree = "<group>"; };
 		8D1A42B0FF88E02B3844E059 /* MemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryView.swift; sourceTree = "<group>"; };
@@ -79,6 +86,7 @@
 		AF5AB17C17913986D645C91E /* GraineDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraineDemoApp.swift; sourceTree = "<group>"; };
 		B251A6A0B63DE79CFF254408 /* GraineDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GraineDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD2D9A4F6685D1F711E4F611 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		C1042DF058A94B73588D9ABE /* PastSessionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastSessionsTests.swift; sourceTree = "<group>"; };
 		C14AD8F42B3B833E36F79726 /* TestPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestPack.swift; sourceTree = "<group>"; };
 		C158AC161E2122E127110250 /* usecases */ = {isa = PBXFileReference; lastKnownFileType = folder; name = usecases; path = ../usecases; sourceTree = SOURCE_ROOT; };
 		C7B9A81DFBDD56BA44595F25 /* TestClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestClock.swift; sourceTree = "<group>"; };
@@ -113,6 +121,7 @@
 				BD2D9A4F6685D1F711E4F611 /* HomeView.swift */,
 				573C587D8E88B069C483665D /* ItemsView.swift */,
 				8D1A42B0FF88E02B3844E059 /* MemoryView.swift */,
+				01E48F3343C57A514B83397A /* PastSessionsView.swift */,
 				12E9650E997787CCFC183F5F /* ProfileView.swift */,
 				059A14E0E851E5703D4E08EE /* RootView.swift */,
 				6A5E44D85D9920C3297A118E /* ScheduledCallsView.swift */,
@@ -126,6 +135,7 @@
 			children = (
 				1A9EF033BDB460243A471D01 /* GraineService.swift */,
 				EB1277E8D520D72D5A59EDA2 /* OfflineGraineClient.swift */,
+				0E85B16626ABD5C38197906B /* PastSessionsSdk.swift */,
 			);
 			path = Service;
 			sourceTree = "<group>";
@@ -208,6 +218,7 @@
 				DEDDDBB271B18BD6A5D69A24 /* DemoScreens.swift */,
 				546214C3AAC6F0018E63EC4D /* GraineClient.swift */,
 				F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */,
+				713D231EC886D4BCF300EF68 /* PastSessions.swift */,
 				12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */,
 			);
 			path = Domain;
@@ -220,6 +231,7 @@
 				DE597B4E99CACACF746AAE06 /* CallTextTests.swift */,
 				1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */,
 				77DB23F28558FF91DBBE0239 /* PackTests.swift */,
+				C1042DF058A94B73588D9ABE /* PastSessionsTests.swift */,
 				C7B9A81DFBDD56BA44595F25 /* TestClock.swift */,
 				C14AD8F42B3B833E36F79726 /* TestPack.swift */,
 			);
@@ -337,6 +349,7 @@
 				CBBF52FA4DA3D9C0A772CC75 /* CallTextTests.swift in Sources */,
 				CF4A8C372679E58427B04ED0 /* FakeGraineClient.swift in Sources */,
 				0D8927356E6284518D6EE7FB /* PackTests.swift in Sources */,
+				10E0BD404ADAA9AD5FD7F80C /* PastSessionsTests.swift in Sources */,
 				AABD076AC27D815DEBAC3D0F /* TestClock.swift in Sources */,
 				A388A7B82AAD75537EBEADC2 /* TestPack.swift in Sources */,
 			);
@@ -363,6 +376,9 @@
 				2861A046F0D25FF93DB7119A /* ItemsView.swift in Sources */,
 				5F9A21272F7D3D3386063DE6 /* MemoryView.swift in Sources */,
 				EE8912D8C60356E7E10E47CC /* OfflineGraineClient.swift in Sources */,
+				F057C0AE893C142B4ED3F6DF /* PastSessions.swift in Sources */,
+				D868DBFFDE23717EE7A85453 /* PastSessionsSdk.swift in Sources */,
+				C85A97BA6800EFAC80A47AC0 /* PastSessionsView.swift in Sources */,
 				1C98430D466902CBF64B1232 /* ProfileView.swift in Sources */,
 				9A705855C9520B1D038F259B /* RootView.swift in Sources */,
 				EB9A3463CB4AA644A7D1C199 /* ScheduledCallsView.swift in Sources */,
@@ -614,7 +630,7 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.13.1;
+				minimumVersion = 0.14.3;
 			};
 		};
 		E1B91B323086EABF5E06D834 /* XCRemoteSwiftPackageReference "inapp-ios-rtc" */ = {
@@ -622,7 +638,7 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios-rtc";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.13.1;
+				minimumVersion = 0.14.3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

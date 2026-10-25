@@ -68,6 +68,7 @@ struct AppConfig: Equatable {
  *     -GraineDemoUser <id>        sign in as the pack's user with this id, memory on
  *     -GraineDemoOpen <screen>    home | items | calls | memory | profile | help | call_log | chat | talk | call
  *                                 | book | help_book (the SDK's booking sheet, as the booking button opens it)
+ *                                 | past_sessions (the chat, then its Past sessions) | transcript (the newest one's transcript)
  *     -GraineDemoSay <text>       in the chat, send this a moment after it opens (-GraineDemoSayAfter <seconds>, 2)
  *     -GraineDemoRing <seconds>   that long after sign-in, a booked call rings as Graine's VoIP push would ring it
  *                                 (on a phone; a simulator has no CallKit, so the SDK shows the call as missed)
@@ -139,6 +140,17 @@ enum OfflineDemo {
             case "help_book":
                 model.open(.help)
                 Task { await model.book(.help) }
+            case "past_sessions", "transcript":
+                model.openChat(.main)
+                model.openPastSessions(.main)
+                guard script.open == "transcript" else { break }
+                // The newest session's transcript, once the first page has arrived.
+                var waited = 0
+                while model.pastSessions.sessions.isEmpty && waited < 20 {
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                    waited += 1
+                }
+                if let id = model.pastSessions.sessions.first?.id { await model.openTranscript(id) }
             case let screen?: if let s = DemoScreen(rawValue: screen) { model.open(s) }
             case nil: break
             }

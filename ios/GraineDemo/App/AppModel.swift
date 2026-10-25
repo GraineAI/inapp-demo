@@ -75,6 +75,18 @@ final class AppModel: ObservableObject {
     /// A short message for the user: what just happened, or why it did not.
     @Published var notice: String?
 
+    // Past sessions
+    /// The Past sessions screen is open, for this agent's sessions (from the chat).
+    @Published private(set) var pastSessionsAgent: DemoAgent?
+    /// That agent's past sessions, as the SDK holds them (`chat.pastSessions`).
+    @Published private(set) var pastSessions = PastSessionsState()
+    /// The past session whose transcript is open on it.
+    @Published private(set) var transcript: SessionTranscript?
+    /// The id of the transcript on its way.
+    @Published private(set) var transcriptLoading: String?
+    /// Why the last transcript could not be opened, in plain words.
+    @Published private(set) var transcriptError: String?
+
     init(
         graine: GraineClient,
         config: AppConfig,
@@ -95,6 +107,10 @@ final class AppModel: ObservableObject {
         graine.onSessionReady = { [weak self] in self?.sessionArrived() }
         graine.onCallEvent = { [weak self] event in self?.record(event) }
         graine.onCallScreenChange = { [weak self] shown in self?.callScreenVisible = shown }
+        graine.onPastSessions = { [weak self] agent, state in
+            guard let self = self, agent == self.pastSessionsAgent else { return }
+            self.pastSessions = state
+        }
         registerActions()
         refreshBookable()
         agentMemoryEnabled = graine.agentMemoryEnabled
@@ -166,6 +182,7 @@ final class AppModel: ObservableObject {
         memories = []
         chatAgent = nil
         voiceAgent = nil
+        closePastSessions()
         homePath = []
         callsPath = []
         tab = .home
@@ -234,6 +251,7 @@ final class AppModel: ObservableObject {
             return
         }
         chatAgent = nil
+        closePastSessions()
         switch screen {
         case .signIn, .chat: return
         case .home: tab = .home; homePath = []
@@ -285,6 +303,57 @@ final class AppModel: ObservableObject {
 
     func voiceBarClosed() {
         voiceAgent = nil
+    }
+
+    // MARK: - Past sessions
+
+    /// The Past sessions screen for `agent`: the SDK loads the first page again, newest first.
+    func openPastSessions(_ agent: DemoAgent) {
+        guard user != nil, isAvailable(agent) else { return }
+        pastSessionsAgent = agent
+        pastSessions = graine.pastSessions(agent: agent)
+        closeTranscript()
+        graine.refreshPastSessions(agent: agent)
+    }
+
+    func closePastSessions() {
+        pastSessionsAgent = nil
+        closeTranscript()
+    }
+
+    func refreshPastSessions() {
+        if let agent = pastSessionsAgent { graine.refreshPastSessions(agent: agent) }
+    }
+
+    /// The next page, at the end of the list: only while there is more and nothing is on its way.
+    func loadMorePastSessions() {
+        guard let agent = pastSessionsAgent else { return }
+        let state = graine.pastSessions(agent: agent)
+        guard !state.loading, state.hasMore else { return }
+        graine.loadMorePastSessions(agent: agent)
+    }
+
+    /// A past session's transcript, read only: what was said, oldest first.
+    func openTranscript(_ id: String) async {
+        guard let agent = pastSessionsAgent else { return }
+        transcriptLoading = id
+        transcriptError = nil
+        do {
+            let result = try await graine.sessionTranscript(id: id, agent: agent)
+            guard pastSessionsAgent == agent, transcriptLoading == id else { return }
+            transcriptLoading = nil
+            transcript = result
+        } catch {
+            guard pastSessionsAgent == agent, transcriptLoading == id else { return }
+            transcriptLoading = nil
+            transcriptError = PastSessionsText.transcriptError((error as? GraineServiceError)?.code.wire) ?? words(error)
+        }
+    }
+
+    func closeTranscript() {
+        transcript = nil
+        transcriptLoading = nil
+        transcriptError = nil
     }
 
     /// "Call": a native call with that agent on the system's call screen, carrying the pack's `placeReason`.

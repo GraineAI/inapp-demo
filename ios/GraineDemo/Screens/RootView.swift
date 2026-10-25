@@ -1,9 +1,9 @@
 import SwiftUI
 
 /**
- * The layers, bottom to top: the app (sign-in or the tabs), the chat, the
- * voice bar, a notice, and the call screen. Kept in one stack rather than as
- * modal covers so a call can always come up over the chat.
+ * The layers, bottom to top: the app (sign-in or the tabs), the chat, Past
+ * sessions, the voice bar, a notice, and the call screen. Kept in one stack
+ * rather than as modal covers so a call can always come up over the chat.
  */
 struct RootView: View {
     @EnvironmentObject private var model: AppModel
@@ -25,6 +25,14 @@ struct RootView: View {
                     .id(agent)
                     .transition(.move(edge: .bottom))
                     .zIndex(1)
+            }
+
+            // Past sessions, over the chat it was opened from.
+            if let agent = model.pastSessionsAgent {
+                PastSessionsView(agent: agent)
+                    .id(agent)
+                    .transition(.move(edge: .bottom))
+                    .zIndex(1.5)
             }
 
             if let agent = model.voiceAgent, !model.chatOpen {
@@ -59,6 +67,7 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: model.chatAgent)
+        .animation(.easeInOut(duration: 0.25), value: model.pastSessionsAgent)
         .animation(.easeInOut(duration: 0.25), value: model.callScreenVisible)
         .animation(.easeInOut(duration: 0.2), value: model.notice)
         .onAppear {

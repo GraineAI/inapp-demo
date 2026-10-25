@@ -74,10 +74,22 @@ protocol GraineClient: AnyObject {
     /// The call's id, or nil when another call is live.
     func startNativeCall(reason: String, variables: [String: String], agent: DemoAgent) -> String?
 
+    // Past sessions: the signed-in user's earlier sessions with an agent, newest first, and one session's transcript
+    /// The list as the SDK holds it now (`chat.pastSessions`): the sessions loaded so far, loading, more to load, the last error.
+    func pastSessions(agent: DemoAgent) -> PastSessionsState
+    /// Load the first page again (`chat.refreshPastSessions()`).
+    func refreshPastSessions(agent: DemoAgent)
+    /// Load the next page (`chat.loadMorePastSessions()`).
+    func loadMorePastSessions(agent: DemoAgent)
+    /// One session's lines, oldest first (`chat.sessionTranscript(id:)`); `notFound` for one that is not this user's.
+    func sessionTranscript(id: String, agent: DemoAgent) async throws -> SessionTranscript
+
     // What the SDK reports
     var onSessionReady: (@MainActor () -> Void)? { get set }
     var onCallEvent: (@MainActor (CallEvent) -> Void)? { get set }
     var onCallScreenChange: (@MainActor (Bool) -> Void)? { get set }
+    /// An agent's past sessions changed (loading, a page arrived, a refusal, or another user signed in).
+    var onPastSessions: (@MainActor (DemoAgent, PastSessionsState) -> Void)? { get set }
 
     // The SDK's own views
     func chatView(agent: DemoAgent, onClose: @escaping () -> Void) -> AnyView

@@ -8,7 +8,7 @@
  *   PORT=8791 PACK=banking-support node scripts/offline-server.mjs
  *
  * Then start an app against it (iOS: see ios/README.md, "Offline demo"). It answers what the SDKs ask
- * Graine (WIRE.md): the agent's configuration, booked calls, memories, devices, the chat — played by a
+ * Graine (WIRE.md): the agent's configuration, booked calls, memories, past sessions, devices, the chat — played by a
  * script in the pack's words, with the pack's components from agent-setup/ — and a voice bar that
  * connects and speaks one line. Nothing is real: no agent, no model, no audio, no ringing. The
  * typefaces come from the public font CDN the dashboard uses; without internet the apps draw in
@@ -72,6 +72,42 @@ let memories = (REMEMBERED[PACK] || []).map((text, i) => {
   const at = iso(atHour(-(i + 1), 18 - i * 2, 10 + i * 7));
   return { id: `mem_${i + 1}`, text, createdAt: at, updatedAt: at };
 });
+
+// Past sessions (sdk/contract/past-sessions.json): the signed-in user's earlier chats, voice conversations and calls
+// with the main agent, newest first, three to a page, each with its transcript — in the pack's words. The help desk
+// has none yet, so its list shows the empty state.
+const SESSIONS_PAGE = 3;
+function pastSessionsOf(userId) {
+  const first = (pack.users.find((u) => u.id === userId)?.name || "").split(" ")[0] || "there";
+  const [one, two] = pack.memoryExamples || [];
+  const reason = (pack.call.reasons[0] || "call").toLowerCase();
+  const session = (id, start, channel, direction, status, lines) => {
+    const turns = lines.filter(([, text]) => text).map(([role, text], i) => ({ role, text, at: iso(start + i * 25_000) }));
+    // A call nobody answered rang for 45 s and has no length of its own.
+    const seconds = turns.length ? turns.length * 25 + 20 : null;
+    return {
+      id, startedAt: iso(start), endedAt: iso(start + (seconds ?? 45) * 1000), durationSeconds: seconds, channel, direction, status,
+      turns, preview: (turns.find((t) => t.role === "user")?.text || "").slice(0, 120),
+    };
+  };
+  return [
+    session("ex-offline-0004", atHour(-1, 18, 10), "chat", null, "completed", [
+      ["assistant", `Hi ${first}, how can I help?`], ["user", one?.tell], ["assistant", "Thank you. I will keep that in mind."],
+      ["user", two?.tell], ["assistant", "Noted. Is there anything else I can help with?"], ["user", "No, that is all. Thanks."],
+    ]),
+    session("ex-offline-0003", atHour(-2, 19, 30), "call", "outbound", "completed", [
+      ["assistant", `Hi ${first}, this is ${pack.agentName}, calling about your ${reason}. Is now a good time?`],
+      ["user", "Yes, now is a good time."], ["assistant", "Thank you. Is there anything you would like me to look at today?"],
+      ["user", "No, everything is fine."], ["assistant", `Thank you, ${first}. Goodbye.`],
+    ]),
+    session("ex-offline-0002", atHour(-4, 9, 5), "voice", "inbound", "completed", [
+      ["assistant", `Hi ${first}, how can I help?`], ["user", pack.starters?.[0]], ["assistant", "Let me check that for you. Here is what I found."],
+      ["user", "Thank you."],
+    ]),
+    session("ex-offline-0001", atHour(-6, 10), "call", "outbound", "missed", []),
+  ];
+}
+const sessionRow = ({ turns, ...rest }) => ({ ...rest, turns: turns.length });
 
 // ── HTTP ─────────────────────────────────────────────────────────────────────
 
@@ -191,6 +227,20 @@ const server = createServer(async (req, res) => {
       const deleted = memories.length;
       memories = [];
       return send(200, { deleted });
+    }
+    case "/api/embed/sessions/list": {
+      if (!signedIn) return send(400, { error: "Sign in first.", code: "identity_required" });
+      const all = agent === AGENTS.pk_offline_demo ? pastSessionsOf(body.identity.value) : [];
+      const from = Math.max(0, Number(body.cursor) || 0);
+      const next = from + SESSIONS_PAGE < all.length ? String(from + SESSIONS_PAGE) : null;
+      return send(200, { sessions: all.slice(from, from + SESSIONS_PAGE).map(sessionRow), next });
+    }
+    case "/api/embed/sessions/transcript": {
+      if (!signedIn) return send(400, { error: "Sign in first.", code: "identity_required" });
+      const found = (agent === AGENTS.pk_offline_demo ? pastSessionsOf(body.identity.value) : []).find((s) => s.id === body.id);
+      if (!found) return send(404, { error: "Session not found.", code: "not_found" });
+      const { preview, ...transcript } = found;
+      return send(200, transcript);
     }
     default:
       return send(404, { error: "Not found.", code: "not_found" });

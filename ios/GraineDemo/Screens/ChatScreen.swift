@@ -1,9 +1,11 @@
 import SwiftUI
 
 /**
- * Chat: the SDK's chat window, full screen, under the pack's notice and its
- * starter chips. The chat window draws the brand's design and the agent's
- * components itself; the app only decides when it is open.
+ * Chat: the SDK's chat window, full screen, under the pack's notice,
+ * **Past sessions** and its starter chips. The chat window draws the brand's
+ * design and the agent's components itself; the app only decides when it is
+ * open. Past sessions — the user's earlier sessions with this agent — is the
+ * app's own screen (`PastSessionsView`).
  */
 struct ChatScreen: View {
     @EnvironmentObject private var model: AppModel
@@ -14,8 +16,14 @@ struct ChatScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
-                if agent == .main, let notice = model.pack?.notice {
-                    Text(notice).font(.caption).foregroundColor(.secondary)
+                HStack(alignment: .center, spacing: 8) {
+                    if agent == .main, let notice = model.pack?.notice {
+                        Text(notice).font(.caption).foregroundColor(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Button("Past sessions") { model.openPastSessions(agent) }
+                        .font(.footnote.weight(.semibold))
+                        .accessibilityIdentifier("past_sessions_open")
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {

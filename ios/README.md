@@ -2,7 +2,7 @@
 
 A SwiftUI app (iOS 16+) that shows every in-app feature of the Graine SDK: the assistant in a voice
 bar, the chat window with components, phone-style calls on CallKit with VoIP push, identity and memory,
-calls the user books, and screen context with actions. Every domain word comes from a use-case pack in
+past sessions, calls the user books, and screen context with actions. Every domain word comes from a use-case pack in
 `../usecases/` (care coach by default, or banking or shopping — switch on the sign-in screen). All people
 and records are fictional.
 
@@ -24,7 +24,7 @@ The project is generated from `project.yml` with [XcodeGen](https://github.com/y
 needed only to change it.
 
 **The SDK comes from Swift Package Manager**: `GraineDemo.xcodeproj` takes `GraineInApp` from
-`https://github.com/GraineAI/inapp-ios`, from 0.13.1 (a public repository), and Xcode fetches the package on
+`https://github.com/GraineAI/inapp-ios`, from 0.14.3 (a public repository), and Xcode fetches the package on
 first open. (The SDK is on CocoaPods too, as `GraineInApp`; this demo uses Swift Package Manager.)
 
 **To build against SDK sources on your machine instead** (for example a fix that is not released yet), use the
@@ -42,10 +42,11 @@ keeps the published package.
 
 | | |
 |---|---|
-| `GraineDemo/Service/GraineService.swift` | The one file that calls the SDK (identify, memory, screen context, actions, scheduling, voice, chat, calls) |
-| `GraineDemo/Domain/` | The pack model, the Items list, call presentation — no SDK rules re-implemented |
+| `GraineDemo/Service/GraineService.swift` | The one file that calls the SDK (identify, memory, screen context, actions, scheduling, voice, chat, calls, past sessions) |
+| `GraineDemo/Service/PastSessionsSdk.swift` | Past sessions read from the SDK (`chat.pastSessions`, `sessionTranscript(id:)`) into the app's own state |
+| `GraineDemo/Domain/` | The pack model, the Items list, call presentation, how past sessions read — no SDK rules re-implemented |
 | `GraineDemo/App/AppModel.swift` | The app's state and the agent's actions, run by effect in the pack's words |
-| `GraineDemo/Screens/` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Call activity |
+| `GraineDemo/Screens/` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Call activity · Past sessions |
 | `GraineDemoTests/` | Unit tests against a fake SDK client (`xcodebuild test`, any iOS 16+ simulator) |
 
 ## Two agents in one app
@@ -65,6 +66,18 @@ drawn in the agent's design — so the app has no booking screen of its own. The
 starts the sheet's "What's it about?". The button is enabled while the agent's `bookingAvailable` is true;
 otherwise it stays on screen, disabled, with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID." After a booking, the
 **Calls** list is read again; there each call has its status and, while it can be, **Cancel**.
+
+## Past sessions
+
+**Past sessions**, at the top of the chat (Chat, and the help desk's chat on **Help**), lists the signed-in user's
+earlier sessions with that agent, newest first: the date and time, chat, voice or call (and who started it), how
+long, how it ended, how many messages, the first words, and the session id with **Copy**. The SDK has no screen for
+it: the app draws it from `chat.pastSessions` (`PastSessionsView.swift`), calls `refreshPastSessions()` when it opens
+and on pull to refresh, and `loadMorePastSessions()` at the end of the list, and says when the list is empty,
+loading or refused ("Sign in to see past sessions", "Not available on this device"). A tap opens
+`chat.sessionTranscript(id:)`, read only, each line with its time. The session open now is never listed: a chat
+closes 15 seconds after its screen does (the demo sets `GraineConfig(chatCloseDelaySeconds: 15)`, the SDK's default)
+and is listed once it has closed.
 
 ## Calls on a real device
 
@@ -95,10 +108,10 @@ Run the app once in a simulator, then launch it against the stand-in:
 xcrun simctl launch booted com.example.grainedemo -GraineOffline http://127.0.0.1:8790
 ```
 
-It answers what the SDK asks — the agent's design and settings, booked calls, memories — and plays the chat
+It answers what the SDK asks — the agent's design and settings, booked calls, memories, past sessions — and plays the chat
 and the voice bar; nothing is real (no model, no audio). More launch arguments sign in and open a screen, for
 screenshots — `-GraineDemoUser MRN-000981 -GraineDemoOpen chat -GraineDemoSay "Book a check-in call"`, or
-`-GraineDemoOpen book` for the booking sheet; the full list is at the top of `OfflineDemo` in
+`-GraineDemoOpen book` for the booking sheet, `past_sessions` or `transcript` for Past sessions; the full list is at the top of `OfflineDemo` in
 `GraineDemo/Domain/AppConfig.swift`. A simulator has no CallKit:
 calls cannot ring or connect there, and a ring shows as missed. The pictures in
 [`../docs/screenshots/`](../docs/screenshots/) were taken this way.

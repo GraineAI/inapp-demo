@@ -182,7 +182,7 @@ release.
 
 | App | Dependency | Registry |
 |---|---|---|
-| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.13.1 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.14.3 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
 | Android | `ai.graine:inapp-android:0.14.3` and `ai.graine:inapp-android-rtc:0.14.3` | Maven Central |
 | Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.3 (+ `inapp-android-rtc`); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.3 | Maven Central, Swift Package Manager |
 | Flutter | `graine_inapp: ^0.13.1` | pub.dev |

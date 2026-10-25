@@ -40,9 +40,31 @@ final class FakeGraineClient: GraineClient {
     var nativeCallId: String? = "call_1"
     var nativeCalls: [(String, [String: String], DemoAgent)] = []
 
+    /// Each agent's past sessions as the SDK holds them; set with `pastChanged` to tell the app, as the SDK's publisher does.
+    var past: [DemoAgent: PastSessionsState] = [:]
+    var pastRefreshes: [DemoAgent] = []
+    var pastMores: [DemoAgent] = []
+    /// What each transcript asked for answers: the transcript, or why not.
+    var transcripts: [String: Result<SessionTranscript, GraineServiceError>] = [:]
+
     var onSessionReady: (@MainActor () -> Void)?
     var onCallEvent: (@MainActor (CallEvent) -> Void)?
     var onCallScreenChange: (@MainActor (Bool) -> Void)?
+    var onPastSessions: (@MainActor (DemoAgent, PastSessionsState) -> Void)?
+
+    /// The SDK's past sessions for `agent` changed.
+    func pastChanged(_ agent: DemoAgent, _ state: PastSessionsState) {
+        past[agent] = state
+        onPastSessions?(agent, state)
+    }
+
+    func pastSessions(agent: DemoAgent) -> PastSessionsState { past[agent] ?? PastSessionsState() }
+    func refreshPastSessions(agent: DemoAgent) { pastRefreshes.append(agent) }
+    func loadMorePastSessions(agent: DemoAgent) { pastMores.append(agent) }
+
+    func sessionTranscript(id: String, agent: DemoAgent) async throws -> SessionTranscript {
+        try (transcripts[id] ?? .failure(GraineServiceError(code: .notFound, message: "Session not found."))).get()
+    }
 
     func identify(_ traits: [String: String]?, memory: Bool?) { identified.append((traits, memory)) }
     func setVariables(_ values: [String: String?]) { variables.append(values) }
