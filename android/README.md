@@ -24,7 +24,8 @@ screen). All people and records are fictional.
 
 The packs are bundled from `../usecases/*.json` at build time (task `bundleUseCases`); edit them there.
 
-**The app depends on `ai.graine:inapp-android:0.14.4`. Until Maven Central has it**, build against the
+**The app depends on `ai.graine:inapp-android:0.14.4` and its WebRTC module, `ai.graine:inapp-android-rtc:0.14.4`.
+Until Maven Central has them**, build against the
 SDK's sources — the public repository `https://github.com/GraineAI/inapp-android`, tag `0.14.4` once it is
 published (or any checkout of the SDK's sources). Beside this repository:
 
@@ -38,8 +39,8 @@ and in `local.properties`:
 graine.sdkDir=../../inapp-android
 ```
 
-(or `-Pgraine.sdkDir=…`, or `GRAINE_ANDROID_SDK_DIR`). Gradle then builds the SDK from that checkout in place
-of the published artifact. Remove the line once Maven Central has 0.14.4.
+(or `-Pgraine.sdkDir=…`, or `GRAINE_ANDROID_SDK_DIR`). Gradle then builds the SDK and its WebRTC module from that
+checkout in place of the published artifacts. Remove the line once Maven Central has 0.14.4.
 
 ## What is where
 
