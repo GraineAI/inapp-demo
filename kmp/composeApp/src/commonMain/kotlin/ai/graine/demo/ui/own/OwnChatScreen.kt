@@ -247,7 +247,7 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
 }
 
 @Composable
-private fun Bubble(turn: GraineChatTurn, onRetry: () -> Unit) {
+internal fun Bubble(turn: GraineChatTurn, onRetry: () -> Unit) {
     val mine = turn.role == GraineRole.USER
     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
         Column(horizontalAlignment = if (mine) Alignment.End else Alignment.Start, modifier = Modifier.widthIn(max = 300.dp)) {
@@ -282,7 +282,7 @@ private fun Bubble(turn: GraineChatTurn, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun TypingBubble(name: String) {
+internal fun TypingBubble(name: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("own_typing")) {
         Box(Modifier.clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text("$name is typing…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -337,9 +337,10 @@ private fun RatingCard(rating: GraineChatRating?, onRate: (Boolean) -> Unit) {
     }
 }
 
+/** The message box; [initial] starts it with a draft (a screen's "Ask about this"). */
 @Composable
-private fun Composer(onSend: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+internal fun Composer(onSend: (String) -> Unit, initial: String = "") {
+    var text by remember(initial) { mutableStateOf(initial) }
     Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             value = text,

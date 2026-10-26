@@ -140,6 +140,9 @@ class JourneyModel(
     /** "Load sample plan" and "Simulate reminder": a debug build, or switched on in Account. */
     val testingTools: Boolean get() = debugBuild || settings.testingTools
 
+    /** A debug build: the testing tools are always on. */
+    val isDebugBuild: Boolean get() = debugBuild
+
     private val pendingEvents = ArrayDeque<Pair<String, String?>>()
     private var holdingCoachChat = false
     private var coachStatus: GraineChatStatus = sdk.chatStatus(JourneyAgent.COACH).value
@@ -849,6 +852,7 @@ class JourneyModel(
 
     fun todayDate(): LocalDate = today()
     fun timeNow(): String = nowTime()
+    fun nowMs(): Long = now()
 
     /** An item marked done (or not) in Today: kept as a check-in, and the coach told (`Graine.track`). */
     fun markDone(ref: ItemRef, done: Boolean) {

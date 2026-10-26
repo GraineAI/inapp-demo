@@ -57,6 +57,10 @@ expect object Platform {
     fun openApp()
 }
 
+/** Calls [onForeground] each time the app comes back to the front (not when it first starts). */
+@Composable
+expect fun OnAppForeground(onForeground: () -> Unit)
+
 /** The system back gesture (Android). iOS has none: every screen here has its own Back or Close. */
 @Composable
 expect fun PlatformBackHandler(enabled: Boolean = true, onBack: () -> Unit)

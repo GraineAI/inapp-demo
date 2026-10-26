@@ -1,6 +1,8 @@
 package ai.graine.demo
 
+import ai.graine.demo.platform.Platform
 import ai.graine.demo.ui.DemoTheme
+import ai.graine.demo.ui.journey.JourneyCallHost
 import ai.graine.demo.ui.own.OwnCallHost
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.onRequestPermissionsResult
@@ -30,7 +32,18 @@ class OwnCallActivity : ComponentActivity() {
         val model = DemoBootstrap.start()
         setContent {
             DemoTheme(accent = model.pack?.accent) {
-                OwnCallHost(model, Modifier.fillMaxSize(), onGone = { finishAndRemoveTask() })
+                val journey = model.journey
+                if (journey != null && journey.open) {
+                    // The Journey's call screen; a missed first call's choices are the app's own screen.
+                    JourneyCallHost(
+                        journey,
+                        Modifier.fillMaxSize(),
+                        onGone = { finishAndRemoveTask() },
+                        onMissed = { Platform.openApp(); finishAndRemoveTask() },
+                    )
+                } else {
+                    OwnCallHost(model, Modifier.fillMaxSize(), onGone = { finishAndRemoveTask() })
+                }
             }
         }
     }

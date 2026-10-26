@@ -8,6 +8,8 @@ import ai.graine.demo.ui.own.OwnChatScreen
 import ai.graine.demo.ui.own.OwnTalkPanel
 import ai.graine.demo.ui.own.PastSessionsScreen
 import ai.graine.demo.ui.own.PublicStateScreen
+import ai.graine.demo.ui.journey.JourneyApp
+import ai.graine.demo.ui.journey.JourneyCallHost
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.compose.GraineAgentBar
 import ai.graine.inapp.kmp.compose.GraineCallScreen
@@ -47,13 +49,21 @@ import kotlinx.coroutines.delay
  * call screen are the SDK's own, drawn in the brand's design
  * (ai.graine:inapp-kmp-compose); with "Your own design" the app draws each of
  * them — and its own booking screen and the Public state screen — from the
- * SDK's public state (ui/own).
+ * SDK's public state (ui/own). While the pack's Journey is open it is the
+ * whole app (ui/journey), with its own call screen.
  */
 @Composable
 fun DemoApp(model: AppModel) {
     DemoTheme(accent = model.pack?.accent) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(Modifier.fillMaxSize()) {
+                val journey = model.journey
+                if (journey != null && journey.open) {
+                    JourneyApp(journey)
+                    // iOS draws the call screen in place, over CallKit's; Android's is the app's call activity.
+                    if (Platform.ownCallScreenInPlace) JourneyCallHost(journey, Modifier.fillMaxSize())
+                    return@Box
+                }
                 when {
                     model.pack == null -> NoPacks()
                     model.user == null -> SignInScreen(model)

@@ -63,6 +63,18 @@ actual object Platform {
 @Composable
 actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) = Unit
 
+@Composable
+actual fun OnAppForeground(onForeground: () -> Unit) {
+    val latest = androidx.compose.runtime.rememberUpdatedState(onForeground)
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val center = platform.Foundation.NSNotificationCenter.defaultCenter
+        val token = center.addObserverForName(platform.UIKit.UIApplicationWillEnterForegroundNotification, null, platform.Foundation.NSOperationQueue.mainQueue) { _ ->
+            latest.value()
+        }
+        onDispose { center.removeObserver(token) }
+    }
+}
+
 /** CallKit rings an iOS app by itself: nothing for the user to allow here. */
 @Composable
 actual fun CallReadiness() = Unit

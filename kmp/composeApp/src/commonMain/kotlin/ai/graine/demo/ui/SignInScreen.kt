@@ -58,6 +58,15 @@ fun SignInScreen(model: AppModel) {
         }
         Text(pack.tagline, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+        // The pack's whole in-app journey, as a new user signs up (ui/journey).
+        model.journey?.let { journey ->
+            DemoCard(journey.journey.title) {
+                Text(journey.journey.summary, style = MaterialTheme.typography.bodyMedium)
+                Button(onClick = { journey.start() }, modifier = Modifier.fillMaxWidth().testTag("journey_start")) { Text("Start") }
+                Text("Or try each feature on its own below.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
         Text("Choose a ${pack.userNoun}", style = MaterialTheme.typography.titleSmall)
         pack.users.forEach { user ->
             Row(

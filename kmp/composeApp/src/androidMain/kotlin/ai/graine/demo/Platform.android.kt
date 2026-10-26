@@ -87,6 +87,22 @@ actual object Platform {
 actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) = BackHandler(enabled, onBack)
 
 @Composable
+actual fun OnAppForeground(onForeground: () -> Unit) {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val latest = androidx.compose.runtime.rememberUpdatedState(onForeground)
+    DisposableEffect(lifecycle) {
+        var started = false
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                if (started) latest.value() else started = true
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+}
+
+@Composable
 actual fun CallReadiness() {
     val context = LocalContext.current
     val activity = context.findActivity() ?: return
