@@ -106,18 +106,20 @@ export function ChatWindow({ agentName, starters, notice }: { agentName: string;
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 8 }}>
         {notice ? <Notice>{notice}</Notice> : null}
         {chatTurnRows(pieces.turns).map((row) => {
-          if (row.kind === "day") {
-            return (
-              <Text key={row.key} accessibilityRole="header" style={{ alignSelf: "center", color: c.textMuted, fontSize: 12, fontWeight: "600", marginVertical: 4 }}>
-                {row.label}
-              </Text>
-            );
-          }
           if (row.kind === "voice") {
             // An earlier call: that it happened, never its transcript.
             return (
               <Text key={row.key} accessibilityLabel={`Voice call at ${chatClock(row.at)}`} style={{ alignSelf: "center", color: c.textMuted, fontSize: 12 }}>
                 {`☏ ${row.label}`}
+              </Text>
+            );
+          }
+          if (row.kind !== "turn") {
+            // A day line. Newer SDKs (0.47) also have a "Disconnected · new conversation" row (kind "fresh", given only
+            // when the chat's marks are passed): drawn the same way, so the screen builds against either version.
+            return (
+              <Text key={row.key} accessibilityRole="header" style={{ alignSelf: "center", color: c.textMuted, fontSize: 12, fontWeight: "600", marginVertical: 4 }}>
+                {row.label}
               </Text>
             );
           }
