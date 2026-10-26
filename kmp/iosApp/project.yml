@@ -46,6 +46,17 @@ targets:
         script: |
           cd "$SRCROOT/.."
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+    postBuildScripts:
+      # Debug builds only: App Transport Security's local-networking exception, so a debug build can reach a Graine
+      # server on this Mac (GRAINE_BASE_URL = http://127.0.0.1:<port> in Config.xcconfig). Release builds never get it.
+      - name: Allow a local server in Debug builds
+        basedOnDependencyAnalysis: false
+        script: |
+          [ "$CONFIGURATION" = "Debug" ] || exit 0
+          PLIST="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Delete :NSAppTransportSecurity:NSAllowsLocalNetworking" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$PLIST"
     info:
       path: iosApp/Info.plist
       properties:
@@ -68,6 +79,9 @@ targets:
       properties:
         # Push Notifications. Xcode signs it as production in an App Store or TestFlight build.
         aps-environment: development
+        # App Attest (Your apps, SDK 0.14.4): proves a build is this app for an agent that requires a verified app.
+        # Apple uses production for TestFlight and App Store builds, whatever this says.
+        com.apple.developer.devicecheck.appattest-environment: development
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"

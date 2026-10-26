@@ -13,5 +13,6 @@ GRAINE_PUBLISHABLE_KEY = pk_live_replace_me
 // Optional: a second agent for the Help screen (the pack's help desk), with its own publishable key.
 GRAINE_HELP_PUBLISHABLE_KEY =
 
-// Keep the $() — "//" starts a comment in an xcconfig file.
+// Keep the $() — "//" starts a comment in an xcconfig file. A Debug build may also use plain http to this Mac from
+// the simulator (http:/$()/127.0.0.1:<port>); a Release build is https only.
 GRAINE_BASE_URL = https:/$()/www.graine.ai

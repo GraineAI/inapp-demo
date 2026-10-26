@@ -87,6 +87,7 @@
 				326C0FF71624D23C0D676F0E /* Sources */,
 				7F38C302E97433F1227F5444 /* Resources */,
 				ED2C7EB672DE6D76BAF6CA67 /* Frameworks */,
+				04EBED051CE6A09F090F38F9 /* Allow a local server in Debug builds */,
 			);
 			buildRules = (
 			);
@@ -152,6 +153,25 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		04EBED051CE6A09F090F38F9 /* Allow a local server in Debug builds */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Allow a local server in Debug builds";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "[ \"$CONFIGURATION\" = \"Debug\" ] || exit 0\nPLIST=\"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n/usr/libexec/PlistBuddy -c \"Add :NSAppTransportSecurity dict\" \"$PLIST\" 2>/dev/null || true\n/usr/libexec/PlistBuddy -c \"Delete :NSAppTransportSecurity:NSAllowsLocalNetworking\" \"$PLIST\" 2>/dev/null || true\n/usr/libexec/PlistBuddy -c \"Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true\" \"$PLIST\"\n";
+		};
 		31F7271ED68F4371481D9363 /* Build the shared Kotlin code */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
