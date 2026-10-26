@@ -4,4 +4,4 @@
  */
 export const RN_SDK = { name: "@graineai/inapp-react-native", version: "^0.44.0" };
 export const RN_CALLS = { name: "@graineai/inapp-react-native-calls", version: "^0.5.0" };
-export const FLUTTER_SDK = { name: "graine_inapp", constraint: "^0.14.3" };
+export const FLUTTER_SDK = { name: "graine_inapp", constraint: "^0.14.4" };

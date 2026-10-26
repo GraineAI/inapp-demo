@@ -19,7 +19,7 @@ include(":composeApp")
 
 /*
  * THE LOCAL-SDK SWITCH. The app depends on the published ai.graine:inapp-kmp and
- * ai.graine:inapp-kmp-compose 0.14.3. To build it against the SDK's sources on this machine instead
+ * ai.graine:inapp-kmp-compose 0.14.4. To build it against the SDK's sources on this machine instead
  * (a version not on Maven Central yet), set in local.properties — for checkouts of
  * https://github.com/GraineAI/inapp-kmp and inapp-android in ../graine-sdk/kmp and ../graine-sdk/android:
  *

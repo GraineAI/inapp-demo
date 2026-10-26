@@ -30,20 +30,20 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.3), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.4), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**The published SDK, or its sources.** The app is pinned to SDK **0.14.3**: `ai.graine:inapp-kmp`,
+**The published SDK, or its sources.** The app is pinned to SDK **0.14.4**: `ai.graine:inapp-kmp`,
 `ai.graine:inapp-kmp-compose` and `ai.graine:inapp-android-rtc` from Maven Central, and GraineInApp and
-GraineInAppRTC from Swift Package Manager (`iosApp/iosApp.xcodeproj`). With 0.14.3 published, nothing is set:
+GraineInAppRTC from Swift Package Manager (`iosApp/iosApp.xcodeproj`). With 0.14.4 published, nothing is set:
 build and run as below.
 
 **Your own app.** The multiplatform library calls Graine's iOS SDK and does not carry it, so an iOS app built
 with it links GraineInApp itself, at the same version: add `https://github.com/GraineAI/inapp-ios` (and
 `https://github.com/GraineAI/inapp-ios-rtc` for WebRTC calls) with Swift Package Manager to the **app target**, or
-`pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.3'` to its Podfile, and
+`pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.4'` to its Podfile, and
 build the shared framework static (`isStatic = true`, as `composeApp/build.gradle.kts` does). A link error naming
 `_OBJC_CLASS_$_GraineObjC` means the app target does not link GraineInApp: add it to the target (General →
 Frameworks, Libraries, and Embedded Content), clean the build folder and build again.
@@ -63,8 +63,8 @@ The public repositories are the same sources, tagged with each release — for e
 catches up with a tag that is already on GitHub (iOS then takes the tag from Swift Package Manager as usual):
 
 ```sh
-git clone --branch 0.14.3 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.14.3 https://github.com/GraineAI/inapp-android ../graine-sdk/android
+git clone --branch 0.14.4 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.14.4 https://github.com/GraineAI/inapp-android ../graine-sdk/android
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -125,7 +125,7 @@ Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the 
 filled in. A button is on only while the SDK's `bookingAvailable` is true for its agent (Graine rings this
 phone, the agent lets users book, and the user is identified with the agent's Identity field); otherwise it
 is off, with one line: "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID". Both platforms run both agents
-(`ai.graine:inapp-kmp` 0.14.3 on Android and iOS alike), and **Call activity** names the agent of every
+(`ai.graine:inapp-kmp` 0.14.4 on Android and iOS alike), and **Call activity** names the agent of every
 ring and outcome.
 
 ## Your own design
