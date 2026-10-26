@@ -1,6 +1,7 @@
 package ai.graine.demo.ui
 
 import ai.graine.demo.domain.DemoScreen
+import ai.graine.demo.domain.VerificationText
 import ai.graine.demo.platform.CallReadiness
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +86,8 @@ fun ProfileScreen(model: AppModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        VerificationSection(model)
 
         OutlinedButton(
             onClick = { model.signOut() },
@@ -158,6 +162,28 @@ private fun VariablesSection(model: AppModel, agent: String) {
             },
             modifier = Modifier.testTag("add_variable"),
         ) { Text("Add variable") }
+    }
+}
+
+/**
+ * Your app and your users (SDK 0.14.4): what Graine has proven about this build and about the person, read from the
+ * SDK's public state. Both say "not checked" until the agent's settings ask for them. A debug build also shows its
+ * debug token, to copy into the agent's Development → Debug tokens; a release build has none.
+ */
+@Composable
+private fun VerificationSection(model: AppModel) {
+    val proven by model.graine.verification.collectAsState()
+    val debugToken = model.graine.debugToken
+    Section("What Graine has proven") {
+        Field("App", VerificationText.app(proven))
+        Field("User", VerificationText.user(proven))
+        if (debugToken != null) Field("Debug token", debugToken, monospace = true)
+        Text(
+            "Set per agent under Embed & Widgets → Install → Your app and your users. This demo has no server, so it " +
+                "sends no identity token: keep its users on report only.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

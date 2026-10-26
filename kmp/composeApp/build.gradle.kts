@@ -14,13 +14,15 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
 
-// Per-developer values from local.properties (git-ignored; see local.properties.example).
+// Per-developer values from local.properties (git-ignored; see local.properties.example) — or, for one build,
+// -P<key>=… on the command line (e.g. -Pgraine.applicationId=…), which wins.
 val local = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
 fun setting(key: String, env: String, default: String): String =
-    local.getProperty(key)?.takeIf { it.isNotBlank() } ?: System.getenv(env)?.takeIf { it.isNotBlank() } ?: default
+    providers.gradleProperty(key).orNull?.takeIf { it.isNotBlank() }
+        ?: local.getProperty(key)?.takeIf { it.isNotBlank() } ?: System.getenv(env)?.takeIf { it.isNotBlank() } ?: default
 
 /**
  * The shared use-case packs (the .json files in demo/usecases), bundled unchanged into the shared code as text, so
@@ -120,6 +122,9 @@ kotlin {
             implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
             implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.7.0"))
             implementation("com.google.firebase:firebase-messaging")
+            // Your apps (SDK 0.14.4): Play Integrity proves a release build is this app, for an agent that requires a
+            // verified app. The SDK only compiles against it; a debug build sends its debug token instead.
+            implementation("com.google.android.play:integrity:1.4.0")
         }
     }
 }

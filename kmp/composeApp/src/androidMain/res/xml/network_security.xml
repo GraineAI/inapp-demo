@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release (and every build): https only, the system's certificates — Android's own default, said once here so a debug
+     build can widen it. Debug builds replace this file with src/androidDebug/res/xml/network_security.xml. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

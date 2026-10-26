@@ -24,6 +24,7 @@ import ai.graine.inapp.kmp.GraineMemory
 import ai.graine.inapp.kmp.GraineScheduledCall
 import ai.graine.inapp.kmp.GraineSchedulingRules
 import ai.graine.inapp.kmp.GraineScreen
+import ai.graine.inapp.kmp.GraineVerification
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -141,10 +142,19 @@ interface GraineClient {
     /** How long [agent]'s chat stays open once no screen shows it (chat.closeDelaySeconds; set at launch with GraineConfig.chatCloseDelaySeconds). */
     fun chatCloseDelaySeconds(agent: DemoAgent): Int
 
+    // Your app and your users (SDK 0.14.4): what Graine has proven about this build and the person, for the main agent
+    /** The SDK's own state (Graine.verification): both OFF until the agent's settings ask for them. */
+    val verification: StateFlow<GraineVerification> get() = NOTHING_PROVEN
+    /** This install's debug token while the build sends one — a debug build (Graine.debugToken); null in a release build. */
+    val debugToken: String? get() = null
+
     // What the SDK reports
     var onSessionReady: (() -> Unit)?
     var onCallEvent: ((CallEvent) -> Unit)?
 }
+
+/** Nothing proven, nothing asked: what a client without the SDK (the tests' fake) reports. */
+private val NOTHING_PROVEN: StateFlow<GraineVerification> = MutableStateFlow(GraineVerification())
 
 /**
  * THE ONE FILE THAT CALLS THE GRAINE SDK — `ai.graine:inapp-kmp`, from shared
@@ -345,6 +355,28 @@ class GraineService private constructor() : GraineClient {
 
     override fun chatCloseDelaySeconds(agent: DemoAgent): Int = sdk(agent)?.chat?.closeDelaySeconds ?: CHAT_CLOSE_DELAY_SECONDS
 
+    // ── your app and your users (SDK 0.14.4) ───────────────────────────────
+
+    override val verification: StateFlow<GraineVerification> get() = Graine.verification
+
+    override val debugToken: String? get() = Graine.debugToken
+
+    /**
+     * Prove this build at launch, so the first conversation never waits for it: the SDK sends nothing when the agent
+     * does not ask for a verified app, or while it holds a pass with hours left. A debug build never asks App Attest
+     * or Play Integrity: it sends this install's debug token instead (Graine.debugTokenMode stays automatic — never
+     * forced on for a release build) and logs it once, to register on the agent. Never throws for a failed proof.
+     */
+    private fun prepareAppVerification() {
+        for (agent in agents) {
+            val graine = sdk(agent) ?: continue
+            scope.launch {
+                val verdict = graine.prepareAppVerification()
+                Platform.log("App verification (${agent.sdkName}): ${verdict.word}")
+            }
+        }
+    }
+
     override fun startNativeCall(reason: String, variables: Map<String, String>, agent: DemoAgent): String? {
         if (sdk(agent) == null) return null
         return Graine.calls.startCall(reason = reason, variables = variables, agent = agent.sdkName)
@@ -380,6 +412,7 @@ class GraineService private constructor() : GraineClient {
             Graine.calls.enableVoIPPushes()
             return GraineService().also {
                 it.setCallName(callName)
+                it.prepareAppVerification()
                 instance = it
             }
         }
