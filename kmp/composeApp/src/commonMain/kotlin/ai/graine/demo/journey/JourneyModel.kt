@@ -25,6 +25,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -145,6 +146,10 @@ class JourneyModel(
     private var endedGrace: Job? = null
     private var slowTimer: Job? = null
     private var lastStage: JourneyStage? = null
+    /** The plan was asked for in a conversation that is still live. */
+    private var planAsked = false
+    /** That conversation ended before the plan came: ask again in the next. */
+    private var askAgainWhenOnline = false
 
     /** The day My week shows. */
     var weekDay by mutableStateOf(Weekday.of(today()))
@@ -207,17 +212,44 @@ class JourneyModel(
         describe()
     }
 
-    /** Log out: the SDK forgets the user everywhere (identify(null)); the plan stays on this phone for their return. */
+    /**
+     * Log out: a first call still booked is called off (it would ring nobody), the SDK forgets the user everywhere
+     * (identify(null)), and this phone's journey — profile, plan, check-ins, reminders — is erased, so the next person
+     * to sign up here starts from nothing. In an app with a server of its own, the plan comes back from there at the
+     * next sign-in; this demo keeps it only on the phone.
+     */
     fun logOut() {
+        if (busy) return
+        val b = booked
+        if (b == null) {
+            leaveThisPhone()
+            return
+        }
+        busy = true
+        scope.launch {
+            withTimeoutOrNull(CANCEL_WAIT_MS) { attempt { sdk.cancelScheduledCall(b.id, JourneyAgent.FIRST_CALL) } }
+            busy = false
+            leaveThisPhone()
+        }
+    }
+
+    /** The user is gone from this phone: no variables, no identity, no reminders, nothing of theirs on screen or on disk. */
+    private fun leaveThisPhone() {
         sdk.setVariables(journey.variableNames.associateWith { null })
         sdk.identify(null)
         reminders.replaceAll(emptyList())
         releaseCoachChat()
+        pendingEvents.clear()
+        endedGrace?.cancel()
+        slowTimer?.cancel()
+        repo.eraseAll()
+        reload()
         picker = null
         openItem = null
         shareOpen = false
+        chatDraft = null
         route = JourneyRoute.CHAT
-        account?.let { repo.saveAccount(it.copy(signedIn = false).also { a -> account = a }) }
+        lastStage = null
         showJourney(false)
     }
 
@@ -245,16 +277,7 @@ class JourneyModel(
                 done(false)
                 return@launch
             }
-            sdk.setVariables(journey.variableNames.associateWith { null })
-            sdk.identify(null)
-            reminders.replaceAll(emptyList())
-            releaseCoachChat()
-            repo.eraseAll()
-            reload()
-            picker = null
-            openItem = null
-            route = JourneyRoute.CHAT
-            showJourney(false)
+            leaveThisPhone()
             done(true)
         }
     }
@@ -384,11 +407,11 @@ class JourneyModel(
 
     /** "Start now" (and "Start now instead" while one is booked): `Graine.calls.startCall(reason, agent = "consultation")`. */
     fun startFirstCall() {
+        if (stage == JourneyStage.IN_CALL || stage == JourneyStage.BUILDING_PLAN || stage == JourneyStage.READY) return
         if (!firstCallReady) {
             notice = NO_FIRST_CALL_AGENT
             return
         }
-        val old = booked
         val id = sdk.startCall(journey.firstCall.callReason, JourneyAgent.FIRST_CALL)
         if (id == null) {
             notice = "Another call is in progress. Try again when it is over."
@@ -396,9 +419,20 @@ class JourneyModel(
         }
         picker = null
         setProgress { it.copy(stage = JourneyStage.IN_CALL, firstCallId = id, noConnect = null, booked = null) }
-        // The call happens now: the one booked for later would ring again.
-        if (old != null) scope.launch { attempt { sdk.cancelScheduledCall(old.id, JourneyAgent.FIRST_CALL) } }
+        // The call happens now: any first call booked for later would ring again.
+        cancelOtherFirstCalls(keep = null)
         describe()
+    }
+
+    /**
+     * Every first call still booked, but [keep], called off — two bookings never overlap, and none rings once the
+     * first call has happened (a time changed twice, a cancel that failed, a booking made on another phone).
+     */
+    private fun cancelOtherFirstCalls(keep: String?) {
+        scope.launch {
+            val calls = attempt { sdk.scheduledCalls(JourneyAgent.FIRST_CALL) }.getOrNull() ?: return@launch
+            for (c in calls) if (c.canCancel && c.id != keep) attempt { sdk.cancelScheduledCall(c.id, JourneyAgent.FIRST_CALL) }
+        }
     }
 
     /** "Choose a time": the picker, from the first-call agent's own times (`bookingSlots(day)`), a few of them a day. */
@@ -460,7 +494,6 @@ class JourneyModel(
         val at = p.time ?: return
         if (p.busy) return
         picker = p.copy(busy = true, error = null)
-        val old = booked
         scope.launch {
             val result = attempt { sdk.scheduleCall(at, journey.firstCall.bookingReason, JourneyAgent.FIRST_CALL) }
             result.onSuccess { call ->
@@ -469,7 +502,8 @@ class JourneyModel(
                 setProgress {
                     it.copy(stage = JourneyStage.BOOKED, booked = BookedCall(call.id, (call.at ?: at).toEpochMilliseconds()), noConnect = null, firstCallId = null)
                 }
-                if (old != null && old.id != call.id) attempt { sdk.cancelScheduledCall(old.id, JourneyAgent.FIRST_CALL) }
+                // The new time is safe: every other booking goes (the one it replaces, and any other).
+                cancelOtherFirstCalls(keep = call.id)
                 describe()
             }.onFailure { e ->
                 picker = picker?.copy(busy = false, error = (e as? GraineException)?.message?.takeIf { it.isNotBlank() } ?: CallText.message(e))
@@ -571,6 +605,14 @@ class JourneyModel(
      * has no live call left.
      */
     private fun reconcile() {
+        // A ring missed before the journey was back on screen — the app woken by it, opened afterwards.
+        val missed = call.missedCall
+        if (missed != null && (stage == JourneyStage.BOOKED || stage == JourneyStage.IN_CALL) &&
+            (missed.callId == repo.progress.firstCallId || repo.progress.firstCallId == null)
+        ) {
+            couldNotConnect(NoConnect.MISSED)
+            return
+        }
         when (stage) {
             JourneyStage.IN_CALL -> if (call.state == GraineCallState.IDLE || call.state == GraineCallState.ENDED) {
                 if (intake != null) buildPlan() else couldNotConnect(if (call.missedCall != null) NoConnect.MISSED else NoConnect.ENDED_EARLY)
@@ -578,8 +620,13 @@ class JourneyModel(
             JourneyStage.BOOKED -> {
                 val b = booked ?: return
                 scope.launch {
-                    val calls = attempt { sdk.scheduledCalls(JourneyAgent.FIRST_CALL) }.getOrNull() ?: return@launch
+                    val calls = attempt { sdk.scheduledCalls(JourneyAgent.FIRST_CALL) }.getOrNull()
                     if (stage != JourneyStage.BOOKED || booked?.id != b.id) return@launch
+                    // Unreadable (offline): only a time long past is decided — the screen asks again on return.
+                    if (calls == null) {
+                        if (now() > b.at + BOOKED_GONE_MS) booked(b, null)
+                        return@launch
+                    }
                     booked(b, calls.firstOrNull { it.id == b.id })
                 }
             }
@@ -608,6 +655,18 @@ class JourneyModel(
         }
     }
 
+    /**
+     * The app came back to the front: a booked call's fate is read again, and a plan still on its way gets its
+     * chat back (the conversation ends while the app is in the background).
+     */
+    fun onForeground() {
+        if (!open) return
+        if (stage == JourneyStage.BOOKED || stage == JourneyStage.IN_CALL) reconcile()
+        if (stage == JourneyStage.BUILDING_PLAN && coachStatus != GraineChatStatus.ONLINE && coachStatus != GraineChatStatus.CONNECTING) {
+            sdk.chatRetry(JourneyAgent.COACH)
+        }
+    }
+
     // ── 4. the plan ─────────────────────────────────────────────────────────
 
     /**
@@ -619,6 +678,8 @@ class JourneyModel(
         endedGrace?.cancel()
         setProgress { it.copy(stage = JourneyStage.BUILDING_PLAN, firstCallId = null, booked = null, noConnect = null) }
         planSlow = false
+        planAsked = false
+        cancelOtherFirstCalls(keep = null)
         holdCoachChat()
         report(journey.events.firstCallFinished, journey.events.firstCallFinishedDetail)
         slowTimer?.cancel()
@@ -699,15 +760,31 @@ class JourneyModel(
         else if (coachStatus == GraineChatStatus.OFFLINE || coachStatus == GraineChatStatus.DISCONNECTED) sdk.chatRetry(JourneyAgent.COACH)
     }
 
+    /**
+     * The coach's chat as it goes. A plan asked for in a conversation that then ended — the app went to the background,
+     * Graine closed an idle chat — is asked for again when the chat is back: the new conversation never heard it.
+     */
     private fun onCoachStatus(status: GraineChatStatus) {
         coachStatus = status
-        if (status == GraineChatStatus.ONLINE) flushEvents()
+        when (status) {
+            GraineChatStatus.ONLINE -> {
+                if (askAgainWhenOnline && stage == JourneyStage.BUILDING_PLAN) {
+                    askAgainWhenOnline = false
+                    pendingEvents.addLast(journey.events.firstCallFinished to journey.events.firstCallFinishedDetail)
+                }
+                flushEvents()
+            }
+            GraineChatStatus.IDLE, GraineChatStatus.OFFLINE, GraineChatStatus.DISCONNECTED ->
+                if (planAsked && stage == JourneyStage.BUILDING_PLAN) askAgainWhenOnline = true
+            else -> Unit
+        }
     }
 
     private fun flushEvents() {
         while (pendingEvents.isNotEmpty()) {
             val (name, detail) = pendingEvents.removeFirst()
             sdk.reportEvent(name, detail)
+            if (name == journey.events.firstCallFinished) planAsked = true
         }
     }
 
@@ -1140,6 +1217,8 @@ class JourneyModel(
         /** A booked call Graine no longer lists, this long after its time, is over. */
         const val BOOKED_GONE_MS = 20 * 60_000L
         const val SESSIONS_PER_AGENT = 10
+        /** How long log out waits for a booked first call to be called off before it goes on regardless. */
+        const val CANCEL_WAIT_MS = 5_000L
         const val NO_FIRST_CALL_AGENT = "The first-call agent is not set up in this build: add its publishable key (graine.consultationPublishableKey)."
 
         private val LIVE = setOf(GraineCallState.RINGING, GraineCallState.CONNECTING, GraineCallState.ACTIVE)

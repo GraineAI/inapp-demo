@@ -173,12 +173,18 @@ class FakeJourneySdk : JourneySdk {
     override fun bookingSlots(day: LocalDate, agent: JourneyAgent): List<Instant> = slots(day)
     val scheduled = mutableListOf<Triple<Instant, String, JourneyAgent>>()
     var scheduleResult: Result<GraineScheduledCall>? = null
+    /** Every call booked, as Graine would list it. */
+    val bookedCalls = mutableListOf<GraineScheduledCall>()
     override suspend fun scheduleCall(at: Instant, reason: String, agent: JourneyAgent): GraineScheduledCall {
         scheduled += Triple(at, reason, agent)
-        return scheduleResult?.getOrThrow() ?: GraineScheduledCall("booked_${scheduled.size}", at, GraineCallStatus.Scheduled, GraineCallSource.App, reason)
+        val call = scheduleResult?.getOrThrow() ?: GraineScheduledCall("booked_${scheduled.size}", at, GraineCallStatus.Scheduled, GraineCallSource.App, reason)
+        bookedCalls += call
+        return call
     }
-    var listResult: Result<List<GraineScheduledCall>> = Result.success(emptyList())
-    override suspend fun scheduledCalls(agent: JourneyAgent): List<GraineScheduledCall> = listResult.getOrThrow()
+    /** What scheduledCalls answers; null lists the calls booked here, those cancelled as Cancelled. */
+    var listResult: Result<List<GraineScheduledCall>>? = null
+    override suspend fun scheduledCalls(agent: JourneyAgent): List<GraineScheduledCall> =
+        listResult?.getOrThrow() ?: bookedCalls.map { if (it.id in cancelled) it.copy(status = GraineCallStatus.Cancelled) else it }
     val cancelled = mutableListOf<String>()
     override suspend fun cancelScheduledCall(id: String, agent: JourneyAgent): GraineCallStatus { cancelled += id; return GraineCallStatus.Cancelled }
 

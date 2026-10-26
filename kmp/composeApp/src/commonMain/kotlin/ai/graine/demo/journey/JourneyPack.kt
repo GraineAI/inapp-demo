@@ -144,6 +144,12 @@ data class JourneyPack(
         val chat: Copy,
         /** The user's first message in the chat version. */
         val chatStart: String,
+        /**
+         * What the first call covers, in order — the titles of the first-call agent's flow (`firstCall.flow`, the
+         * dashboard's own format) that are topics: its AI reply steps other than the first, the one that saves,
+         * and those that end the call. Empty without a flow.
+         */
+        val topics: List<String> = emptyList(),
     )
 
     data class Measure(val key: String, val label: String, val unit: String)
@@ -214,6 +220,7 @@ data class JourneyPack(
             val today = o.req("today")
             val progress = o.req("progress")
             val weekly = progress.req("weekly")
+            val saveIntake = actions.str("saveIntake")
             return JourneyPack(
                 identifierField = o.str("identifierField"),
                 title = o.str("title"),
@@ -280,6 +287,7 @@ data class JourneyPack(
                     ),
                     chat = first.req("chat").let { Copy(it.str("title"), it.str("body")) },
                     chatStart = first.req("chat").str("start"),
+                    topics = first.obj("flow")?.let { topicsOf(it, saveIntake) }.orEmpty(),
                 ),
                 plan = PlanCopy(
                     building = plan.req("building").let { Building(it.str("title"), it.str("body"), it.strings("steps"), it.str("slow")) },
@@ -328,6 +336,19 @@ data class JourneyPack(
                 coach = o.req("coach").let { Coach(it.str("callReason"), it.strings("starters")) },
                 support = Support(o.req("support").strings("starters")),
             )
+        }
+
+        /** A flow's topics: its AI reply steps, in order, but the first, the one that saves and those that end the call. */
+        internal fun topicsOf(flow: JsonObject, saveIntake: String): List<String> {
+            val start = flow.optStr("start_step")
+            val steps = flow.obj("steps") ?: return emptyList()
+            return steps.mapNotNull { (id, raw) ->
+                val step = Args.map(raw) ?: return@mapNotNull null
+                val kind = Args.string(step["kind"]) ?: "converse"
+                val ends = step["force_tool"] == "end_call" && Args.list(step["next"]).isNullOrEmpty()
+                val saves = (step["instructions"] as? String)?.contains(saveIntake) == true
+                if (id == start || kind != "converse" || ends || saves) null else Args.string(step["title"]) ?: id
+            }
         }
 
         private fun agent(o: JsonObject) = AgentCopy(o.str("name"), o.str("role"))

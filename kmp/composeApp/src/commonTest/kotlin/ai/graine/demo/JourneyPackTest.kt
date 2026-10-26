@@ -44,6 +44,16 @@ class JourneyPackTest {
     }
 
     @Test
+    fun theFirstCallsTopicsComeFromItsFlow() {
+        assertEquals(
+            listOf("Routine", "Eating habits", "Food likes, dislikes and allergies", "Challenges", "Activity and sleep"),
+            health.journey!!.firstCall.topics,
+            "the flow's AI steps but the welcome, the save and the endings",
+        )
+        assertTrue(TestJourney.pack.journey!!.firstCall.topics.isEmpty(), "no flow, no topics")
+    }
+
+    @Test
     fun theSamplePlanReadsAsTheCoachWouldSaveIt() {
         val j = health.journey!!
         val r = Plan.parse(j.plan.sample, 0) as Plan.Parsed.Ok

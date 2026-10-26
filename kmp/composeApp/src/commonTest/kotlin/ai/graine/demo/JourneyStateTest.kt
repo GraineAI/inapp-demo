@@ -648,21 +648,26 @@ class JourneyStateTest {
     // ── 6. log out, delete, launch ──────────────────────────────────────────
 
     @Test
-    fun logOutSignsOutEverywhereAndContinueSignsBackIn() = runTest {
+    fun logOutSignsOutEverywhereAndLeavesNothingOfTheUserOnThePhone() = runTest {
         val (m, h) = ready()
         m.logOut()
         assertNull(h.sdk.identified.last(), "identify(null)")
         assertTrue(h.sdk.variables.last().values.all { it == null }, "every journey variable removed")
         assertTrue(h.reminders.scheduled.isEmpty(), "no reminders for someone signed out")
         assertFalse(m.open)
-        assertEquals(false, m.account?.signedIn)
-        assertNotNull(m.plan, "the plan stays on the phone for their return")
+        assertNull(m.account)
+        assertNull(m.plan)
+        assertNull(m.intake)
+        assertTrue(m.activity.checkIns.isEmpty())
+        assertTrue(h.files.files.isEmpty(), "nothing of theirs on disk")
 
-        m.resume()
-        assertTrue(m.open)
-        assertEquals(mapOf("user_id" to "user-test-1", "name" to "Sam"), h.sdk.identified.last())
-        assertEquals("beginner", h.sdk.held["level"])
-        assertTrue(h.reminders.scheduled.isNotEmpty())
+        // The next person to sign up here starts from nothing, as someone else.
+        m.start()
+        assertEquals("user-test-2", m.account?.userId)
+        assertEquals(JourneyStage.ONBOARDING, m.stage)
+        assertNull(m.plan)
+        assertTrue(m.profile.values.isEmpty())
+        assertEquals(h.sdk.identified.size, h.sdk.identified.indexOfLast { it == null } + 1, "nobody identified until their own profile")
         m.close()
     }
 
