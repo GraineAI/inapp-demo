@@ -10,6 +10,7 @@ running, and a 10-minute script to show it all. The examples use the default use
 4. [Kotlin Multiplatform, on Android and the iOS simulator](#4-kotlin-multiplatform-on-android-and-the-ios-simulator)
 5. [The 10-minute demo](#5-the-10-minute-demo)
 6. [Troubleshooting](#6-troubleshooting)
+7. [The Journey: an app's whole in-app journey (Kotlin Multiplatform)](#7-the-journey-an-apps-whole-in-app-journey-kotlin-multiplatform)
 
 ## 1. The dashboard: two agents
 
@@ -337,3 +338,57 @@ scheduling**, **Memory → People** and **Call History**.
 11. **iOS: the booking button stays off, or `presentBooking` fails with `Unavailable`, though the agent can be
    booked** — the app links a GraineInApp older than the multiplatform SDK (0.7.0 has no booking sheet): link the
    same version, 0.14.4.
+
+## 7. The Journey: an app's whole in-app journey (Kotlin Multiplatform)
+
+The Kotlin Multiplatform app also runs a whole in-app journey, as a new user lives it: onboarding (a profile, a
+language, the microphone and notifications), a first consultation call — now, or at a time they pick — with "We
+couldn't connect" and its chat version, a 7-day plan the coach builds in the chat through the app's actions, the chat
+as the main screen with a call button, check-in reminders, Today, Progress, Help & support, and privacy. Every word is
+the pack's (`usecases/health-coach.json` → `journey`); the code is generic. Each SDK call, step by step:
+[`kmp/README.md`](kmp/README.md#the-journey-step-by-step).
+
+**The dashboard: three agents.** Everything is in [`agent-setup/health-coach/journey/`](agent-setup/health-coach/journey/README.md):
+
+| Agent | Kind | Set up from | Its key in the app |
+|---|---|---|---|
+| Asha, the coach | Prompt | `coach-agent.md` (settings and prompt) and `coach-actions.json` | `graine.publishableKey` · `GRAINE_PUBLISHABLE_KEY` |
+| Asha · Consultation, the first call | Flow | `consultation-flow.json` (Import JSON), `consultation-actions.json`, `components.json` | `graine.consultationPublishableKey` · `GRAINE_CONSULTATION_PUBLISHABLE_KEY` |
+| Help & support | Prompt | `support-prompt.md` | `graine.helpPublishableKey` · `GRAINE_HELP_PUBLISHABLE_KEY` |
+
+All three: **Who is the user?** = **User ID**, memory on, Allowed domains `app://`, languages English (`en`) and Hindi
+(`hi`). The consultation agent: users may book, ring again after 10 minutes, at most 3 rings a day, quiet hours
+22:00–07:00. The keys go in `kmp/local.properties` (Android) and `kmp/iosApp/Config.xcconfig` (iOS), as in
+[section 4](#4-kotlin-multiplatform-on-android-and-the-ios-simulator); build and run the same way.
+
+**Walk through it** (about 15 minutes; a real phone for rings):
+
+| Step | Do | What happens |
+|---|---|---|
+| Start | Sign-in screen → **The full journey** → **Start** | A new user on this phone: welcome, then the profile |
+| Profile | Name, gender, date of birth, weight, height, goal, diet → **Continue** | The user is identified (`user_id`) and the profile reaches every agent as variables |
+| Language | English, हिंदी or Hinglish | The agents start each chat and call in it |
+| Permissions | **Allow microphone**, **Allow notifications** (or Not now) | The phone's own questions |
+| First call | **Start now** — or **Choose a time**: a day, one of four times, **Confirm** | The consultation calls now, or rings at that time (a real phone, credentials Verified) |
+| The call | Answer; talk through routine, food, allergies, challenges, activity | The app's call screen: the timer, mute, speaker, end, and the agent's current question |
+| Couldn't connect | Decline the ring, or end the call early | **We couldn't connect** — Call me now, Choose another time, Continue in chat (the same questions, in the chat) |
+| The plan | After the call | The progress screen; the coach's chat connects and the coach builds the week — then **Your plan is ready** in the chat, with the card → **My week** |
+| My week | A day tab, an item | Why it fits, ingredients, swaps → **Use selected swap**; the coach is told |
+| Check-ins | Wait for a meal reminder (or Today → **Simulate reminder** with the testing tools) | The chat opens and the coach asks how that meal went; "I didn't have paneer" → a swap for tomorrow |
+| Today, Progress | The sidebar | Done today, water, streak, up next; completion, the weight trend, the weekly 1–5 |
+| Help & support | The sidebar | The support agent's chat |
+| Privacy | Account → **Download my data**, **Delete account** | One JSON file to the share sheet; everything forgotten and erased |
+
+**Without the agents** (a debug build, or Account → **Testing tools**): on the progress screen, **Load sample plan**
+stands in for the coach (the pack's sample week); on Today, **Simulate reminder** opens the next check-in.
+
+**If it goes wrong**
+
+- **"The first-call agent is not set up"** — its key is empty in this build, or the app was not rebuilt.
+- **The plan never arrives** — the coach's actions were imported but not saved, or its prompt lacks the part for
+  `consultation_finished`. The progress screen offers **Ask again** and **Go to the chat** after 90 seconds.
+- **"Choose a time" has no times, or says booking is off** — the consultation agent does not let users book, the
+  workspace has no in-app calling credentials for this app, or its calling window misses every time the picker offers.
+- **The coach forgets the user** — **Who is the user?** is not **User ID** on that agent, or the user is past
+  Devices per user.
+

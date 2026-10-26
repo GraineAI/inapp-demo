@@ -22,7 +22,8 @@ and voice bar as composables).
 1. Copy `local.properties.example` to `local.properties` (git-ignored) and set
    `graine.publishableKey` — the agent's publishable key (Agent → Embed & Widgets; add `app://` to the
    agent's **Allowed domains**) — and, optionally, `graine.helpPublishableKey` (a second agent for the
-   **Help** tab), `graine.applicationId` and `graine.baseUrl`.
+   **Help** tab), `graine.consultationPublishableKey` (the Journey's first-call agent:
+   [The Journey, step by step](#the-journey-step-by-step)), `graine.applicationId` and `graine.baseUrl`.
 2. iOS: copy `iosApp/Config.example.xcconfig` to `iosApp/Config.xcconfig` (git-ignored) and set your team,
    bundle id and the same keys.
 3. Recreate the agent from `../agent-setup/<pack>/` so its identity field, memory, actions and call
@@ -112,6 +113,11 @@ iPhone: open the same Xcode project, choose your iPhone and **Run** (your team i
 | `…/domain/OwnDesign.kt`, `OwnComponents.kt`, `PastSessions.kt` | How that state reads in the app's words, and what the app's component widgets answer (the SDK views' answers) |
 | `…/graine/PastSessionsSdk.kt` | Past sessions read from the SDK (`chat.pastSessions`, `sessionTranscript`) into the app's own state |
 | `composeApp/src/androidMain/…/OwnCallActivity.kt` | The own call screen on Android: the screen the SDK opens for every call while the app draws its own |
+| `…/journey/JourneySdk.kt` | **The Journey**: every SDK call of the journey, step by step, in one file ([The Journey, step by step](#the-journey-step-by-step)) |
+| `…/journey/JourneyModel.kt` | The journey's state machine: onboarding, the first call and every way it can fail, the plan through the app's actions, check-ins, privacy |
+| `…/journey/Plan.kt`, `JourneyStore.kt`, `JourneyRules.kt`, `Args.kt` | The plan and how an action's arguments are read; the app as the store (JSON files, one writer); the picker, reminders and figures |
+| `…/ui/journey/` | The journey's screens, drawn by the app |
+| `composeApp/src/androidMain/…/journey/`, `iosMain/…/journey/` | Check-in reminders (alarms and notifications; local notifications), files, the share sheet |
 | `composeApp/src/commonTest/` | Tests against a fake SDK client: `./gradlew :composeApp:testDebugUnitTest` |
 
 ## Two agents in one app
@@ -213,3 +219,111 @@ agent's memory rules say. How the agent uses what it remembers is up to its prom
    it no longer knows.
 5. Opt out: memory off on the sign-in screen or on **Memory** (`identify(…, memory = false)`, `setMemory(false)`):
    from the next conversation on, nothing is remembered or recalled.
+
+## The Journey, step by step
+
+The sign-in screen's **The full journey → Start** runs an app's whole in-app journey as a new user lives it, from
+`composeApp/src/commonMain/…/journey/` (the model; **`JourneySdk.kt` holds every SDK call**) and `…/ui/journey/` (the
+screens). Every word, profile field, unit, item kind and the sample plan come from the pack's `journey` block
+(`../usecases/README.md`, *The journey*); the code is generic. Three agents: the **coach** is the default agent (the
+main key), the **first-call** agent is configured as `consultation` (`graine.consultationPublishableKey`, a flow
+agent), **support** is the help agent. Set them up from `../agent-setup/health-coach/journey/`.
+
+**1. Onboarding** — after sign-up and at every launch, who the user is and what they said; then the permissions.
+
+```kotlin
+Graine.identify(mapOf("user_id" to userId, "name" to name))
+// Each agent keeps its own variables: the journey sets them on every agent it talks to.
+Graine.agents.values.forEach { agent ->
+    agent.setVariables(mapOf("gender" to "female", "age" to "33", "weight_kg" to "64.5", "height_cm" to "163",
+        "goal" to "Lose weight", "diet" to "vegetarian", "agent_language" to "hi", "language_style" to "Hinglish: …"))
+}
+Graine.calls.requestCallPermissions()   // the microphone screen (and notifications on Android 13+)
+```
+
+**2. The first call** — now, or at a time the user picks from the agent's own times.
+
+```kotlin
+Graine.calls.startCall(reason = "onboarding_consultation", agent = "consultation")   // Start now
+
+val consultation = Graine.agent("consultation")!!
+consultation.bookingState.collect { state -> /* Confirm on while state.available; state.reason in words */ }
+consultation.bookingSlots(day)            // every time its rules allow that day; the picker shows 10:30, 13:00, 17:30, 20:00
+consultation.scheduleCall(at, reason = "Your onboarding consultation")               // Confirm
+
+Graine.calls.state.collect { call ->      // the app's own call screen
+    // call.state: RINGING → "Your onboarding consultation", Answer / Decline; ACTIVE → the timer from call.startedAt,
+    // the agent's last line (call.caption, call.captions) as the current topic
+}
+Graine.calls.setMuted(true); Graine.calls.setSpeaker(true); Graine.calls.end()
+// Android draws it as an activity of the app's, which the SDK opens for every call; iOS over CallKit's.
+Graine.calls.configure(GraineCallsConfig(androidCallActivity = "ai.graine.demo.OwnCallActivity"))
+```
+
+**3. "We couldn't connect"** — a ring missed, declined or failed, a call cut short before its save, or a booked call
+that could not ring; then Call me now, Choose another time, or Continue in chat.
+
+```kotlin
+Graine.calls.outcomes.collect { o ->
+    if (o.agent == "consultation") when (o.outcome) {
+        GraineCallOutcome.Kind.MISSED, GraineCallOutcome.Kind.DECLINED, GraineCallOutcome.Kind.FAILED -> showCouldNotConnect()
+        GraineCallOutcome.Kind.ENDED -> if (consultationSaved) buildPlan() else showCouldNotConnect()   // ended early
+        else -> Unit
+    }
+}
+Graine.calls.state.value.missedCall       // a ring nobody answered, kept until called back or dismissed
+consultation.scheduledCalls()             // at launch: a booked call missed while the app was closed reads Missed
+Graine.calls.callBack()                   // Call me now (no missed ring: startCall again)
+consultation.chat.shown(true)             // Continue in chat: the same questions, saved the same way
+consultation.component.collect { c -> /* "Select all that apply": choices or quick actions with select = many */ }
+consultation.chat.answerWidget(c.id, data, summary = "Late dinners and Eating out")
+```
+
+**4. The plan** — the app is the store; the agents read and change it through actions, each answered at once
+(within 6 seconds), with arguments as maps and lists.
+
+```kotlin
+consultation.registerAction("save_consultation") { args -> store.saveIntake(args); GraineActionResult.ok("Saved.") }
+Graine.registerAction("get_consultation") { GraineActionResult.ok("The consultation.", store.intake) }
+Graine.registerAction("save_plan") { args -> store.savePlan(args); GraineActionResult.ok("Saved: 7 days, 35 items.") }
+// get_plan, swap_item and log_check_in the same way.
+
+// After the call: the coach's chat connected, then told — it may speak first.
+Graine.chat.shown(true)
+Graine.chat.status.first { it == GraineChatStatus.ONLINE }
+Graine.reportEvent("consultation_finished", "Build the user's first 7-day plan")
+// The coach calls get_consultation, builds the week, calls save_plan → "Your plan is ready", the card, My week.
+```
+
+**5. The chat, check-ins and your own screens.**
+
+```kotlin
+Graine.calls.startCall(reason = "coach_call")    // the call button in the chat's header (the coach is the default agent)
+// A check-in reminder opened (the app's own local notification): the chat, then once ONLINE —
+Graine.reportEvent("meal_check_in", "The user opened the breakfast reminder: Vegetable oats with paneer, planned for 8:00 am on Tuesday.")
+Graine.setScreen(GraineScreen("plan_item", title = item.title, fields = listOf(GraineField("day", "Day", "Tuesday"), …)))
+Graine.track("item_swapped", mapOf("day" to "tue", "time" to "13:30", "from" to old, "to" to new))
+Graine.track("weekly_check_in", mapOf("score" to 4))
+```
+
+**6. Privacy.**
+
+```kotlin
+// Download my data: one JSON file, to the share sheet.
+Graine.memories()
+agent.chat.refreshPastSessions(); agent.chat.pastSessions; agent.chat.loadMorePastSessions()
+agent.chat.sessionTranscript(session.id)
+// Delete account: each agent forgets, then the user is let go, then the phone's data is erased.
+Graine.agents.values.forEach { it.forgetMemory() }
+Graine.identify(null)
+// Log out: identify(null), and this phone's journey erased.
+```
+
+**What it holds to.** The actions are registered at launch, so a call that rings a closed app finds them, and a
+signed-in user is identified at every launch. A plan asked for in a chat that then ended (the app in the background)
+is asked for again when the chat is back; the progress screen offers **Ask again** and **Go to the chat** when the plan
+is slow, and never spins for ever. No two first calls stay booked, and none rings after the plan. A missed ring is "We
+couldn't connect" whether the app was open, woken by it, or closed. Reminders skip quiet hours and follow every change
+to the plan. Log out and Delete account leave nothing of the user on the phone. The tests: `JourneyStateTest`,
+`JourneyEdgeCasesTest`, `JourneyActionArgsTest`, `JourneyPlanStoreTest`, `JourneyPackTest`, `SelectSeveralTest`.
+

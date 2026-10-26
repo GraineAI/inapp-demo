@@ -14,6 +14,11 @@ agent, and `help-prompt.md` and `help-settings.md` for the **help** agent — th
 their Help screen. The apps read
 the matching file in `../usecases/`; the names here must stay identical to it.
 
+`health-coach/journey/` sets up the three agents of the Kotlin Multiplatform app's **Journey** (onboarding, a first
+consultation call, a plan the coach builds through the app's actions, check-ins): its `README.md` has every setting,
+`coach-agent.md` the coach's settings and prompt, `consultation-flow.json` the first call's flow to import, and the
+action files. `node scripts/build-agent-setup.mjs` writes the flow file from the pack.
+
 ## 1. Create the agent — 2 minutes
 1. Dashboard → **Agents → New agent**. Name it exactly as `settings.md` says (for example **Asha**).
 2. **Prompt**: paste everything below the line in `prompt.md`. Set the **Welcome message** from
