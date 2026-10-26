@@ -14,7 +14,7 @@ import kotlinx.datetime.toLocalDateTime
 /*
  * HOW SCHEDULED CALLS AND REFUSALS READ IN THE APP. Presentation only: the
  * booking sheet, its rules and refusals, and what "upcoming" or "can be
- * cancelled" mean all belong to the SDK (presentBooking, bookingAvailable,
+ * cancelled" mean all belong to the SDK (presentBooking, bookingState,
  * GraineScheduledCall).
  */
 
@@ -22,9 +22,6 @@ import kotlinx.datetime.toLocalDateTime
 enum class Tone { NEUTRAL, INFO, POSITIVE, WARNING, NEGATIVE }
 
 object CallText {
-    /** The one hint under a booking button that is off: the SDK's bookingAvailable said no. */
-    const val BOOKING_UNAVAILABLE = "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID"
-
     fun label(status: GraineCallStatus): String = when (status) {
         GraineCallStatus.Scheduled -> "Scheduled"
         GraineCallStatus.Ringing -> "Ringing"

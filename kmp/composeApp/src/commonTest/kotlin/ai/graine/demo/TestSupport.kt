@@ -9,6 +9,7 @@ import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
 import ai.graine.demo.platform.KeyValueStore
+import ai.graine.inapp.kmp.GraineBookingState
 import ai.graine.inapp.kmp.GraineCallSource
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineMemory
@@ -111,8 +112,17 @@ class FakeGraineClient : GraineClient {
     val actions = mutableMapOf<DemoAgent, MutableMap<String, (Map<String, Any?>) -> DemoActionResult>>()
     var unregisterCount = 0
 
-    /** bookingAvailable, per agent, as the SDK answers it now. */
-    val bookable = mutableMapOf(DemoAgent.MAIN to true, DemoAgent.HELP to true)
+    /** Each agent's bookingState, as the SDK holds it; a test moves it with [setBooking]. */
+    val booking = mutableMapOf(
+        DemoAgent.MAIN to MutableStateFlow(GraineBookingState(available = true, reason = null)),
+        DemoAgent.HELP to MutableStateFlow(GraineBookingState(available = true, reason = null)),
+    )
+    /** How often the app asked for an agent's bookingState: once each, at launch, is collecting it; more is re-reading. */
+    var bookingReads = 0
+
+    fun setBooking(agent: DemoAgent, available: Boolean, reason: String? = if (available) null else "not_identified") {
+        booking.getOrPut(agent) { MutableStateFlow(GraineBookingState(false, "not_loaded")) }.value = GraineBookingState(available, reason)
+    }
     /** What the SDK's booking sheet returns: the booked call, or null when the person closed it. */
     var bookingResult: Result<GraineScheduledCall?> = Result.success(GraineScheduledCall("c1", TestClock.instant(18), GraineCallStatus.Scheduled))
     /** Every sheet opened: the reason it was opened with, and whose. */
@@ -148,7 +158,10 @@ class FakeGraineClient : GraineClient {
         actions.getOrPut(agent) { mutableMapOf() }[name] = handler
     }
     override fun unregisterActions() { unregisterCount++; actions.clear() }
-    override fun bookingAvailable(agent: DemoAgent): Boolean = bookable[agent] ?: false
+    override fun bookingState(agent: DemoAgent): StateFlow<GraineBookingState> {
+        bookingReads++
+        return booking.getOrPut(agent) { MutableStateFlow(GraineBookingState(false, "not_loaded")) }
+    }
     override suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall? {
         bookings += reason to agent
         return bookingResult.getOrThrow()
@@ -159,10 +172,6 @@ class FakeGraineClient : GraineClient {
         return cancelResult.getOrThrow()
     }
 
-    /** bookingUnavailableReason, per agent, when the test sets one; else none while bookable, `not_identified` otherwise. */
-    val unavailable = mutableMapOf<DemoAgent, String?>()
-    override fun bookingUnavailableReason(agent: DemoAgent): String? =
-        if (agent in unavailable) unavailable[agent] else if (bookingAvailable(agent)) null else "not_identified"
     var rules = GraineSchedulingRules(usersCanBook = true, minLeadMinutes = 5, maxDaysAhead = 2, maxPendingPerUser = 3)
     override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = rules
     /** The times the SDK offers on a day: the test's own. */

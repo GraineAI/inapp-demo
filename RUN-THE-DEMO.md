@@ -261,8 +261,9 @@ the iPhone, **Run** (calls and rings need a real iPhone).
 **What to check**: sign in (a fictional user; the memory switch is yours), **Chat** → a starter → the agent answers;
 **Talk** → the voice bar connects and the agent greets you (an emulator's microphone is silent: you hear the
 greeting); **Calls** → the pack's booking button opens the SDK's own booking sheet when that agent can be booked
-here, or is off with "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID." (`bookingAvailable`: Graine rings this phone, the
-agent lets users book, and the user is identified with the agent's **Who is the user?** field — the pack's or User ID);
+here, or is off with one line saying why — the agent's `bookingState`, which the app collects from launch, so the
+button turns on by itself once the agent's settings have loaded (Graine rings this phone, the agent lets users book,
+and the user is identified with the agent's **Who is the user?** field — the pack's or User ID);
 **Memory** → the test in [`kmp/README.md`](kmp/README.md#memory-in-a-few-minutes) (two facts in **Chat**, close it,
 a minute later **New conversation** → "What do you remember about me?").
 Then Home → **Your own design** and the same again, every screen drawn by the app: **Chat** (send, close, reopen — it

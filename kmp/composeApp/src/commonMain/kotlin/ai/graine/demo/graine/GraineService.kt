@@ -12,6 +12,7 @@ import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.GraineCallTransport
 import ai.graine.inapp.kmp.GraineActionResult
 import ai.graine.inapp.kmp.GraineAgent
+import ai.graine.inapp.kmp.GraineBookingState
 import ai.graine.inapp.kmp.GraineCallConnection
 import ai.graine.inapp.kmp.GraineCallOutcome
 import ai.graine.inapp.kmp.GraineCallStatus
@@ -96,14 +97,17 @@ interface GraineClient {
     fun unregisterActions()
 
     // Booking and scheduled calls, per agent
-    /** The SDK's own rule: Graine rings this phone, the agent lets users book, and the user is identified. Read as it is now. */
-    fun bookingAvailable(agent: DemoAgent): Boolean
+    /**
+     * Whether [agent] can be booked from the app now, and why not, AS IT CHANGES — the SDK's `bookingState` (0.14.4):
+     * read again by the SDK when the agent's session arrives, after identify and setMemory, and when the session
+     * could not load. Collect it, and draw every booking button, hint and time list from it. Never read the answer
+     * once at launch: until the session has arrived it is `not_loaded`, which means "not yet", not "no".
+     */
+    fun bookingState(agent: DemoAgent): StateFlow<GraineBookingState>
     /** The SDK's booking sheet, in the agent's design, with [reason] filled in. The booked call, or null when closed without booking. */
     suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall?
 
-    // Booking drawn by the app itself ("Your own design"): the SDK's rule, rules and times, and its scheduleCall
-    /** Why [agent] cannot be booked now, as the SDK's word (`not_loaded`, `rings_not_set_up`, …); null when it can. */
-    fun bookingUnavailableReason(agent: DemoAgent): String?
+    // Booking drawn by the app itself ("Your own design"): the SDK's rules and times, and its scheduleCall
     /** What [agent] allows when a user books: lead time, days ahead, calls pending. */
     fun schedulingRules(agent: DemoAgent): GraineSchedulingRules
     /** The times the SDK's own sheet would offer on [day] (every 5 minutes inside the rules), for a picker of the app's own. */
@@ -264,7 +268,10 @@ class GraineService private constructor() : GraineClient {
 
     // ── booking and scheduled calls ─────────────────────────────────────────
 
-    override fun bookingAvailable(agent: DemoAgent): Boolean = sdk(agent)?.bookingAvailable ?: false
+    /** An agent with no key never loads: "not yet" for as long as the app runs (the screens say how to add it). */
+    private val notConfigured = MutableStateFlow(GraineBookingState(available = false, reason = "not_loaded"))
+
+    override fun bookingState(agent: DemoAgent): StateFlow<GraineBookingState> = sdk(agent)?.bookingState ?: notConfigured
 
     // The day, the time, the time zone, "What's it about?" and its refusals are the sheet's own.
     override suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall? =
@@ -275,13 +282,7 @@ class GraineService private constructor() : GraineClient {
     override suspend fun cancelScheduledCall(id: String, agent: DemoAgent): GraineCallStatus =
         (sdk(agent) ?: throw noAgent()).cancelScheduledCall(id)
 
-    // Your own design: the same rule, rules and times the SDK's sheet uses, read from its public state.
-    // Null is the SDK's "it can be booked": only an agent that is not configured has no answer of its own.
-    override fun bookingUnavailableReason(agent: DemoAgent): String? {
-        val graine = sdk(agent) ?: return "not_loaded"
-        return graine.bookingUnavailableReason
-    }
-
+    // Your own design: the same rules and times the SDK's sheet uses, read from its public state.
     override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = sdk(agent)?.schedulingRules ?: GraineSchedulingRules()
 
     override fun bookingSlots(day: LocalDate, agent: DemoAgent): List<Instant> = sdk(agent)?.bookingSlots(day) ?: emptyList()

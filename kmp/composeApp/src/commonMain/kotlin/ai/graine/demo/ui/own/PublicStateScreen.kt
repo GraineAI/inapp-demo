@@ -266,15 +266,15 @@ private fun BookingState(model: AppModel, agent: DemoAgent, sdk: GraineAgent, ti
     val zone = TimeZone.currentSystemDefault()
     val today = Instant.fromEpochMilliseconds(nowMs()).toLocalDateTime(zone).date
     val rules = remember(session, tick) { sdk.schedulingRules }
-    val available = remember(session, tick) { sdk.bookingAvailable }
-    val unavailableReason = remember(session, tick) { sdk.bookingUnavailableReason }
+    // Collected, never read once: it follows the session, identify and setMemory by itself (0.14.4).
+    val bookingState by sdk.bookingState.collectAsState()
     val todaySlots = remember(session, tick) { sdk.bookingSlots(today) }
     val tomorrowSlots = remember(session, tick) { sdk.bookingSlots(today.plus(1, DateTimeUnit.DAY)) }
     Readout(
         "Booking · ${model.nameOf(agent)}",
         listOf(
-            "bookingAvailable" to available.toString(),
-            "unavailableReason" to (unavailableReason ?: "—"),
+            "bookingState.available" to bookingState.available.toString(),
+            "bookingState.reason" to (bookingState.reason ?: "—"),
             "usersCanBook" to rules.usersCanBook.toString(),
             "minLeadMinutes" to rules.minLeadMinutes.toString(),
             "maxDaysAhead" to rules.maxDaysAhead.toString(),

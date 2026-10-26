@@ -25,6 +25,7 @@ import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
 import ai.graine.demo.journey.JourneyModel
 import ai.graine.demo.platform.KeyValueStore
+import ai.graine.inapp.kmp.GraineBookingState
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineException
 import ai.graine.inapp.kmp.GraineMemory
@@ -66,6 +67,8 @@ class AppModel(
      * comes on screen or leaves it. Null — the tour's tests — for no journey at all.
      */
     private val journeys: ((pack: UseCasePack, onOpenChanged: (Boolean) -> Unit) -> JourneyModel?)? = null,
+    /** Where the app's long-lived collectors run (each agent's bookingState): [scope] in the app; the test's background scope in tests. */
+    private val collectors: CoroutineScope = scope,
 ) {
     /** Row statuses for the app session, per pack and user: signing out and back in keeps them; a restart does not. */
     private val sessionStatuses = mutableMapOf<String, ItemsState>()
@@ -148,8 +151,11 @@ class AppModel(
         private set
     var callsError by mutableStateOf<String?>(null)
         private set
-    /** Whether each agent can be booked from the app now: the SDK's bookingAvailable, read whenever it can change. */
-    var bookable by mutableStateOf<Map<DemoAgent, Boolean>>(emptyMap())
+    /**
+     * Whether each agent can be booked from the app now, and why not — each agent's `bookingState`, collected from
+     * launch, so a button drawn before the agent's session arrived turns on by itself when it does.
+     */
+    var booking by mutableStateOf<Map<DemoAgent, GraineBookingState>>(emptyMap())
         private set
     /** The SDK's booking sheet is on screen: a second tap opens no other. */
     var bookingOpen by mutableStateOf(false)
@@ -213,7 +219,7 @@ class AppModel(
         graine.onSessionReady = { sessionArrived() }
         graine.onCallEvent = { record(it) }
         registerActions()
-        refreshBooking()
+        collectBooking()
         agentMemoryEnabled = graine.agentMemoryEnabled
         journey = makeJourney()
         syncCallScreen()
@@ -368,7 +374,6 @@ class AppModel(
         memories = emptyList()
         callsError = null
         memoriesError = null
-        refreshBooking()
         describeScreen()
         refreshCalls()
     }
@@ -399,7 +404,6 @@ class AppModel(
         callLogOpen = false
         tab = DemoTab.HOME
         notice = null
-        refreshBooking()
         describeScreen()
     }
 
@@ -613,12 +617,34 @@ class AppModel(
         }
     }
 
-    /** Whether [agent]'s booking button is on: the SDK's rule, as last read. */
-    fun canBook(agent: DemoAgent): Boolean = bookable[agent] == true
+    /** Whether [agent]'s booking button is on: its bookingState, as it stands. */
+    fun canBook(agent: DemoAgent): Boolean = booking[agent]?.available == true
 
-    /** Read every agent's bookingAvailable again: a session arrived, someone signed in or out, or a booking screen opened. */
-    fun refreshBooking() {
-        bookable = graine.agents.associateWith { graine.bookingAvailable(it) }
+    /**
+     * Why [agent] cannot be booked now, in plain words — from its bookingState's `reason` (`not_loaded` reads "not
+     * yet"); null when it can.
+     */
+    fun bookingHint(agent: DemoAgent): String? {
+        val state = booking[agent] ?: return OwnText.bookingUnavailable("not_loaded")
+        return if (state.available) null else OwnText.bookingUnavailable(state.reason ?: "not_loaded")
+    }
+
+    /**
+     * Each agent's bookingState, from now on: the SDK reads it again when the agent's session arrives, after identify
+     * and setMemory, and when the session could not load — the app never asks again itself. Its current value first,
+     * so the first frame is right; then every change, and the app's own booking screen follows.
+     */
+    private fun collectBooking() {
+        for (agent in graine.agents) {
+            val flow = graine.bookingState(agent)
+            booking = booking + (agent to flow.value)
+            collectors.launch {
+                flow.collect { state ->
+                    if (booking[agent] != state) booking = booking + (agent to state)
+                    if (ownBooking?.agent == agent) refreshOwnBooking()
+                }
+            }
+        }
     }
 
     /**
@@ -725,9 +751,10 @@ class AppModel(
         val chosen = day?.takeIf { d -> days.any { it.first == d && it.second.isNotEmpty() } }
             ?: days.firstOrNull { it.second.isNotEmpty() }?.first
         val slots = days.firstOrNull { it.first == chosen }?.second.orEmpty()
+        val state = booking[agent]
         return OwnBooking(
             agent = agent,
-            unavailableReason = graine.bookingUnavailableReason(agent),
+            unavailableReason = if (state?.available == true) null else state?.reason ?: "not_loaded",
             rules = rules,
             days = days.map { OwnBooking.Day(it.first, it.second.size) },
             day = chosen,
@@ -885,7 +912,7 @@ class AppModel(
     // ── private ─────────────────────────────────────────────────────────────
 
     private fun sessionArrived() {
-        refreshBooking()
+        // Booking follows its own state (collectBooking); the session brings the agent's rules, which the own booking screen reads.
         ownBooking?.let { refreshOwnBooking() }
         agentMemoryEnabled = graine.agentMemoryEnabled
         describeScreen()

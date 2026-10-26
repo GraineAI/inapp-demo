@@ -122,11 +122,30 @@ Home, Chat and the Items screen talk to the main agent; the **Help** tab talks t
 signs in once and both agents know who they are; **Calls** lists the calls booked with either agent.
 Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the pack's `bookLabel` on
 **Calls** opens the main agent's, the one on **Help** the help desk's, each with the pack's first reason
-filled in. A button is on only while the SDK's `bookingAvailable` is true for its agent (Graine rings this
-phone, the agent lets users book, and the user is identified with the agent's Identity field); otherwise it
-is off, with one line: "Booking needs, in Graine UI: users may book (Calls & scheduling), this app's push keys (Workspace settings → In-app calling), and Who is the user? set to this pack's ID". Both platforms run both agents
-(`ai.graine:inapp-kmp` 0.14.4 on Android and iOS alike), and **Call activity** names the agent of every
-ring and outcome.
+filled in. Both platforms run both agents (`ai.graine:inapp-kmp` 0.14.4 on Android and iOS alike), and
+**Call activity** names the agent of every ring and outcome.
+
+**Booking buttons follow `bookingState`.** Whether an agent can be booked from the app — Graine rings this phone,
+the agent lets users book, and the user is identified with the agent's **Who is the user?** field — is the SDK's
+`bookingState` (0.14.4): `Graine.bookingState` for the default agent, `Graine.agent("help")?.bookingState` for
+another. The SDK reads it again when the agent's session arrives, after `identify` and `setMemory`, and when the
+session could not load; the app collects it from launch and never asks again (`AppModel.collectBooking`). Do not
+read `bookingAvailable` once at launch: until the session has arrived the answer is `not_loaded` — "not yet", never
+"no" — and a button drawn from that read stays off.
+
+```kotlin
+// Every booking button, hint and time list, from the agent's bookingState as it changes.
+scope.launch {
+    Graine.bookingState.collect { state ->
+        bookButton.enabled = state.available
+        hint = if (state.available) null else words(state.reason)   // not_loaded, rings_not_set_up, scheduling_off, not_identified
+    }
+}
+```
+
+While a button is off, the line under it says why, in plain words from `state.reason` (`OwnText.bookingUnavailable`):
+"Loading this agent's settings…", "Graine cannot ring this phone yet…", "This agent does not let users book
+calls…", "The signed-in user is not identified with the agent's "Who is the user?" field."
 
 ## Your own design
 
@@ -142,7 +161,7 @@ agents, actions, memory and screen context. Each screen is one file in `composeA
 | Chat — `OwnChatScreen.kt` | `chat.turns`, laid out by `GraineChatRows.build(turns, newConversationBefore)`: day lines, one row per earlier call, "Disconnected · new conversation"; `status` (Disconnected included) and `typing` in the header; `quickReplies`; `ended` and `rating`; `upcomingCalls`; the agent's component | `send`, `sendQuickReply`, `rate`, `retry`, `newConversation`, `cancelUpcomingCall`; `shown(true)` and `shown(false)` as the screen appears and goes, so the conversation lives as the SDK's own window's does |
 | Talk — `OwnTalkPanel.kt` | `voice.state`: `status` (and `error` when it failed), `captions`, `agentLevel` and `micLevel`, `transport` and its fallback reason | Opens ready; `start` only on its Start (the microphone with it), then `end`, `setMuted`, `setCaptionsOn` |
 | Call screen — `OwnCallScreen.kt` | `calls.state`: where the call is, `agent`, `reason`, the length from `startedAt`, `agentLevel`, the caption, `muted` and `speakerOn`; a **Connection** card — `state.connection` while the call goes, the outcome's `connection` once it is over | `answer`, `decline`, `end`, `setMuted`, `setSpeaker`, `callBack`, `dismissMissedCall` |
-| Booking — `OwnBookingScreen.kt` | `bookingAvailable`, and `bookingUnavailableReason` in plain words when it is off; `schedulingRules`; each day's `bookingSlots(day)`, by hour; the user's calls with that agent | `scheduleCall(at, reason)` — a refusal shows the SDK's sentence — and `cancelScheduledCall(id)` |
+| Booking — `OwnBookingScreen.kt` | the agent's `bookingState` (collected; its `reason` in plain words when it is off, and the times read again when it changes); `schedulingRules`; each day's `bookingSlots(day)`, by hour; the user's calls with that agent | `scheduleCall(at, reason)` — a refusal shows the SDK's sentence — and `cancelScheduledCall(id)` |
 | Components — `OwnComponentCard.kt` | `component` (`kind`, `data`, `fallbackText`) and `componentPending`, in the chat and in Talk: chips, rows (one, or several at once), time slots, forms, else the component's own sentence | `chat.answerWidget(id, data, summary)`, with the answers the SDK's own views send, and `chat.dismissWidget(id)` |
 | Past sessions — `PastSessionsScreen.kt` (from the chat's menu) | `chat.pastSessions`: the signed-in user's closed sessions with the agent, newest first — date and time, chat or call, length, how it ended, messages, the first words, the session id with Copy — and its `loading`, `hasMore` and `error`; a tap opens `chat.sessionTranscript(id)`, read only | `refreshPastSessions()` on open, `loadMorePastSessions()` at the end of the list; refusals in plain words ("Sign in to see past sessions", "Not available on this device") |
 | Public state — `PublicStateScreen.kt` | Every value above, live, by surface — who, chat, voice, calls and the connection report, booking, components, events — for walking a team through what their own screens can read | Shows no message, caption or memory text and no variable values: roles, counts, lengths and names |

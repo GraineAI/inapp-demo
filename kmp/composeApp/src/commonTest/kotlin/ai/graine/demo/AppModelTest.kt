@@ -20,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -35,7 +36,10 @@ class AppModelTest {
     private val config = AppConfig.of("https://www.graine.ai", "pk_test_demo")
 
     private fun TestScope.model(fake: FakeGraineClient = FakeGraineClient(), store: MemoryStore = MemoryStore()): Pair<AppModel, FakeGraineClient> =
-        AppModel(fake, config, listOf(TestPack.pack, TestPack.other), store, scope = this as CoroutineScope, now = { TestClock.at(12) }, zone = TestClock.zone) to fake
+        AppModel(
+            fake, config, listOf(TestPack.pack, TestPack.other), store,
+            scope = this as CoroutineScope, now = { TestClock.at(12) }, zone = TestClock.zone, collectors = backgroundScope,
+        ) to fake
 
     @Test
     fun anyVariableCanBeAddedAndRemovedAndProfileShowsWhatTheAgentReceives() = runTest {
@@ -129,8 +133,8 @@ class AppModelTest {
         assertNull(m.notice)
         // The SDK says no (booking off, Graine does not ring this phone, or nobody identified): the button still opens
         // the SDK's sheet, which says why itself.
-        fake.bookable[DemoAgent.MAIN] = false
-        fake.onSessionReady?.invoke()
+        fake.setBooking(DemoAgent.MAIN, false)
+        runCurrent()
         assertFalse(m.canBook(DemoAgent.MAIN))
         assertTrue(m.canBook(DemoAgent.HELP), "each agent answers for itself")
         m.book()
@@ -142,7 +146,33 @@ class AppModelTest {
         advanceUntilIdle()
         assertEquals("No connection. Check your network and try again.", m.notice)
         m.signOut()
-        assertEquals(mapOf(DemoAgent.MAIN to false, DemoAgent.HELP to true), m.bookable, "read again on sign-out")
+        assertEquals(mapOf(DemoAgent.MAIN to false, DemoAgent.HELP to true), m.booking.mapValues { it.value.available }, "as the SDK holds it")
+    }
+
+    @Test
+    fun bookingStartsNotLoadedAndTurnsOnByItselfWhenTheSessionArrives() = runTest {
+        val fake = FakeGraineClient().apply {
+            agents = listOf(DemoAgent.MAIN, DemoAgent.HELP)
+            setBooking(DemoAgent.MAIN, false, "not_loaded")
+            setBooking(DemoAgent.HELP, false, "not_loaded")
+        }
+        val (m, _) = model(fake)
+        m.signIn(TestPack.pack.users[0], memory = true)
+        runCurrent()
+        assertFalse(m.canBook(DemoAgent.MAIN), "the agent's settings have not arrived: not yet")
+        assertEquals("Loading this agent's settings…", m.bookingHint(DemoAgent.MAIN), "not_loaded reads as not yet, never as no")
+        assertEquals(2, fake.bookingReads, "each agent's bookingState asked for once, at launch")
+        // The session arrives: the SDK reads its rule again and says so on bookingState.
+        fake.setBooking(DemoAgent.MAIN, true)
+        runCurrent()
+        assertTrue(m.canBook(DemoAgent.MAIN), "on by itself")
+        assertNull(m.bookingHint(DemoAgent.MAIN))
+        assertFalse(m.canBook(DemoAgent.HELP), "each agent answers for itself")
+        assertEquals(2, fake.bookingReads, "no re-read by the app: it was collecting")
+        // A reason in plain words, from bookingState.reason.
+        fake.setBooking(DemoAgent.HELP, false, "scheduling_off")
+        runCurrent()
+        assertEquals("This agent does not let users book calls (Calls & scheduling → Users, from your app).", m.bookingHint(DemoAgent.HELP))
     }
 
     @Test
@@ -345,7 +375,7 @@ class AppModelTest {
 
     @Test
     fun ownBookingSaysWhyItIsOffAndShowsTheSdksRefusal() = runTest {
-        val fake = FakeGraineClient().withSlots().apply { unavailable[DemoAgent.MAIN] = "rings_not_set_up" }
+        val fake = FakeGraineClient().withSlots().apply { setBooking(DemoAgent.MAIN, false, "rings_not_set_up") }
         val (m, _) = model(fake)
         m.signIn(TestPack.pack.users[0], memory = true)
         m.chooseOwnDesign(true)
@@ -356,8 +386,9 @@ class AppModelTest {
         m.bookOwn()
         assertTrue(fake.scheduled.isEmpty())
 
-        fake.unavailable.remove(DemoAgent.MAIN)
-        m.refreshOwnBooking()
+        // Booking turns on (push keys uploaded, say): the open screen follows the agent's bookingState by itself.
+        fake.setBooking(DemoAgent.MAIN, true)
+        runCurrent()
         assertTrue(m.ownBooking!!.available)
         assertEquals(TestClock.instant(18), m.ownBooking?.slot, "the time picked is kept")
         val sentence = "That time is outside the hours we can call — pick another"

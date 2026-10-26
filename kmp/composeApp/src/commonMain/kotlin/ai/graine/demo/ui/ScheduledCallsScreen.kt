@@ -43,11 +43,9 @@ import androidx.compose.ui.unit.dp
 fun ScheduledCallsScreen(model: AppModel) {
     val pack = model.pack ?: return
     var cancelling by remember { mutableStateOf<AgentCall?>(null) }
-    LaunchedEffect(model.user?.id) {
-        model.refreshBooking()
-        model.refreshCalls()
-    }
-    val canBook = model.canBook(DemoAgent.MAIN)
+    LaunchedEffect(model.user?.id) { model.refreshCalls() }
+    // The agent's bookingState, as the model collects it: on by itself once the agent's session has arrived.
+    val hint = model.bookingHint(DemoAgent.MAIN)
 
     PullToRefreshBox(isRefreshing = model.callsLoading, onRefresh = { model.refreshCalls() }, modifier = Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -61,8 +59,7 @@ fun ScheduledCallsScreen(model: AppModel) {
                     modifier = Modifier.fillMaxWidth().testTag("book_call"),
                 ) { Text(pack.bookLabel(DemoAgent.MAIN)) }
                 Text(
-                    if (canBook) "${model.agentName} calls you at the time you choose. It rings like a phone call, even when the app is closed."
-                    else CallText.BOOKING_UNAVAILABLE,
+                    hint ?: "${model.agentName} calls you at the time you choose. It rings like a phone call, even when the app is closed.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 6.dp).testTag("book_hint"),

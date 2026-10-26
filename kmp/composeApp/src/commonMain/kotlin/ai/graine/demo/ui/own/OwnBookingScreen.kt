@@ -49,8 +49,8 @@ import kotlinx.datetime.toLocalDateTime
 
 /**
  * BOOKING, DRAWN BY THE APP — the SDK's own rule and times, in the app's own
- * picker: whether this agent can be booked here (`bookingAvailable`, and
- * `bookingUnavailableReason` in plain words when not), its rules, a day picker
+ * picker: whether this agent can be booked here (its `bookingState`, collected
+ * by the model, with the reason in plain words when not), its rules, a day picker
  * with the times `bookingSlots(day)` offers, what the call is about, and Book
  * (`scheduleCall`); then the user's calls with this agent, each with Cancel.
  */

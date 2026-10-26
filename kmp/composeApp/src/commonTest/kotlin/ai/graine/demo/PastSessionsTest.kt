@@ -28,7 +28,7 @@ class PastSessionsTest {
     private val config = AppConfig.of("https://www.graine.ai", "pk_test_demo")
 
     private fun TestScope.model(fake: FakeGraineClient = FakeGraineClient()): Pair<AppModel, FakeGraineClient> =
-        AppModel(fake, config, listOf(TestPack.pack), MemoryStore(), scope = this as CoroutineScope, now = { TestClock.at(12) }, zone = TestClock.zone) to fake
+        AppModel(fake, config, listOf(TestPack.pack), MemoryStore(), scope = this as CoroutineScope, now = { TestClock.at(12) }, zone = TestClock.zone, collectors = backgroundScope) to fake
 
     // The contract's first page (sdk/contract/past-sessions.json), as the app holds it.
     private val chat = PastSession("ex-7a1c0001", Instant.parse("2026-10-21T12:00:05Z"), Instant.parse("2026-10-21T12:04:41Z"), 276, "chat", null, "completed", 9, "Can I move my check-in call to Friday?")

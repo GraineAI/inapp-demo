@@ -157,12 +157,14 @@ object OwnText {
     }
 
     /**
-     * Why booking is off, in plain words — `bookingUnavailableReason`. Null
-     * when booking is available. A word this build does not know still reads.
+     * Why booking is off, in plain words — the `reason` of the agent's
+     * `bookingState`. Null when booking is available. `not_loaded` is "not
+     * yet": the agent's settings are still on their way. A word this build
+     * does not know still reads.
      */
     fun bookingUnavailable(reason: String?): String? = when (reason) {
         null -> null
-        "not_loaded" -> "The agent's settings have not loaded yet. Try again in a moment."
+        "not_loaded" -> "Loading this agent's settings…"
         "rings_not_set_up" -> "Graine cannot ring this phone yet: this app's push keys are not uploaded for this platform (Workspace settings → In-app calling)."
         "scheduling_off" -> "This agent does not let users book calls (Calls & scheduling → Users, from your app)."
         "not_identified" -> "The signed-in user is not identified with the agent's \"Who is the user?\" field."
@@ -254,7 +256,7 @@ object OwnText {
 
 /**
  * THE APP'S OWN BOOKING SCREEN, as it stands: for which agent; whether booking
- * is on (`bookingUnavailableReason`) and the agent's rules; each day and how
+ * is on (its `bookingState`) and the agent's rules; each day and how
  * many times the SDK offers on it (`bookingSlots`); the day and time picked;
  * what the call is about; and how the last booking went.
  */

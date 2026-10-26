@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 fun HelpScreen(model: AppModel) {
     val profile = model.profile(DemoAgent.HELP)
     val name = profile?.name ?: "Help"
-    LaunchedEffect(model.user?.id) { model.refreshBooking() }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -65,10 +64,8 @@ fun HelpScreen(model: AppModel) {
                 }
             }
             DemoCard("Book a call") {
-                val canBook = model.canBook(DemoAgent.HELP)
                 Text(
-                    if (canBook) "$name can call you at a time you choose. Its calls are listed with ${model.agentName}'s on the Calls tab."
-                    else CallText.BOOKING_UNAVAILABLE,
+                    model.bookingHint(DemoAgent.HELP) ?: "$name can call you at a time you choose. Its calls are listed with ${model.agentName}'s on the Calls tab.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("help_book_hint"),
