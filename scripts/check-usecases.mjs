@@ -5,7 +5,8 @@
  * a row's user must exist). With --agent-setup it also checks that each agent-setup/<pack>/actions.json
  * is exactly what the pack declares (see build-agent-setup.mjs), that its components.json is in the
  * dashboard's component shape, and that prompt.md and settings.md name every action, component,
- * identifier and call name the apps rely on.
+ * identifier and call name the apps rely on. A pack with a `journey` gets its own checks: what its schema cannot
+ * say, and — with --agent-setup — that agent-setup/<pack>/journey declares exactly the actions the app registers.
  *
  * No dependencies: the validator below implements the JSON Schema keywords the schema uses, and
  * fails loudly on any keyword it does not know, so the schema cannot quietly outgrow it.
@@ -138,6 +139,155 @@ function crossCheck(pack, file) {
   return errors;
 }
 
+/** The journey, where a pack has one: what its schema cannot say. */
+function crossCheckJourney(pack) {
+  const j = pack.journey;
+  if (!j) return [];
+  const errors = [];
+  const at = (m) => errors.push(`journey: ${m}`);
+  const actionNames = Object.values(j.actions);
+  if (new Set(actionNames).size !== actionNames.length) at("two actions share a name");
+  for (const n of actionNames) if (pack.actions.some((a) => a.name === n)) at(`action ${n} is also one of the pack's own actions (the same agent would hear both)`);
+  const events = [j.events.firstCallFinished, j.events.checkIn, j.events.itemDone, j.events.itemSwapped, j.events.weeklyCheckIn];
+  if (new Set(events).size !== events.length) at("two events share a name");
+  const fields = j.onboarding.profile.fields;
+  const keys = fields.map((f) => f.key);
+  if (new Set(keys).size !== keys.length) at("two profile fields share a key");
+  const name = fields.find((f) => f.key === "name");
+  if (!name || name.type !== "text" || !name.required) at('the profile needs a required text field keyed "name" (the name identify sends)');
+  for (const f of fields) {
+    if (f.type === "choice" && new Set(f.options.map((o) => o.value)).size !== f.options.length) at(`field ${f.key}: two options share a value`);
+    if ((f.type === "date" || f.type === "number") && !(f.min < f.max)) at(`field ${f.key}: min must be below max`);
+    if (f.type !== "choice" && f.options) at(`field ${f.key}: only a choice has options`);
+  }
+  const fieldVariables = fields.map((f) => f.variable).filter(Boolean);
+  if (new Set(fieldVariables).size !== fieldVariables.length) at("two profile fields share a variable");
+  const language = j.onboarding.language;
+  const variables = [...new Set([...fieldVariables, language.variable, ...language.options.flatMap((o) => Object.keys(o.variables ?? {}))])];
+  if (variables.length > 12) at(`${variables.length} variables: the SDK sends at most 12`);
+  for (const v of variables) {
+    if (v.startsWith("graine_")) at(`variable ${v}: names starting with graine_ are set by Graine`);
+    if (v === j.identifierField) at(`variable ${v} is the identifier, which never reaches a prompt`);
+  }
+  if (fieldVariables.includes(language.variable)) at(`variable ${language.variable} is both a profile field's and the language's`);
+  const languageIds = language.options.map((o) => o.id);
+  if (new Set(languageIds).size !== languageIds.length) at("two languages share an id");
+  const kinds = j.plan.kinds.map((k) => k.id);
+  if (new Set(kinds).size !== kinds.length) at("two plan kinds share an id");
+  for (const k of j.checkIns.kinds) if (!kinds.includes(k)) at(`checkIns.kinds: ${k} is not one of plan.kinds`);
+  const targets = j.plan.targets.map((t) => t.key);
+  if (new Set(targets).size !== targets.length) at("two plan targets share a key");
+  if (j.today.tracker && !targets.includes(j.today.tracker.target)) at(`today.tracker.target ${j.today.tracker.target} is not one of plan.targets`);
+  const m = j.progress.measure;
+  if (m && !(m.min < m.max)) at("progress.measure: min must be below max");
+  if (m?.profileField && !fields.some((f) => f.key === m.profileField && f.type === "number")) at(`progress.measure.profileField ${m.profileField} is not a number field of the profile`);
+  if (!j.firstCall.booked.body.includes("{time}")) at("firstCall.booked.body must say {time}, the time booked");
+  const sampleDays = j.plan.sample.days.map((d) => d.day);
+  if (new Set(sampleDays).size !== sampleDays.length) at("plan.sample: a day appears twice");
+  for (const d of j.plan.sample.days) {
+    for (const item of d.items) if (!kinds.includes(item.kind)) at(`plan.sample ${d.day} ${item.time}: kind ${item.kind} is not one of plan.kinds`);
+  }
+  for (const t of Object.keys(j.plan.sample.daily_targets ?? {})) if (!targets.includes(t)) at(`plan.sample.daily_targets: ${t} is not one of plan.targets`);
+  return errors;
+}
+
+/** An actions file, as the dashboard imports it: each entry named, described, with an object schema whose required fields exist. */
+function actionNamesIn(path, errors, label) {
+  let list;
+  try { list = JSON.parse(readFileSync(path, "utf8")); } catch (e) { errors.push(`${label} is not JSON: ${e.message}`); return []; }
+  if (!Array.isArray(list)) { errors.push(`${label} must be an array of actions`); return []; }
+  for (const a of list) {
+    const n = a.tool_name ?? a.toolName ?? a.name;
+    if (!n || !a.description) errors.push(`${label}: every action needs a name and a description`);
+    const params = a.parameters ?? {};
+    if (params.type !== "object") errors.push(`${label}: ${n}'s parameters must be an object schema`);
+    for (const r of params.required ?? []) if (!(r in (params.properties ?? {}))) errors.push(`${label}: ${n} requires ${r}, which it does not describe`);
+  }
+  return list;
+}
+
+/** The journey's dashboard kit: the three agents' actions, the first-call flow, the coach's prompt, the settings. */
+function checkJourneyKit(pack) {
+  const j = pack.journey;
+  if (!j) return [];
+  const errors = [];
+  const dir = join(root, "agent-setup", pack.id, "journey");
+  const need = (file) => { const p = join(dir, file); if (!existsSync(p)) { errors.push(`agent-setup/${pack.id}/journey/${file} is missing`); return null; } return p; };
+  const names = (list) => list.map((a) => a.tool_name ?? a.toolName ?? a.name).sort();
+
+  const firstCallPath = need("consultation-actions.json");
+  if (firstCallPath) {
+    const list = actionNamesIn(firstCallPath, errors, "journey/consultation-actions.json");
+    if (JSON.stringify(names(list)) !== JSON.stringify([j.actions.saveIntake])) errors.push(`journey/consultation-actions.json must declare exactly ${j.actions.saveIntake}`);
+    const save = list.find((a) => (a.tool_name ?? a.toolName ?? a.name) === j.actions.saveIntake);
+    const required = [...(save?.parameters?.required ?? [])].sort();
+    if (JSON.stringify(required) !== JSON.stringify([...(j.intakeRequired ?? [])].sort())) {
+      errors.push(`journey/consultation-actions.json: ${j.actions.saveIntake} requires ${required.join(", ") || "nothing"}, the pack's intakeRequired says ${(j.intakeRequired ?? []).join(", ") || "nothing"}`);
+    }
+  }
+  const coachPath = need("coach-actions.json");
+  if (coachPath) {
+    const list = actionNamesIn(coachPath, errors, "journey/coach-actions.json");
+    const expected = [j.actions.getIntake, j.actions.savePlan, j.actions.getPlan, j.actions.swapItem, j.actions.logCheckIn].sort();
+    if (JSON.stringify(names(list)) !== JSON.stringify(expected)) errors.push(`journey/coach-actions.json must declare exactly ${expected.join(", ")}`);
+  }
+  const flowPath = need("consultation-flow.json");
+  if (flowPath) {
+    let doc = null;
+    try { doc = JSON.parse(readFileSync(flowPath, "utf8")); } catch (e) { errors.push(`journey/consultation-flow.json is not JSON: ${e.message}`); }
+    const flow = doc?.flow ?? doc;
+    const steps = flow?.steps ?? {};
+    if (!flow?.start_step || !steps[flow.start_step]) errors.push("journey/consultation-flow.json: start_step must name one of its steps");
+    for (const [id, step] of Object.entries(steps)) {
+      if (!/^[A-Za-z_][A-Za-z0-9_]{0,47}$/.test(id)) errors.push(`journey/consultation-flow.json: step id ${id} is not one the builder accepts`);
+      for (const path of step.next ?? []) if (!steps[path.to]) errors.push(`journey/consultation-flow.json: ${id} leads to ${path.to}, which is not a step`);
+    }
+    if (!Object.values(steps).some((st) => (st.instructions ?? "").includes(j.actions.saveIntake))) errors.push(`journey/consultation-flow.json: no step tells the agent to call ${j.actions.saveIntake}`);
+    if (!Object.values(steps).some((st) => st.force_tool === "end_call")) errors.push("journey/consultation-flow.json: no step ends the call");
+    for (const v of j.onboarding.profile.fields.map((f) => f.variable).filter(Boolean)) {
+      if (!(flow?.briefing ?? "").includes(`{${v}}`)) errors.push(`journey/consultation-flow.json: the briefing never uses {${v}}`);
+    }
+  }
+  const promptPath = need("coach-prompt.md");
+  if (promptPath) {
+    const text = readFileSync(promptPath, "utf8");
+    for (const n of [j.actions.getIntake, j.actions.savePlan, j.actions.getPlan, j.actions.swapItem, j.actions.logCheckIn, j.events.firstCallFinished, j.events.checkIn]) {
+      if (!text.includes(`\`${n}\``)) errors.push(`journey/coach-prompt.md never names \`${n}\``);
+    }
+    for (const v of j.onboarding.profile.fields.map((f) => f.variable).filter(Boolean)) if (!text.includes(`{${v}}`)) errors.push(`journey/coach-prompt.md never uses {${v}}`);
+    if (!text.includes(j.agents.coach.name)) errors.push(`journey/coach-prompt.md never names ${j.agents.coach.name}`);
+  }
+  const componentsPath = need("components.json");
+  if (componentsPath) {
+    let comps = [];
+    try { comps = JSON.parse(readFileSync(componentsPath, "utf8")); } catch (e) { errors.push(`journey/components.json is not JSON: ${e.message}`); }
+    const tools = new Set();
+    for (const c of Array.isArray(comps) ? comps : []) {
+      const label = `journey/components.json ${c.name ?? "?"}`;
+      if (!KINDS[c.kind]) errors.push(`${label}: unknown kind ${c.kind}`);
+      else if (!c.data || !KINDS[c.kind](c.data)) errors.push(`${label}: data is not a ${c.kind}`);
+      if (!TOOL.test(c.toolName ?? "") || RESERVED.includes(c.toolName) || tools.has(c.toolName) || Object.values(j.actions).includes(c.toolName)) {
+        errors.push(`${label}: tool name ${c.toolName} is not usable here`);
+      }
+      tools.add(c.toolName);
+      for (const [k, v] of Object.entries(c.style ?? {})) {
+        const fine = STYLE[k] ? STYLE[k].includes(v) : k === "maxSelect" ? Number.isInteger(v) && v >= 2 && v <= 8 : false;
+        if (!fine) errors.push(`${label}: style.${k} = ${JSON.stringify(v)} is not allowed`);
+      }
+      if (flowPath && !readFileSync(flowPath, "utf8").includes(c.toolName)) errors.push(`${label}: no step of consultation-flow.json shows ${c.toolName}`);
+    }
+  }
+  const supportPath = need("support-prompt.md");
+  if (supportPath && !readFileSync(supportPath, "utf8").includes(j.agents.support.name)) errors.push(`journey/support-prompt.md never names ${j.agents.support.name}`);
+  const readmePath = need("README.md");
+  if (readmePath) {
+    const text = readFileSync(readmePath, "utf8");
+    for (const must of [j.identifierField, j.agents.coach.name, j.agents.support.name, "consultation", j.checkIns.quietStart, j.checkIns.quietEnd, ...j.onboarding.language.options.map((o) => o.code)]) {
+      if (!text.includes(must)) errors.push(`journey/README.md never says "${must}"`);
+    }
+  }
+  return errors;
+}
 
 /** The agent-setup kit: components in the dashboard's shape, and a prompt and settings that name what the app relies on. */
 const KINDS = {
@@ -234,14 +384,14 @@ let failed = 0;
 for (const file of files) {
   const pack = JSON.parse(readFileSync(join(dir, file), "utf8"));
   const errors = validate(pack, schema);
-  if (errors.length === 0) errors.push(...crossCheck(pack, file));
+  if (errors.length === 0) errors.push(...crossCheck(pack, file), ...crossCheckJourney(pack));
   if (process.argv.includes("--agent-setup")) {
     const actionsPath = join(root, "agent-setup", pack.id, "actions.json");
     if (!existsSync(actionsPath)) errors.push(`agent-setup/${pack.id}/actions.json is missing (node scripts/build-agent-setup.mjs)`);
     else if (readFileSync(actionsPath, "utf8") !== actionsJsonFor(pack)) {
       errors.push(`agent-setup/${pack.id}/actions.json differs from the pack (node scripts/build-agent-setup.mjs)`);
     }
-    if (errors.length === 0) errors.push(...checkKit(pack));
+    if (errors.length === 0) errors.push(...checkKit(pack), ...checkJourneyKit(pack));
   }
   if (errors.length) {
     failed++;

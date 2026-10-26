@@ -182,5 +182,265 @@
     "I have a new symptom",
     "Book a check-in call",
     "What do you remember about me?"
-  ]
+  ],
+  "journey": {
+    "identifierField": "user_id",
+    "title": "The full journey",
+    "summary": "Sign up as a new user: your profile, a first consultation call with Asha (now or at a time you pick), a 7-day plan she builds in the chat, daily check-ins and your progress.",
+    "notice": "Asha is a coach, not a doctor. For symptoms or medicines, speak to your doctor.",
+    "agents": {
+      "coach": { "name": "Asha", "role": "your health coach" },
+      "firstCall": { "name": "Asha", "role": "your onboarding consultation" },
+      "support": { "name": "Help & support", "role": "account, calls and app questions" }
+    },
+    "actions": {
+      "saveIntake": "save_consultation",
+      "getIntake": "get_consultation",
+      "savePlan": "save_plan",
+      "getPlan": "get_plan",
+      "swapItem": "swap_item",
+      "logCheckIn": "log_check_in"
+    },
+    "intakeRequired": ["routine", "diet"],
+    "events": {
+      "firstCallFinished": "consultation_finished",
+      "firstCallFinishedDetail": "Build the user's first 7-day plan",
+      "checkIn": "meal_check_in",
+      "itemDone": "item_done",
+      "itemSwapped": "item_swapped",
+      "weeklyCheckIn": "weekly_check_in"
+    },
+    "onboarding": {
+      "welcome": {
+        "title": "Welcome to Graine Care",
+        "body": "A few questions, then a 10-minute call with Asha about your routine, food and goals. She builds your first week from it."
+      },
+      "profile": {
+        "title": "About you",
+        "body": "Asha reads this before every chat and call, so she never has to ask.",
+        "fields": [
+          { "key": "name", "label": "What should we call you?", "type": "text", "placeholder": "Your first name", "required": true, "maxLength": 40 },
+          {
+            "key": "gender", "label": "Gender", "type": "choice", "variable": "gender", "required": true,
+            "options": [
+              { "value": "female", "label": "Female" },
+              { "value": "male", "label": "Male" },
+              { "value": "other", "label": "Other" },
+              { "value": "not_said", "label": "Prefer not to say" }
+            ]
+          },
+          { "key": "birth_date", "label": "Date of birth", "type": "date", "variable": "age", "required": true, "min": 16, "max": 100 },
+          { "key": "weight_kg", "label": "Weight", "type": "number", "unit": "kg", "variable": "weight_kg", "required": true, "min": 30, "max": 250 },
+          { "key": "height_cm", "label": "Height", "type": "number", "unit": "cm", "variable": "height_cm", "required": true, "min": 120, "max": 230 },
+          {
+            "key": "goal", "label": "Main goal", "type": "choice", "variable": "goal", "required": true,
+            "options": [
+              { "value": "Lose weight", "label": "Lose weight" },
+              { "value": "Build strength", "label": "Build strength" },
+              { "value": "Eat healthier", "label": "Eat healthier" },
+              { "value": "More energy", "label": "More energy" },
+              { "value": "Hair and skin", "label": "Hair and skin" }
+            ]
+          },
+          {
+            "key": "diet", "label": "Diet", "type": "choice", "variable": "diet", "required": true,
+            "options": [
+              { "value": "vegetarian", "label": "Vegetarian" },
+              { "value": "eggetarian", "label": "Eggetarian" },
+              { "value": "non_vegetarian", "label": "Non-vegetarian" },
+              { "value": "vegan", "label": "Vegan" },
+              { "value": "jain", "label": "Jain" }
+            ]
+          },
+          {
+            "key": "health_notes", "label": "Anything a plan must respect? (optional)", "type": "text", "variable": "health_notes",
+            "placeholder": "For example: thyroid, iron tablets in the morning", "required": false, "maxLength": 160
+          }
+        ]
+      },
+      "language": {
+        "title": "Which language should Asha speak?",
+        "body": "She starts every chat and call in it. You can switch any time by speaking another.",
+        "variable": "agent_language",
+        "options": [
+          { "id": "en", "label": "English", "code": "en", "variables": { "language_style": "English" } },
+          { "id": "hi", "label": "हिंदी · Hindi", "code": "hi", "variables": { "language_style": "Hindi, in Devanagari script" } },
+          { "id": "hinglish", "label": "Hinglish", "code": "hi", "variables": { "language_style": "Hinglish: Hindi and English mixed, in Latin script" } }
+        ]
+      },
+      "microphone": {
+        "title": "Talk to Asha",
+        "body": "Your first consultation is a call. Allow the microphone so Asha can hear you.",
+        "allow": "Allow microphone",
+        "skip": "Not now"
+      },
+      "notifications": {
+        "title": "Your call and check-ins",
+        "body": "Allow notifications so Asha's call can ring and your meal check-ins reach you. You choose quiet hours in Account.",
+        "allow": "Allow notifications",
+        "skip": "Not now"
+      }
+    },
+    "firstCall": {
+      "title": "Your onboarding consultation",
+      "body": "A 10-minute call with Asha about your routine, food likes and dislikes, and what gets in the way. She builds your first week from it.",
+      "startNow": "Start now",
+      "chooseTime": "Choose a time",
+      "callReason": "onboarding_consultation",
+      "bookingReason": "Your onboarding consultation",
+      "incomingTitle": "Your onboarding consultation",
+      "preferredTimes": ["10:30", "13:00", "17:30", "20:00"],
+      "dayCount": 5,
+      "picker": { "title": "Choose a time", "body": "Asha calls you at the time you pick. Times are in your time zone.", "confirm": "Confirm", "none": "No times left on this day." },
+      "booked": { "title": "Your consultation is booked", "body": "Asha will call you {time}. Keep your phone nearby.", "change": "Change time", "startNow": "Start now instead" },
+      "couldNotConnect": {
+        "title": "We couldn't connect",
+        "body": "Asha couldn't reach you. Pick what works for you.",
+        "declined": "You declined Asha's call. Pick what works for you.",
+        "endedEarly": "Your consultation ended before Asha finished. Pick how to continue.",
+        "busy": "Another call is in progress on this phone.",
+        "notReached": "The call couldn't ring this phone. Pick what works for you.",
+        "callNow": "Call me now",
+        "chooseTime": "Choose another time",
+        "chat": "Continue in chat"
+      },
+      "chat": {
+        "title": "Your consultation",
+        "body": "The same questions, in the chat. Take your time.",
+        "start": "I'd like to do my consultation here in the chat."
+      }
+    },
+    "plan": {
+      "building": {
+        "title": "Building your plan",
+        "body": "Asha is putting your first week together from your consultation. This takes about a minute.",
+        "steps": ["Reading your consultation", "Balancing your day", "Timing your meals around your routine", "Adding swaps you'll like"],
+        "slow": "This is taking longer than usual."
+      },
+      "ready": { "title": "Your plan is ready", "card": "Your starting week", "line": "{days} days · {actions} actions", "open": "My week" },
+      "weekTitle": "My week",
+      "targetsTitle": "Daily targets",
+      "targets": [
+        { "key": "kcal", "label": "Calories", "unit": "kcal" },
+        { "key": "protein_g", "label": "Protein", "unit": "g" },
+        { "key": "water_l", "label": "Water", "unit": "L" }
+      ],
+      "metrics": [
+        { "key": "kcal", "label": "Calories", "unit": "kcal" },
+        { "key": "protein_g", "label": "Protein", "unit": "g" }
+      ],
+      "kinds": [
+        { "id": "breakfast", "label": "Breakfast" },
+        { "id": "lunch", "label": "Lunch" },
+        { "id": "dinner", "label": "Dinner" },
+        { "id": "snack", "label": "Snack" },
+        { "id": "activity", "label": "Activity" },
+        { "id": "habit", "label": "Habit" }
+      ],
+      "item": { "why": "Why it fits", "details": "Ingredients and portion", "swaps": "Swaps", "useSwap": "Use selected swap", "ask": "Ask Asha about this" },
+      "share": { "title": "Share my plan", "intro": "My first week with Asha, from Graine Care" },
+      "sample": {
+        "title": "A steady start, built for consistency",
+        "daily_targets": { "kcal": 1700, "protein_g": 80, "water_l": 2.5 },
+        "days": [
+          {
+            "day": "mon",
+            "items": [
+              { "time": "08:00", "kind": "breakfast", "title": "Vegetable oats with paneer", "details": "1 cup oats, 60 g paneer, onion, tomato, peas", "kcal": 420, "protein_g": 22, "why": "Slow carbs with protein keep you full until lunch.", "swaps": ["Moong dal chilla with curd", "Poha with peanuts and sprouts"] },
+              { "time": "11:00", "kind": "snack", "title": "Roasted chana and an orange", "details": "30 g roasted chana, 1 orange", "kcal": 180, "protein_g": 8, "why": "Fibre and protein bridge the gap to lunch.", "swaps": ["Buttermilk and 8 almonds"] },
+              { "time": "13:30", "kind": "lunch", "title": "Dal, two phulkas and salad", "details": "1 bowl dal, 2 phulkas, cucumber and tomato salad", "kcal": 520, "protein_g": 20, "why": "A balanced plate: half vegetables, a quarter protein.", "swaps": ["Rajma with half a cup of brown rice", "Chole with one phulka"] },
+              { "time": "18:30", "kind": "activity", "title": "Brisk 30-minute walk", "details": "5 minutes easy, 25 minutes brisk", "why": "Daily movement steadies energy and appetite.", "swaps": ["20 minutes of cycling", "A 20-minute home workout"] },
+              { "time": "20:30", "kind": "dinner", "title": "Palak tofu with brown rice", "details": "150 g tofu in spinach gravy, half a cup of brown rice", "kcal": 480, "protein_g": 26, "why": "Protein at dinner keeps late snacking down.", "swaps": ["Paneer bhurji with one phulka", "Vegetable khichdi with curd"] }
+            ]
+          },
+          {
+            "day": "tue",
+            "items": [
+              { "time": "08:00", "kind": "breakfast", "title": "Moong dal chilla with mint chutney", "details": "2 chillas from half a cup of moong dal, mint chutney", "kcal": 380, "protein_g": 20, "why": "Lentils give steady protein without a heavy start.", "swaps": ["Vegetable oats with paneer", "Besan chilla with curd"] },
+              { "time": "11:00", "kind": "snack", "title": "Greek yogurt with berries", "details": "150 g yogurt, a handful of berries", "kcal": 160, "protein_g": 12, "why": "A protein snack that also feeds your gut.", "swaps": ["Roasted chana and an apple"] },
+              { "time": "13:30", "kind": "lunch", "title": "Paneer wrap with salad", "details": "1 whole-wheat wrap, 80 g paneer, peppers, salad", "kcal": 540, "protein_g": 26, "why": "Easy to pack for a work day.", "swaps": ["Chickpea wrap with salad", "Tofu wrap with salad"] },
+              { "time": "18:30", "kind": "activity", "title": "Brisk 30-minute walk", "details": "Try a new route", "why": "The same time each day builds the habit.", "swaps": ["Stair climbing for 15 minutes"] },
+              { "time": "20:30", "kind": "dinner", "title": "Mixed vegetable dal with one phulka", "details": "1 bowl dal with vegetables, 1 phulka", "kcal": 430, "protein_g": 18, "why": "A light dinner that still meets your protein target.", "swaps": ["Vegetable khichdi with curd"] }
+            ]
+          },
+          {
+            "day": "wed",
+            "items": [
+              { "time": "08:00", "kind": "breakfast", "title": "Poha with peanuts and sprouts", "details": "1 plate poha, 1 tbsp peanuts, half a cup of sprouts", "kcal": 400, "protein_g": 15, "why": "Light and quick on a busy morning.", "swaps": ["Upma with vegetables and curd"] },
+              { "time": "11:00", "kind": "snack", "title": "Buttermilk and 8 almonds", "details": "1 glass buttermilk, 8 almonds", "kcal": 150, "protein_g": 6, "why": "Hydrating, with healthy fats.", "swaps": ["Coconut water and a pear"] },
+              { "time": "13:30", "kind": "lunch", "title": "Rajma with brown rice and salad", "details": "1 bowl rajma, half a cup of brown rice, salad", "kcal": 550, "protein_g": 19, "why": "Beans and whole grains make a complete protein.", "swaps": ["Chole with one phulka"] },
+              { "time": "18:30", "kind": "activity", "title": "Yoga, 20 minutes", "details": "Sun salutations and stretches", "why": "A recovery day still keeps you moving.", "swaps": ["A 30-minute easy walk"] },
+              { "time": "20:30", "kind": "dinner", "title": "Paneer tikka with sauteed vegetables", "details": "100 g paneer, peppers, onion, a small salad", "kcal": 470, "protein_g": 25, "why": "High protein, low starch for the evening.", "swaps": ["Tofu tikka with vegetables"] }
+            ]
+          },
+          {
+            "day": "thu",
+            "items": [
+              { "time": "08:00", "kind": "breakfast", "title": "Besan chilla with curd", "details": "2 chillas, half a cup of curd", "kcal": 390, "protein_g": 19, "why": "Chickpea flour adds protein and fibre.", "swaps": ["Moong dal chilla with mint chutney"] },
+              { "time": "11:00", "kind": "snack", "title": "Apple with peanut butter", "details": "1 apple, 1 tbsp peanut butter", "kcal": 190, "protein_g": 4, "why": "Sweet without a sugar crash.", "swaps": ["Roasted makhana, a small bowl"] },
+              { "time": "13:30", "kind": "lunch", "title": "Chole with one phulka and salad", "details": "1 bowl chole, 1 phulka, onion and cucumber salad", "kcal": 520, "protein_g": 18, "why": "Fills you up for the afternoon.", "swaps": ["Dal, two phulkas and salad"] },
+              { "time": "18:30", "kind": "activity", "title": "Brisk 30-minute walk", "details": "Walk with music or a call", "why": "Movement after work clears the day.", "swaps": ["20 minutes of cycling"] },
+              { "time": "20:30", "kind": "dinner", "title": "Vegetable khichdi with curd", "details": "1 bowl khichdi, half a cup of curd", "kcal": 450, "protein_g": 17, "why": "Easy to digest before sleep.", "swaps": ["Mixed vegetable dal with one phulka"] }
+            ]
+          },
+          {
+            "day": "fri",
+            "items": [
+              { "time": "08:00", "kind": "breakfast", "title": "Vegetable upma with curd", "details": "1 plate upma, half a cup of curd", "kcal": 380, "protein_g": 12, "why": "Vegetables at breakfast count toward your day.", "swaps": ["Vegetable oats with paneer"] },
+              { "time": "11:00", "kind": "snack", "title": "Sprouts chaat", "details": "1 cup sprouts, onion, tomato, lemon", "kcal": 170, "protein_g": 10, "why": "Crunchy, filling and high in protein.", "swaps": ["Greek yogurt with berries"] },
+              { "time": "13:30", "kind": "lunch", "title": "Tofu stir-fry with brown rice", "details": "120 g tofu, mixed vegetables, half a cup of brown rice", "kcal": 520, "protein_g": 24, "why": "A lighter lunch before the weekend.", "swaps": ["Paneer wrap with salad"] },
+              { "time": "18:30", "kind": "activity", "title": "A 20-minute home workout", "details": "Squats, lunges, push-ups, planks", "why": "Strength work protects muscle while you lose weight.", "swaps": ["Brisk 30-minute walk"] },
+              { "time": "20:30", "kind": "dinner", "title": "Dal palak with one phulka", "details": "1 bowl dal with spinach, 1 phulka", "kcal": 440, "protein_g": 19, "why": "Iron and protein in one bowl.", "swaps": ["Paneer bhurji with one phulka"] }
+            ]
+          },
+          {
+            "day": "sat",
+            "items": [
+              { "time": "09:00", "kind": "breakfast", "title": "Paneer paratha with curd", "details": "1 paratha with paneer filling, half a cup of curd", "kcal": 460, "protein_g": 20, "why": "A weekend favourite, kept to one.", "swaps": ["Besan chilla with curd"] },
+              { "time": "12:00", "kind": "snack", "title": "Fruit bowl", "details": "Papaya, apple and pomegranate", "kcal": 150, "protein_g": 2, "why": "Sweetness from fruit, not sugar.", "swaps": ["Buttermilk and 8 almonds"] },
+              { "time": "14:00", "kind": "lunch", "title": "Vegetable pulao with raita", "details": "1 plate pulao, 1 bowl raita", "kcal": 540, "protein_g": 15, "why": "A full meal that still fits your day.", "swaps": ["Rajma with brown rice and salad"] },
+              { "time": "18:00", "kind": "activity", "title": "A 45-minute walk or a sport", "details": "Badminton, a long walk or a swim", "why": "Weekends are for longer, fun movement.", "swaps": ["Yoga, 30 minutes"] },
+              { "time": "20:30", "kind": "dinner", "title": "Soup and a paneer salad", "details": "1 bowl vegetable soup, paneer salad", "kcal": 420, "protein_g": 22, "why": "Light after a bigger lunch.", "swaps": ["Vegetable khichdi with curd"] }
+            ]
+          },
+          {
+            "day": "sun",
+            "items": [
+              { "time": "09:00", "kind": "breakfast", "title": "Idli with sambar", "details": "3 idlis, 1 bowl sambar", "kcal": 400, "protein_g": 14, "why": "Fermented food is gentle on digestion.", "swaps": ["Poha with peanuts and sprouts"] },
+              { "time": "12:00", "kind": "snack", "title": "Roasted makhana", "details": "1 small bowl", "kcal": 120, "protein_g": 4, "why": "A light, crunchy snack.", "swaps": ["Roasted chana and an orange"] },
+              { "time": "14:00", "kind": "lunch", "title": "Kadhi with brown rice and salad", "details": "1 bowl kadhi, half a cup of brown rice, salad", "kcal": 500, "protein_g": 16, "why": "Curd-based and comforting.", "swaps": ["Dal, two phulkas and salad"] },
+              { "time": "18:00", "kind": "habit", "title": "Plan next week's groceries", "details": "Paneer, tofu, dals, vegetables and fruit", "why": "A stocked kitchen makes the plan easy to follow.", "swaps": ["Order groceries online"] },
+              { "time": "20:30", "kind": "dinner", "title": "Paneer bhurji with one phulka", "details": "100 g paneer, onion, tomato, 1 phulka", "kcal": 450, "protein_g": 24, "why": "Ends the week on your protein target.", "swaps": ["Palak tofu with brown rice"] }
+            ]
+          }
+        ]
+      }
+    },
+    "checkIns": {
+      "kinds": ["breakfast", "lunch", "dinner"],
+      "afterMinutes": 45,
+      "title": "{kind} check-in",
+      "body": "How did {title} go? Tap to tell Asha.",
+      "detail": "The user opened the {kind} reminder: {title}, planned for {time} on {day}.",
+      "quietStart": "22:00",
+      "quietEnd": "07:00"
+    },
+    "today": {
+      "tracker": { "label": "Water", "unit": "L", "target": "water_l", "step": 0.25 },
+      "upNext": "Up next",
+      "allDone": "Everything for today is done."
+    },
+    "progress": {
+      "completion": "Plan followed",
+      "measure": { "key": "weight_kg", "label": "Weight", "unit": "kg", "profileField": "weight_kg", "min": 30, "max": 250 },
+      "weekly": { "question": "How did this week feel?", "labels": ["Very hard", "Hard", "Okay", "Good", "Great"] }
+    },
+    "coach": {
+      "callReason": "coach_call",
+      "starters": ["What's on my plan today?", "Swap tomorrow's lunch", "I'm travelling this week"]
+    },
+    "support": {
+      "starters": ["I can't hear Asha on calls", "Change my call time", "How do I delete my account?"]
+    }
+  }
 }

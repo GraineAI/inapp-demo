@@ -1,0 +1,28 @@
+[
+  {
+    "name": "What gets in the way",
+    "slug": "consultation_challenges",
+    "toolName": "show_challenges",
+    "kind": "quick_actions",
+    "data": {
+      "prompt": "What usually gets in the way? Select all that apply.",
+      "actions": [
+        { "id": "cravings", "label": "Cravings" },
+        { "id": "time", "label": "Not enough time" },
+        { "id": "travel", "label": "Travel" },
+        { "id": "stress", "label": "Stress eating" },
+        { "id": "late_dinners", "label": "Late dinners" },
+        { "id": "eating_out", "label": "Eating out or ordering in" },
+        { "id": "skipping_meals", "label": "Skipping meals" }
+      ]
+    },
+    "fallbackText": "What usually gets in the way: cravings, time, travel, stress, late dinners, eating out, or skipping meals? Tell me every one that applies.",
+    "style": {
+      "preset": "compact",
+      "button": "outline",
+      "surface": "card",
+      "select": "many",
+      "maxSelect": 7
+    }
+  }
+]

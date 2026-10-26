@@ -130,7 +130,8 @@
       "maxItems": 4,
       "description": "Suggestion chips in the chat. Same limits as the dashboard's conversation starters.",
       "items": { "type": "string", "minLength": 1, "maxLength": 40 }
-    }
+    },
+    "journey": { "$ref": "#/$defs/journey" }
   },
   "$defs": {
     "agent": {
@@ -306,6 +307,465 @@
         "tell": { "type": "string", "minLength": 1, "maxLength": 200 },
         "ask": { "type": "string", "minLength": 1, "maxLength": 200 },
         "expect": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identifierField", "title", "summary", "agents", "actions", "events", "onboarding", "firstCall", "plan", "checkIns",
+        "today", "progress", "coach", "support"
+      ],
+      "description": "An app's whole in-app journey, drawn by the Kotlin Multiplatform demo's Journey: onboarding (a profile, a language, the microphone and notifications), a first call with a second agent (now or booked, with \"We couldn't connect\" and its chat version), a plan the main agent builds and keeps through the app's actions, check-ins, Today and Progress. Every word, field, unit, kind and the sample plan are here; the app's code is generic. Absent: the pack has no journey.",
+      "properties": {
+        "identifierField": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "description": "The trait the journey identifies its user by — the journey's three agents' Memory → Settings → Who is the user? (`user_id` is the dashboard's User ID)."
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 40, "description": "The journey's name on the sign-in screen." },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 240, "description": "One or two sentences under it." },
+        "notice": { "type": "string", "maxLength": 240, "description": "Optional standing notice in the journey's chat." },
+        "agents": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["coach", "firstCall", "support"],
+          "description": "The journey's agents: `coach` is the app's main agent (the default agent: the chat and calls any time), `firstCall` the agent configured as \"consultation\" (the first call and its chat version), `support` the help agent (Help & support).",
+          "properties": {
+            "coach": { "$ref": "#/$defs/journeyAgent" },
+            "firstCall": { "$ref": "#/$defs/journeyAgent" },
+            "support": { "$ref": "#/$defs/journeyAgent" }
+          }
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["saveIntake", "getIntake", "savePlan", "getPlan", "swapItem", "logCheckIn"],
+          "description": "The app actions the agents call, by the name each is declared under in the dashboard: `saveIntake` on the first-call agent; the rest on the coach. agent-setup/<pack>/journey/*-actions.json declare them.",
+          "properties": {
+            "saveIntake": { "$ref": "#/$defs/journeyActionName" },
+            "getIntake": { "$ref": "#/$defs/journeyActionName" },
+            "savePlan": { "$ref": "#/$defs/journeyActionName" },
+            "getPlan": { "$ref": "#/$defs/journeyActionName" },
+            "swapItem": { "$ref": "#/$defs/journeyActionName" },
+            "logCheckIn": { "$ref": "#/$defs/journeyActionName" }
+          }
+        },
+        "intakeRequired": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "description": "The fields saveIntake must carry (the action's own `required`); a call without them is refused, so the agent sends them again.",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" }
+        },
+        "events": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["firstCallFinished", "firstCallFinishedDetail", "checkIn", "itemDone", "itemSwapped", "weeklyCheckIn"],
+          "description": "The names the app reports and tracks: `firstCallFinished` (reportEvent once the coach's chat is online, after the first call) with its `firstCallFinishedDetail`, `checkIn` (reportEvent after a reminder is opened), and `itemDone`, `itemSwapped`, `weeklyCheckIn` (track).",
+          "properties": {
+            "firstCallFinished": { "$ref": "#/$defs/journeyEventName" },
+            "firstCallFinishedDetail": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "checkIn": { "$ref": "#/$defs/journeyEventName" },
+            "itemDone": { "$ref": "#/$defs/journeyEventName" },
+            "itemSwapped": { "$ref": "#/$defs/journeyEventName" },
+            "weeklyCheckIn": { "$ref": "#/$defs/journeyEventName" }
+          }
+        },
+        "onboarding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["welcome", "profile", "language", "microphone", "notifications"],
+          "properties": {
+            "welcome": { "$ref": "#/$defs/journeyCopy" },
+            "profile": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body", "fields"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+                "fields": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/journeyProfileField" } }
+              }
+            },
+            "language": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body", "variable", "options"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+                "variable": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,39}$",
+                  "description": "The variable that carries the chosen language's code: `agent_language` starts each chat and call in that one of the agent's languages."
+                },
+                "options": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "#/$defs/journeyLanguage" } }
+              }
+            },
+            "microphone": { "$ref": "#/$defs/journeyPermission" },
+            "notifications": { "$ref": "#/$defs/journeyPermission" }
+          }
+        },
+        "firstCall": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title", "body", "startNow", "chooseTime", "callReason", "bookingReason", "incomingTitle", "preferredTimes", "dayCount",
+            "picker", "booked", "couldNotConnect", "chat"
+          ],
+          "properties": {
+            "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+            "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+            "startNow": { "type": "string", "minLength": 1, "maxLength": 30 },
+            "chooseTime": { "type": "string", "minLength": 1, "maxLength": 30 },
+            "callReason": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$", "description": "The reason a first call placed from the app carries (the agent hears it as call_reason)." },
+            "bookingReason": { "type": "string", "minLength": 1, "maxLength": 120, "description": "scheduleCall's reason when the user books the first call." },
+            "incomingTitle": { "type": "string", "minLength": 1, "maxLength": 60, "description": "What the app's call screen says while the first call rings." },
+            "preferredTimes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "uniqueItems": true,
+              "description": "The few times of day the picker offers (24-hour HH:MM, the user's time zone), out of every time the agent's booking rules allow.",
+              "items": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+            },
+            "dayCount": { "type": "integer", "minimum": 1, "maximum": 14, "description": "How many day chips the picker shows, from today (never past the agent's days ahead)." },
+            "picker": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body", "confirm", "none"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+                "confirm": { "type": "string", "minLength": 1, "maxLength": 30 },
+                "none": { "type": "string", "minLength": 1, "maxLength": 120 }
+              }
+            },
+            "booked": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body", "change", "startNow"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "body": { "type": "string", "minLength": 1, "maxLength": 240, "description": "{time} is the booked time, as the app says it (\"Tomorrow, 10:30 am\")." },
+                "change": { "type": "string", "minLength": 1, "maxLength": 30 },
+                "startNow": { "type": "string", "minLength": 1, "maxLength": 30 }
+              }
+            },
+            "couldNotConnect": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body", "declined", "endedEarly", "busy", "notReached", "callNow", "chooseTime", "chat"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "body": { "type": "string", "minLength": 1, "maxLength": 240, "description": "A missed or failed call." },
+                "declined": { "type": "string", "minLength": 1, "maxLength": 240 },
+                "endedEarly": { "type": "string", "minLength": 1, "maxLength": 240, "description": "The call ended before the first-call agent saved what it learned." },
+                "busy": { "type": "string", "minLength": 1, "maxLength": 240, "description": "Another call is live on the phone." },
+                "notReached": { "type": "string", "minLength": 1, "maxLength": 240, "description": "A booked call that could not ring (no device, expired)." },
+                "callNow": { "type": "string", "minLength": 1, "maxLength": 30 },
+                "chooseTime": { "type": "string", "minLength": 1, "maxLength": 30 },
+                "chat": { "type": "string", "minLength": 1, "maxLength": 30 }
+              }
+            },
+            "chat": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body", "start"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+                "start": { "type": "string", "minLength": 1, "maxLength": 200, "description": "The user's first message in the first call's chat version." }
+              }
+            }
+          }
+        },
+        "plan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["building", "ready", "weekTitle", "targetsTitle", "targets", "metrics", "kinds", "item", "share", "sample"],
+          "properties": {
+            "building": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body", "steps", "slow"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+                "steps": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "type": "string", "minLength": 1, "maxLength": 60 } },
+                "slow": { "type": "string", "minLength": 1, "maxLength": 120 }
+              }
+            },
+            "ready": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "card", "line", "open"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "card": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "line": { "type": "string", "minLength": 1, "maxLength": 80, "description": "{days} and {actions} are counted from the plan." },
+                "open": { "type": "string", "minLength": 1, "maxLength": 30 }
+              }
+            },
+            "weekTitle": { "type": "string", "minLength": 1, "maxLength": 30 },
+            "targetsTitle": { "type": "string", "minLength": 1, "maxLength": 30 },
+            "targets": { "type": "array", "maxItems": 6, "items": { "$ref": "#/$defs/journeyMeasure" }, "description": "The plan's daily targets, by their key in the plan." },
+            "metrics": { "type": "array", "maxItems": 6, "items": { "$ref": "#/$defs/journeyMeasure" }, "description": "An item's figures, by their key on the item." },
+            "kinds": { "type": "array", "minItems": 1, "maxItems": 12, "items": { "$ref": "#/$defs/journeyKind" } },
+            "item": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["why", "details", "swaps", "useSwap", "ask"],
+              "properties": {
+                "why": { "type": "string", "minLength": 1, "maxLength": 40 },
+                "details": { "type": "string", "minLength": 1, "maxLength": 40 },
+                "swaps": { "type": "string", "minLength": 1, "maxLength": 40 },
+                "useSwap": { "type": "string", "minLength": 1, "maxLength": 30 },
+                "ask": { "type": "string", "minLength": 1, "maxLength": 40 }
+              }
+            },
+            "share": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "intro"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 40 },
+                "intro": { "type": "string", "minLength": 1, "maxLength": 120 }
+              }
+            },
+            "sample": { "$ref": "#/$defs/journeyPlan" }
+          }
+        },
+        "checkIns": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kinds", "afterMinutes", "title", "body", "detail", "quietStart", "quietEnd"],
+          "description": "Reminders the app schedules on the phone at plan item times, and the event it reports when one is opened. In `title`, `body` and `detail`: {kind}, {title}, {time}, {day}.",
+          "properties": {
+            "kinds": { "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" } },
+            "afterMinutes": { "type": "integer", "minimum": 0, "maximum": 240, "description": "How long after the item's time its reminder comes." },
+            "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+            "body": { "type": "string", "minLength": 1, "maxLength": 140 },
+            "detail": { "type": "string", "minLength": 1, "maxLength": 240, "description": "The reported event's detail: what the agent reads." },
+            "quietStart": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$", "description": "The default quiet hours' start; the user changes them in Account." },
+            "quietEnd": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+          }
+        },
+        "today": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["upNext", "allDone"],
+          "properties": {
+            "tracker": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "unit", "target", "step"],
+              "description": "A daily counter on Today, with the plan's target named by `target` as its goal; each tap adds `step`.",
+              "properties": {
+                "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+                "unit": { "type": "string", "minLength": 1, "maxLength": 12 },
+                "target": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+                "step": { "type": "number", "minimum": 0.01, "maximum": 1000 }
+              }
+            },
+            "upNext": { "type": "string", "minLength": 1, "maxLength": 30 },
+            "allDone": { "type": "string", "minLength": 1, "maxLength": 120 }
+          }
+        },
+        "progress": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["completion", "weekly"],
+          "properties": {
+            "completion": { "type": "string", "minLength": 1, "maxLength": 40 },
+            "measure": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["key", "label", "unit", "min", "max"],
+              "description": "A figure the user logs over time, drawn as a trend; its first value can come from a profile field.",
+              "properties": {
+                "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+                "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+                "unit": { "type": "string", "minLength": 1, "maxLength": 12 },
+                "profileField": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+                "min": { "type": "number" },
+                "max": { "type": "number" }
+              }
+            },
+            "weekly": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["question", "labels"],
+              "properties": {
+                "question": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "labels": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "type": "string", "minLength": 1, "maxLength": 20 }, "description": "What 1 to 5 mean." }
+              }
+            }
+          }
+        },
+        "coach": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["callReason", "starters"],
+          "properties": {
+            "callReason": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$", "description": "The reason on a call to the coach from the chat's call button." },
+            "starters": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "string", "minLength": 1, "maxLength": 40 } }
+          }
+        },
+        "support": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["starters"],
+          "properties": {
+            "starters": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "string", "minLength": 1, "maxLength": 40 } }
+          }
+        }
+      }
+    },
+    "journeyAgent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "role"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 40, "description": "The agent's display name — match the dashboard." },
+        "role": { "type": "string", "minLength": 1, "maxLength": 60 }
+      }
+    },
+    "journeyActionName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,47}$",
+      "not": { "enum": ["switch_language", "transfer_call", "end_call", "highlight_element"] }
+    },
+    "journeyEventName": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" },
+    "journeyCopy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 240 }
+      }
+    },
+    "journeyPermission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "allow", "skip"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "allow": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "skip": { "type": "string", "minLength": 1, "maxLength": 30 }
+      }
+    },
+    "journeyProfileField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "type", "required"],
+      "description": "One profile question. `text`, `choice` (one of `options`), `date` (`min` and `max` are ages in years; its `variable` gets the age) or `number` (between `min` and `max`, in `unit`). The answer goes to the agents as `variable`; the field keyed `name` is the user's name, sent with identify.",
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "type": { "enum": ["text", "choice", "date", "number"] },
+        "variable": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+        "required": { "type": "boolean" },
+        "placeholder": { "type": "string", "maxLength": 80 },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 12 },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "maxLength": { "type": "integer", "minimum": 1, "maximum": 200 },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["value", "label"],
+            "properties": {
+              "value": { "type": "string", "minLength": 1, "maxLength": 120, "description": "What the variable gets." },
+              "label": { "type": "string", "minLength": 1, "maxLength": 40 }
+            }
+          }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "choice" } } }, "then": { "required": ["options"] } },
+        { "if": { "properties": { "type": { "enum": ["date", "number"] } } }, "then": { "required": ["min", "max"] } }
+      ]
+    },
+    "journeyLanguage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "code"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,19}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "code": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z]{2,4})?$", "description": "One of the agents' language codes (Agent → Languages), sent as the language variable." },
+        "variables": {
+          "type": "object",
+          "maxProperties": 3,
+          "description": "More variables this choice sets, for a style one language code does not say (Hinglish on the Hindi voice).",
+          "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+          "additionalProperties": { "type": "string", "maxLength": 200 }
+        }
+      }
+    },
+    "journeyMeasure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "unit"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "unit": { "type": "string", "maxLength": 12 }
+      }
+    },
+    "journeyKind": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 30 }
+      }
+    },
+    "journeyPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "days"],
+      "description": "A plan in the shape the plan action saves it: the app's sample, for trying the journey without the agent.",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "daily_targets": { "type": "object", "maxProperties": 6, "additionalProperties": { "type": "number" } },
+        "days": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["day", "items"],
+            "properties": {
+              "day": { "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+              "items": { "type": "array", "minItems": 1, "maxItems": 12, "items": { "$ref": "#/$defs/journeyPlanItem" } }
+            }
+          }
+        }
+      }
+    },
+    "journeyPlanItem": {
+      "type": "object",
+      "required": ["time", "kind", "title"],
+      "description": "One timed item. Any other key is one of the item's figures (a number), named by plan.metrics.",
+      "additionalProperties": { "type": "number" },
+      "properties": {
+        "time": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+        "kind": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "details": { "type": "string", "maxLength": 300 },
+        "why": { "type": "string", "maxLength": 300 },
+        "swaps": { "type": "array", "maxItems": 3, "items": { "type": "string", "minLength": 1, "maxLength": 120 } }
       }
     }
   }

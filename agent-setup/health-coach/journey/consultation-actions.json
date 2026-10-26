@@ -1,0 +1,29 @@
+[
+  {
+    "name": "save_consultation",
+    "description": "Call once, at the end of the consultation, after the user has answered your questions, to hand the app everything you learned. Never call it before the consultation is finished. Leave out anything the user did not tell you; never guess.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "routine": { "type": "string", "description": "A typical weekday in one or two sentences: wake-up, work hours, meal times, sleep." },
+        "weekday": {
+          "type": "array",
+          "description": "What a typical weekday looks like. Every one that applies.",
+          "items": { "type": "string", "enum": ["desk_based", "frequent_travel", "shift_or_late_night", "physically_active"] }
+        },
+        "eating_habits": { "type": "string", "description": "How they eat today: how many meals, when, eating out or ordering in, snacking." },
+        "diet": { "type": "string", "enum": ["vegetarian", "eggetarian", "non_vegetarian", "vegan", "jain"], "description": "Their diet." },
+        "likes": { "type": "array", "items": { "type": "string" }, "description": "Foods they like." },
+        "dislikes": { "type": "array", "items": { "type": "string" }, "description": "Foods they dislike or will not eat." },
+        "allergies": { "type": "array", "items": { "type": "string" }, "description": "Food allergies or intolerances they mentioned." },
+        "challenges": { "type": "array", "items": { "type": "string" }, "description": "What gets in the way: cravings, time, travel, stress, late dinners." },
+        "activity": { "type": "string", "description": "Exercise and daily movement today." },
+        "water_l": { "type": "number", "description": "Water a day in litres, if they said." },
+        "sleep": { "type": "string", "description": "Sleep hours and quality, if discussed." },
+        "health_notes": { "type": "string", "description": "Health conditions or medicines the user mentioned that a plan must respect, in their words." },
+        "notes": { "type": "string", "description": "Anything else that matters for their plan." }
+      },
+      "required": ["routine", "diet"]
+    }
+  }
+]

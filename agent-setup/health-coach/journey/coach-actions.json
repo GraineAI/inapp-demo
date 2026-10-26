@@ -1,0 +1,98 @@
+[
+  {
+    "name": "get_consultation",
+    "description": "Read what the user told you in their consultation: routine, diet, likes, dislikes, allergies, challenges, health notes. Use it before you build or rebuild their plan.",
+    "parameters": { "type": "object", "properties": {}, "required": [] }
+  },
+  {
+    "name": "save_plan",
+    "description": "Save the user's weekly plan in the app, the whole week at once. Use it when you have built a new plan (after the app reports consultation_finished) or rebuilt it because the user asked. For one change, use swap_item instead.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The week's title, e.g. 'A steady start, built for consistency'." },
+        "daily_targets": {
+          "type": "object",
+          "description": "The day's targets.",
+          "properties": {
+            "kcal": { "type": "integer", "description": "Calories a day." },
+            "protein_g": { "type": "integer", "description": "Protein a day, in grams." },
+            "water_l": { "type": "number", "description": "Water a day, in litres." }
+          },
+          "required": ["kcal"]
+        },
+        "days": {
+          "type": "array",
+          "description": "Seven entries, Monday first.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "string", "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+              "items": {
+                "type": "array",
+                "description": "The day's meals and actions, in time order.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "time": { "type": "string", "description": "24-hour time, e.g. 09:30." },
+                    "kind": { "type": "string", "enum": ["breakfast", "lunch", "dinner", "snack", "activity", "habit"] },
+                    "title": { "type": "string", "description": "What it is, e.g. 'Vegetable oats with paneer'." },
+                    "details": { "type": "string", "description": "One line: portion or how to do it." },
+                    "kcal": { "type": "integer" },
+                    "protein_g": { "type": "integer" },
+                    "why": { "type": "string", "description": "One short sentence on why it fits their goal." },
+                    "swaps": { "type": "array", "description": "Up to two alternatives.", "items": { "type": "string" } }
+                  },
+                  "required": ["time", "kind", "title"]
+                }
+              }
+            },
+            "required": ["day", "items"]
+          }
+        }
+      },
+      "required": ["title", "days"]
+    }
+  },
+  {
+    "name": "get_plan",
+    "description": "Read the user's saved plan: one day, or the whole week when no day is given. Use it before answering any question about their plan; never guess what is on it.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "day": { "type": "string", "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "description": "The day; leave it out for the whole week." }
+      },
+      "required": []
+    }
+  },
+  {
+    "name": "swap_item",
+    "description": "Change one item of the user's plan when they ask, or when what they tell you means it will not work (an ingredient they do not have, a meal they cannot make). Tell them what changed.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "day": { "type": "string", "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+        "time": { "type": "string", "description": "The item's time, as on the plan, e.g. 09:30." },
+        "title": { "type": "string", "description": "The new item." },
+        "details": { "type": "string", "description": "One line: portion or how to do it." },
+        "kcal": { "type": "integer" },
+        "reason": { "type": "string", "description": "Why it changed, in a few words." }
+      },
+      "required": ["day", "time", "title"]
+    }
+  },
+  {
+    "name": "log_check_in",
+    "description": "Record how the user did with an item of their plan when they tell you, for example after a meal check-in.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "day": { "type": "string", "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+        "time": { "type": "string", "description": "The item's time, as on the plan." },
+        "followed": { "type": "boolean", "description": "Whether they followed it." },
+        "note": { "type": "string", "description": "What they said, in a few words." }
+      },
+      "required": ["day", "followed"]
+    }
+  }
+]

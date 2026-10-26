@@ -123,6 +123,34 @@ are per user.
 | `memoryExamples[]` | `tell` / `ask` / `expect` — the memory QA script in the root README and the Memory screen's hint. Use facts memory keeps (a goal, a preference, a time to call): contact details, ID and card numbers, codes and medical details are removed before saving, so an example with one never passes |
 | `starters[]` | Up to four chat chips, 40 characters each |
 
+## The journey (optional block)
+
+A pack may carry a `journey`: an app's whole in-app journey, which the Kotlin Multiplatform demo draws on its
+**Journey** (sign-in screen → the journey's `title`). `health-coach.json` has one; the other two packs have none,
+so the Journey is not offered with them. Its code is generic — onboarding, a first call, a plan, check-ins —
+and every word, field, unit, item kind, event name and the sample plan are in the block.
+
+| Part | What it is | How the app uses it |
+|---|---|---|
+| `identifierField` | The trait the user is identified by (`user_id`) | `Graine.identify(mapOf(identifierField to id, "name" to name))`, at sign-up and every launch |
+| `agents` | `coach` (the main agent), `firstCall` (configured as `consultation`), `support` (the help agent) | Their names and roles on screen |
+| `onboarding.profile.fields` | Profile questions: `text`, `choice`, `date` (its variable gets the age) or `number`, each with the `variable` it fills | `setVariables(…)` on every agent; the field keyed `name` goes with identify |
+| `onboarding.language` | The languages offered: each a `code` of the agents' languages, and its own extra `variables` | `agent_language` = the code (each chat and call starts in it) |
+| `firstCall` | Its words; `callReason` (startCall), `bookingReason` (scheduleCall), `incomingTitle` (the call screen while it rings), `preferredTimes` (the few times a day the picker offers out of the agent's `bookingSlots(day)`), `dayCount`, and "We couldn't connect" | The first call, now or booked, and every way it can fail to happen |
+| `actions` | The six app actions, by the names the agents declare them under | Registered at launch: `saveIntake` on the first-call agent, the plan's on the coach |
+| `intakeRequired` | What `saveIntake` must carry | A save without them is refused, so the agent sends them again |
+| `events` | `firstCallFinished` (+ its detail) and `checkIn`, reported to the coach's live chat; `itemDone`, `itemSwapped`, `weeklyCheckIn`, tracked | `Graine.reportEvent(…)` once the coach's chat is ONLINE; `Graine.track(…)` |
+| `plan` | Its words, `targets` and `metrics` (keys, labels, units), `kinds`, the item screen's labels, and `sample` — a plan in the shape the plan action saves | My week, the item screen, the share text; `sample` is "Load sample plan" for testing without the agent |
+| `checkIns` | Which `kinds` get a reminder, `afterMinutes`, its words ({kind}, {title}, {time}, {day}) and the default quiet hours | Local notifications from the plan; an opened one reports `events.checkIn` |
+| `today`, `progress` | A daily counter whose goal is one of the plan's targets; a measure logged over time; the weekly 1–5 question | Today and Progress |
+| `coach`, `support` | The call button's reason; chat starters | The chat's call button (`startCall`), suggestion chips |
+
+The checker adds the journey's own rules (a profile field keyed `name`, at most 12 variables, no action named
+like one of the pack's own, check-in kinds among the plan's kinds, the sample's kinds and targets known…) and,
+with `--agent-setup`, checks `agent-setup/<pack>/journey/` declares exactly the actions the app registers —
+`consultation-actions.json`, `coach-actions.json` — that the first-call flow saves and ends, and that the coach's
+prompt names every action, event and variable.
+
 ## Adding a pack
 
 1. Copy `health-coach.json`, change `id` and the file name together, and rewrite the content. Keep the three
