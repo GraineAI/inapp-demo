@@ -24,19 +24,23 @@ The project is generated from `project.yml` with [XcodeGen](https://github.com/y
 needed only to change it.
 
 **The SDK comes from Swift Package Manager**: `GraineDemo.xcodeproj` takes `GraineInApp` from
-`https://github.com/GraineAI/inapp-ios`, from 0.14.4 (a public repository), and Xcode fetches the package on
-first open. (The SDK is on CocoaPods too, as `GraineInApp`; this demo uses Swift Package Manager.)
+`https://github.com/GraineAI/inapp-ios` and its WebRTC module, `GraineInAppRTC`, from
+`https://github.com/GraineAI/inapp-ios-rtc`, both from 0.14.4 (public repositories), and Xcode fetches the packages
+on first open. (The SDK is on CocoaPods too, as `GraineInApp`; this demo uses Swift Package Manager.)
 
 **To build against SDK sources on your machine instead** (for example a fix that is not released yet), use the
 local-SDK switch:
 
 ```sh
-./use-local-sdk.sh                                  # sources at ../../inapp-ios: a checkout beside this repository
-GRAINE_IOS_SDK_PATH=/path/to/inapp-ios ./use-local-sdk.sh
+git clone --branch 0.14.4 https://github.com/GraineAI/inapp-ios ../../inapp-ios           # from ios/: beside this repository
+git clone --branch 0.14.4 https://github.com/GraineAI/inapp-ios-rtc ../../inapp-ios-rtc
+./use-local-sdk.sh                                  # sources at ../../inapp-ios and ../../inapp-ios-rtc
+GRAINE_IOS_SDK_PATH=/path/to/inapp-ios ./use-local-sdk.sh    # the WebRTC module beside it, or GRAINE_IOS_RTC_SDK_PATH
 ```
 
-and open the generated `GraineDemoLocal.xcodeproj` (git-ignored; it needs XcodeGen). `GraineDemo.xcodeproj`
-keeps the published package.
+and open the generated `GraineDemoLocal.xcodeproj` (git-ignored; it needs XcodeGen). It takes both packages from
+the sources — the SDK and its WebRTC module are always the same version. `GraineDemo.xcodeproj` keeps the published
+packages.
 
 ## What is where
 

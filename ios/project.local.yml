@@ -1,9 +1,12 @@
-# The local-SDK switch: the same app, built against the GraineInApp sources at $GRAINE_IOS_SDK_PATH
-# instead of the published package. Run ./use-local-sdk.sh, which sets the path and generates
-# GraineDemoLocal.xcodeproj (git-ignored) — the committed GraineDemo.xcodeproj is left alone.
+# The local-SDK switch: the same app, built against the iOS SDK's sources instead of the published packages —
+# GraineInApp at $GRAINE_IOS_SDK_PATH and its WebRTC module, GraineInAppRTC, at $GRAINE_IOS_RTC_SDK_PATH, of the
+# same version (the module talks to GraineInApp through its SPI). Run ./use-local-sdk.sh, which sets both paths and
+# generates GraineDemoLocal.xcodeproj (git-ignored) — the committed GraineDemo.xcodeproj is left alone.
 include:
   - project.yml
 name: GraineDemoLocal
 packages:
   GraineInApp:
     path: ${GRAINE_IOS_SDK_PATH}
+  GraineInAppRTC:
+    path: ${GRAINE_IOS_RTC_SDK_PATH}

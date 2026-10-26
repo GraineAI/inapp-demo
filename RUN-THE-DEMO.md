@@ -106,7 +106,8 @@ use it in place of `GraineDemo.xcodeproj` below):
 
 ```sh
 git clone --branch 0.14.4 https://github.com/GraineAI/inapp-ios ../inapp-ios
-ios/use-local-sdk.sh
+git clone --branch 0.14.4 https://github.com/GraineAI/inapp-ios-rtc ../inapp-ios-rtc
+ios/use-local-sdk.sh                 # GraineInApp and its WebRTC module, GraineInAppRTC, from these checkouts
 
 cd ios
 # Simulator (any iOS 16+ one: xcrun simctl list devices available)
