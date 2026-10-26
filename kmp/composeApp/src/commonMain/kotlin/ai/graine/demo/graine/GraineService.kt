@@ -6,6 +6,7 @@ import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreenContext
 import ai.graine.demo.domain.PastSessionsState
 import ai.graine.demo.domain.SessionTranscript
+import ai.graine.demo.journey.JourneyAgent
 import ai.graine.demo.platform.Platform
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.GraineCallTransport
@@ -375,6 +376,11 @@ class GraineService private constructor() : GraineClient {
             if (config.hasHelpKey) {
                 runCatching { Graine.configure(agentConfig(config.helpPublishableKey), name = DemoAgent.HELP.sdkName) }
                     .onFailure { Platform.log("The help agent is not available here: ${it.message}") }
+            }
+            // The Journey's first-call agent (a flow agent): its first call, booked or now, and its chat version.
+            if (config.hasConsultationKey) {
+                runCatching { Graine.configure(agentConfig(config.consultationPublishableKey), name = JourneyAgent.FIRST_CALL.sdkName) }
+                    .onFailure { Platform.log("The first-call agent is not available here: ${it.message}") }
             }
             // iOS: receive the agents' calls as VoIP pushes (Android: the SDK's own messaging service rings them).
             Graine.calls.enableVoIPPushes()

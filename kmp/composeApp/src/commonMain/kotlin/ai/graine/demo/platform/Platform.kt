@@ -1,6 +1,9 @@
 package ai.graine.demo.platform
 
 import ai.graine.demo.domain.AppConfig
+import ai.graine.demo.journey.JourneyShare
+import ai.graine.demo.journey.ReminderScheduler
+import ai.graine.demo.journey.TextStore
 import androidx.compose.runtime.Composable
 
 /** Where the app keeps its few on-device choices (the pack, the call log): SharedPreferences on Android, UserDefaults on iOS. */
@@ -34,6 +37,24 @@ expect object Platform {
      * SDK opens it instead of its own for every call, ring and missed call while the app draws its own. Null on iOS.
      */
     val ownCallActivity: String?
+
+    /** Where the Journey keeps its files: the app's files folder on Android, Application Support on iOS. */
+    fun files(): TextStore
+
+    /** The Journey's check-in reminders, as local notifications. */
+    fun reminders(): ReminderScheduler
+
+    /** The share sheet: the plan as text, the user's data as a file. */
+    fun share(): JourneyShare
+
+    /** A debug build: the Journey offers its testing tools ("Load sample plan", "Simulate reminder"). */
+    val debugTools: Boolean
+
+    /**
+     * Bring the app's own screen to the front — Android's call activity opens the app for what only it can show (a
+     * missed first call's choices). iOS: nothing to do, the call screen is drawn over the app.
+     */
+    fun openApp()
 }
 
 /** The system back gesture (Android). iOS has none: every screen here has its own Back or Close. */

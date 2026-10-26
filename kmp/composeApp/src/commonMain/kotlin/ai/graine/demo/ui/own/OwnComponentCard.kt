@@ -20,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -110,10 +111,29 @@ private fun PendingCard(modifier: Modifier) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Chips(widget: OwnWidget.Chips, answer: (OwnAnswer) -> Unit) {
+    // "Select all that apply" (select: many): tick several, then one answer.
+    val picked = remember(widget) { mutableStateListOf<String>() }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         widget.chips.forEach { chip ->
-            OutlinedButton(onClick = { answer(OwnComponents.chip(widget, chip)) }, modifier = Modifier.testTag("own_chip")) { Text(chip.label) }
+            if (widget.many) {
+                val on = chip.id in picked
+                FilterChip(
+                    selected = on,
+                    onClick = { if (on) picked -= chip.id else if (picked.size < widget.maxSelect) picked += chip.id },
+                    label = { Text(chip.label) },
+                    modifier = Modifier.testTag("own_chip"),
+                )
+            } else {
+                OutlinedButton(onClick = { answer(OwnComponents.chip(widget, chip)) }, modifier = Modifier.testTag("own_chip")) { Text(chip.label) }
+            }
         }
+    }
+    if (widget.many) {
+        Button(
+            onClick = { OwnComponents.chips(widget, picked.toList())?.let(answer) },
+            enabled = picked.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth().testTag("own_chips_send"),
+        ) { Text(widget.selectLabel.ifEmpty { "Done" } + if (picked.isEmpty()) "" else " (${picked.size})") }
     }
 }
 

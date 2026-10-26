@@ -1,5 +1,7 @@
 package ai.graine.demo.domain
 
+import ai.graine.demo.journey.JourneyPack
+
 /**
  * A USE-CASE PACK: every domain word the demo shows — the assistant's name,
  * the fictional users, the list on the Items screen, the actions the agent
@@ -35,6 +37,8 @@ data class UseCasePack(
      * traits (never the identifier). Set through the SDK at sign-in, as an API call sends `variables`.
      */
     val variables: Map<String, String> = DEFAULT_VARIABLES,
+    /** The app's whole journey (onboarding, a first call, a plan, check-ins), for the Journey; null in a pack without one. */
+    val journey: JourneyPack? = null,
 ) {
     /**
      * One of the pack's agents (`agents.main`, `agents.help`). The help desk also carries its own call settings:
@@ -250,6 +254,8 @@ data class UseCasePack(
                 starters = o.strings("starters"),
                 variables = o.obj("variables")?.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }?.toMap() ?: DEFAULT_VARIABLES,
                 agents = o.obj("agents")?.let { a -> Agents(agentInfo(a.obj("main")), agentInfo(a.obj("help"))) },
+                // A journey that cannot be read leaves the pack as it is, without one (its test reads the shipped packs).
+                journey = o.obj("journey")?.let { runCatching { JourneyPack.parse(it) }.getOrNull() },
             )
         }
 

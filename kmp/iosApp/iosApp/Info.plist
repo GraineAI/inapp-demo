@@ -24,6 +24,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>GraineBaseURL</key>
 	<string>$(GRAINE_BASE_URL)</string>
+	<key>GraineConsultationPublishableKey</key>
+	<string>$(GRAINE_CONSULTATION_PUBLISHABLE_KEY)</string>
 	<key>GraineHelpPublishableKey</key>
 	<string>$(GRAINE_HELP_PUBLISHABLE_KEY)</string>
 	<key>GrainePublishableKey</key>

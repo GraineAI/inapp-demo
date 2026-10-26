@@ -1,9 +1,12 @@
 package ai.graine.demo
 
+import ai.graine.demo.journey.AndroidReminders
+import ai.graine.demo.journey.ReminderTaps
 import ai.graine.demo.platform.NotificationAccess
 import ai.graine.demo.ui.DemoApp
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.onRequestPermissionsResult
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +22,21 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null && NotificationAccess.missing(this).contains(NotificationAccess.Step.ALLOW_NOTIFICATIONS)) {
             NotificationAccess.requestNotifications(this)
         }
+        if (savedInstanceState == null) checkInTapped(intent)
+    }
+
+    // A check-in reminder tapped while the app is open (the activity is singleTask).
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        checkInTapped(intent)
+    }
+
+    /** The Journey's check-in reminder that opened the app: the chat, and the coach told which item. */
+    private fun checkInTapped(intent: Intent?) {
+        val id = intent?.getStringExtra(AndroidReminders.EXTRA_ID) ?: return
+        intent.removeExtra(AndroidReminders.EXTRA_ID)
+        ReminderTaps.deliver(id)
     }
 
     @Deprecated("Forwarded for the SDK's microphone prompts")

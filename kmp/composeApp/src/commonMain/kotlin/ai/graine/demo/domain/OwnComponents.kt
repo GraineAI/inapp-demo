@@ -10,7 +10,8 @@ import ai.graine.inapp.kmp.GraineComponent
  * so the agent — and the webhooks behind its tools — hear the same thing
  * whichever screen drew it:
  *
- *   chips      `choices` (data.options) and `quick_actions` (data.actions)
+ *   chips      `choices` (data.options) and `quick_actions` (data.actions); several at once — "Select all
+ *              that apply" — where its style says `select: many`, sent as one answer
  *   rows       `product_list`, `plan_comparison` (data.plans), `info_card`, and any
  *              kind carrying data.items; one tap, or several where its style says
  *              `select: many`
@@ -43,7 +44,17 @@ sealed class OwnWidget {
     /** How rows answer: a plan, an info card's one action, or an item. */
     enum class Shape { PLANS, CARD, ITEMS }
 
-    data class Chips(override val title: String, override val prompt: String, val chips: List<Chip>, val quickActions: Boolean) : OwnWidget()
+    data class Chips(
+        override val title: String,
+        override val prompt: String,
+        val chips: List<Chip>,
+        val quickActions: Boolean,
+        /** Several may be ticked and sent as one answer (the component's style: `select: many`). */
+        val many: Boolean = false,
+        val maxSelect: Int = chips.size,
+        /** What the one button says, and leads the sentence ("Done" → "Cravings and Late dinners"). */
+        val selectLabel: String = "",
+    ) : OwnWidget()
 
     data class Rows(
         override val title: String,
@@ -91,7 +102,10 @@ object OwnComponents {
                 val label = str(first(m?.get("label"), m?.get("title")) ?: o)
                 OwnWidget.Chip(id = str(first(m?.get("id")) ?: label), label = label)
             }
-            return OwnWidget.Chips(title, prompt, chips, quickActions)
+            val style = component.payload["style"] as? Map<*, *>
+            val many = (style?.get("select") as? String)?.trim()?.lowercase() == "many" && chips.size > 1
+            val max = (style?.get("maxSelect") as? Number)?.toInt()?.takeIf { it > 0 } ?: chips.size
+            return OwnWidget.Chips(title, prompt, chips, quickActions, many, max.coerceAtMost(chips.size), text(d["selectLabel"]).orEmpty())
         }
 
         if (kind == "calendar_slots") {
@@ -180,6 +194,24 @@ object OwnComponents {
         if (widget.quickActions) linkedMapOf("id" to chip.id, "label" to chip.label) else linkedMapOf("chosen" to chip.id, "label" to chip.label),
         "I'll go with ${chip.label}.",
     )
+
+    /**
+     * Several chips ticked — "Select all that apply" — as ONE answer, in the shape several rows answer with: every
+     * pick (each as one tap would send it), the ids and labels flattened, how many, and one sentence naming them.
+     */
+    fun chips(widget: OwnWidget.Chips, ids: List<String>): OwnAnswer? {
+        val picked = ids.mapNotNull { id -> widget.chips.firstOrNull { it.id == id } }
+        if (picked.isEmpty()) return null
+        return OwnAnswer(
+            linkedMapOf(
+                "items" to picked.map { chip(widget, it).data },
+                "ids" to picked.joinToString(",") { it.id },
+                "titles" to picked.joinToString(", ") { it.label },
+                "count" to picked.size,
+            ),
+            manySummary(picked.map { it.label }, widget.selectLabel),
+        )
+    }
 
     /** One row's button. */
     fun row(widget: OwnWidget.Rows, row: OwnWidget.Row): OwnAnswer {

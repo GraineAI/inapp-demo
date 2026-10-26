@@ -64,6 +64,8 @@ android {
         buildConfigField("String", "GRAINE_PUBLISHABLE_KEY", "\"${setting("graine.publishableKey", "GRAINE_PUBLISHABLE_KEY", "")}\"")
         // Optional: a second agent (the pack's help desk) for the Help tab.
         buildConfigField("String", "GRAINE_HELP_PUBLISHABLE_KEY", "\"${setting("graine.helpPublishableKey", "GRAINE_HELP_PUBLISHABLE_KEY", "")}\"")
+        // Optional: the Journey's first-call agent, configured as "consultation" (agent-setup/<pack>/journey).
+        buildConfigField("String", "GRAINE_CONSULTATION_PUBLISHABLE_KEY", "\"${setting("graine.consultationPublishableKey", "GRAINE_CONSULTATION_PUBLISHABLE_KEY", "")}\"")
         buildConfigField("String", "GRAINE_BASE_URL", "\"${setting("graine.baseUrl", "GRAINE_BASE_URL", "https://www.graine.ai")}\"")
     }
     buildFeatures { buildConfig = true }
@@ -117,6 +119,8 @@ kotlin {
             // WebRTC calls on Android: the module beside the SDK (the same version as inapp-kmp).
             implementation("ai.graine:inapp-android-rtc:0.14.4")
             implementation("androidx.activity:activity-compose:1.9.3")
+            // The Journey's reminders (notifications) and "Download my data" (FileProvider).
+            implementation("androidx.core:core-ktx:1.13.1")
             implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
             implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.7.0"))
             implementation("com.google.firebase:firebase-messaging")

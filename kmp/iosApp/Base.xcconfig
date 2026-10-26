@@ -9,5 +9,6 @@ PRODUCT_BUNDLE_IDENTIFIER = com.example.grainedemo.kmp
 GRAINE_BASE_URL = https:/$()/www.graine.ai
 GRAINE_PUBLISHABLE_KEY =
 GRAINE_HELP_PUBLISHABLE_KEY =
+GRAINE_CONSULTATION_PUBLISHABLE_KEY =
 
 #include? "Config.xcconfig"

@@ -1,3 +1,4 @@
+import ComposeApp
 import GraineInAppRTC
 import SwiftUI
 
@@ -10,6 +11,8 @@ import SwiftUI
 struct GraineDemoApp: App {
     init() {
         GraineRTC.install()   // WebRTC calls: keeps the module in the build and registers it
+        // The Journey's check-in reminders: a tap that starts the app reaches it (the delegate is set before launch ends).
+        MainViewControllerKt.installJourneyNotifications()
     }
 
     var body: some Scene {

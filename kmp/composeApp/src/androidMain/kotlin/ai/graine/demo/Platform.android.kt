@@ -5,6 +5,13 @@ import ai.graine.demo.DemoApplication
 import ai.graine.demo.OwnCallActivity
 import ai.graine.demo.R
 import ai.graine.demo.domain.AppConfig
+import ai.graine.demo.journey.AndroidFiles
+import ai.graine.demo.journey.AndroidReminders
+import ai.graine.demo.journey.AndroidShare
+import ai.graine.demo.journey.JourneyShare
+import ai.graine.demo.journey.ReminderScheduler
+import ai.graine.demo.journey.TextStore
+import ai.graine.demo.MainActivity
 import android.Manifest
 import android.app.Activity
 import android.app.NotificationManager
@@ -38,8 +45,12 @@ actual object Platform {
     actual val appVersion: String = BuildConfig.VERSION_NAME
     actual val debug: Boolean = BuildConfig.DEBUG
 
-    actual fun config(): AppConfig =
-        AppConfig.of(BuildConfig.GRAINE_BASE_URL, BuildConfig.GRAINE_PUBLISHABLE_KEY, BuildConfig.GRAINE_HELP_PUBLISHABLE_KEY)
+    actual fun config(): AppConfig = AppConfig.of(
+        BuildConfig.GRAINE_BASE_URL,
+        BuildConfig.GRAINE_PUBLISHABLE_KEY,
+        BuildConfig.GRAINE_HELP_PUBLISHABLE_KEY,
+        BuildConfig.GRAINE_CONSULTATION_PUBLISHABLE_KEY,
+    )
 
     actual fun store(): KeyValueStore {
         val prefs = DemoApplication.instance.getSharedPreferences("graine-demo", Context.MODE_PRIVATE)
@@ -57,6 +68,19 @@ actual object Platform {
     actual val ownCallScreenInPlace: Boolean = false
 
     actual val ownCallActivity: String? = OwnCallActivity::class.java.name
+
+    actual fun files(): TextStore = AndroidFiles(DemoApplication.instance)
+
+    actual fun reminders(): ReminderScheduler = AndroidReminders(DemoApplication.instance)
+
+    actual fun share(): JourneyShare = AndroidShare(DemoApplication.instance)
+
+    actual val debugTools: Boolean = BuildConfig.DEBUG
+
+    actual fun openApp() {
+        val app = DemoApplication.instance
+        app.startActivity(Intent(app, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+    }
 }
 
 @Composable

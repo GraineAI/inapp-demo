@@ -7,6 +7,9 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- The Journey's check-in reminders come back after the phone restarts. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".DemoApplication"
         android:allowBackup="false"
@@ -38,6 +41,25 @@
             android:autoRemoveFromRecents="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
             android:theme="@style/Theme.GraineDemo" />
+
+        <!-- The Journey's check-in reminders: an alarm per reminder shows its notification; a restart of the phone
+             or an update of the app schedules the ones still to come again. -->
+        <receiver android:name=".journey.JourneyReminderReceiver" android:exported="false" />
+        <receiver android:name=".journey.JourneyBootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- The Journey's "Download my data": the JSON file handed to the share sheet. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.journeyfiles"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/journey_files" />
+        </provider>
 
     </application>
 </manifest>

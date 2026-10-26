@@ -23,6 +23,7 @@ import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.domain.UseCasePacks
 import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
+import ai.graine.demo.journey.JourneyModel
 import ai.graine.demo.platform.KeyValueStore
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineException
@@ -60,6 +61,11 @@ class AppModel(
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     /** The user's time zone: the days and times the app's own booking screen offers. */
     private val zone: TimeZone = TimeZone.currentSystemDefault(),
+    /**
+     * Makes the Journey for a pack that has one (null for a pack without): the journey hears [onOpenChanged] when it
+     * comes on screen or leaves it. Null — the tour's tests — for no journey at all.
+     */
+    private val journeys: ((pack: UseCasePack, onOpenChanged: (Boolean) -> Unit) -> JourneyModel?)? = null,
 ) {
     /** Row statuses for the app session, per pack and user: signing out and back in keeps them; a restart does not. */
     private val sessionStatuses = mutableMapOf<String, ItemsState>()
@@ -192,14 +198,44 @@ class AppModel(
     var transcriptError by mutableStateOf<String?>(null)
         private set
 
+    /**
+     * THE JOURNEY of the chosen pack — onboarding, a first call, the plan, check-ins — when the pack has one. Made at
+     * launch, so its actions are registered and its signed-in user identified before any call can ring; while it is
+     * open it is the whole app, and the tour's screens wait behind it.
+     */
+    var journey by mutableStateOf<JourneyModel?>(null)
+        private set
+
+    /** What the SDK was last told about the call screen: its own (false, the SDK's default) or the app's. Before init: init sets it. */
+    private var ownCallScreenNamed = false
+
     init {
         graine.onSessionReady = { sessionArrived() }
         graine.onCallEvent = { record(it) }
         registerActions()
         refreshBooking()
         agentMemoryEnabled = graine.agentMemoryEnabled
-        if (ownDesign) graine.useOwnCallScreen(true)
+        journey = makeJourney()
+        syncCallScreen()
         describeScreen()
+    }
+
+    private fun makeJourney(): JourneyModel? = pack?.let { p ->
+        journeys?.invoke(p) { open ->
+            syncCallScreen(open)
+            if (!open) describeScreen()
+        }
+    }
+
+    /**
+     * The app draws its own call screen while the Journey is open or "Your own design" is on (on Android the SDK then
+     * opens the app's call activity); otherwise the SDK's.
+     */
+    private fun syncCallScreen(journeyOpen: Boolean = journey?.open == true) {
+        val want = ownDesign || journeyOpen
+        if (want == ownCallScreenNamed) return
+        ownCallScreenNamed = want
+        graine.useOwnCallScreen(want)
     }
 
     /** The Home switch: "Graine's screens" or "Your own design". What is open closes; the next opens in the design chosen. */
@@ -214,7 +250,7 @@ class AppModel(
         closePastSessions()
         ownDesign = on
         store.putString(OWN_DESIGN_KEY, if (on) "on" else null)
-        graine.useOwnCallScreen(on)
+        syncCallScreen()
         describeScreen()
     }
 
@@ -305,6 +341,9 @@ class AppModel(
         store.putString(UseCasePacks.CHOICE_KEY, next.id)
         graine.setCallName(next.call.callName)
         registerActions()
+        journey?.close()
+        journey = makeJourney()
+        syncCallScreen()
         describeScreen()
     }
 
@@ -818,8 +857,11 @@ class AppModel(
             }
         }
 
-    /** Tell the agents what is on screen (the SDK shares it with every agent). Called on every change. */
-    fun describeScreen() = graine.setScreen(screenContext())
+    /** Tell the agents what is on screen (the SDK shares it with every agent). Called on every change; the open Journey describes its own. */
+    fun describeScreen() {
+        if (journey?.open == true) return
+        graine.setScreen(screenContext())
+    }
 
     /** The same keys on every platform (usecases/README.md, "Screen context"). */
     fun screenContext(): DemoScreenContext {

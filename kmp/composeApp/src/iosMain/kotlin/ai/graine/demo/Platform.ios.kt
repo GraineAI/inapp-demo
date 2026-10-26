@@ -1,7 +1,14 @@
 package ai.graine.demo.platform
 
 import ai.graine.demo.domain.AppConfig
+import ai.graine.demo.journey.IosFiles
+import ai.graine.demo.journey.IosReminders
+import ai.graine.demo.journey.IosShare
+import ai.graine.demo.journey.JourneyShare
+import ai.graine.demo.journey.ReminderScheduler
+import ai.graine.demo.journey.TextStore
 import androidx.compose.runtime.Composable
+import kotlin.experimental.ExperimentalNativeApi
 import platform.Foundation.NSBundle
 import platform.Foundation.NSUserDefaults
 
@@ -12,7 +19,12 @@ actual object Platform {
     actual val debug: Boolean = false
 
     /** From Info.plist, which reads them from Config.xcconfig (see iosApp/Config.example.xcconfig). */
-    actual fun config(): AppConfig = AppConfig.of(info("GraineBaseURL"), info("GrainePublishableKey"), info("GraineHelpPublishableKey"))
+    actual fun config(): AppConfig = AppConfig.of(
+        info("GraineBaseURL"),
+        info("GrainePublishableKey"),
+        info("GraineHelpPublishableKey"),
+        info("GraineConsultationPublishableKey"),
+    )
 
     actual fun store(): KeyValueStore = object : KeyValueStore {
         private val defaults = NSUserDefaults.standardUserDefaults
@@ -31,6 +43,19 @@ actual object Platform {
 
     /** The SDK's `androidCallActivity` is Android's: iOS draws its own call screen over CallKit's. */
     actual val ownCallActivity: String? = null
+
+    actual fun files(): TextStore = IosFiles()
+
+    actual fun reminders(): ReminderScheduler = IosReminders()
+
+    actual fun share(): JourneyShare = IosShare()
+
+    /** A debug framework (Xcode's Debug configuration). */
+    @OptIn(ExperimentalNativeApi::class)
+    actual val debugTools: Boolean = kotlin.native.Platform.isDebugBinary
+
+    /** The call screen is drawn over the app: the app is already in front. */
+    actual fun openApp() = Unit
 
     private fun info(key: String): String? = (NSBundle.mainBundle.objectForInfoDictionaryKey(key) as? String)?.takeIf { it.isNotBlank() }
 }
