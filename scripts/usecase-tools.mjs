@@ -33,3 +33,12 @@ export function actionsFor(pack) {
 export function actionsJsonFor(pack) {
   return `${JSON.stringify(actionsFor(pack), null, 2)}\n`;
 }
+
+/**
+ * The journey's first-call flow as the dashboard imports it (Import JSON, Settings → Advanced → Raw flow,
+ * the agents API's `flow`): the pack's own, unchanged. Null for a pack without one.
+ */
+export function flowJsonFor(pack) {
+  const flow = pack.journey?.firstCall?.flow;
+  return flow ? `${JSON.stringify(flow, null, 2)}\n` : null;
+}

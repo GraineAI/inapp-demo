@@ -478,7 +478,8 @@
                 "body": { "type": "string", "minLength": 1, "maxLength": 240 },
                 "start": { "type": "string", "minLength": 1, "maxLength": 200, "description": "The user's first message in the first call's chat version." }
               }
-            }
+            },
+            "flow": { "$ref": "#/$defs/journeyFlow" }
           }
         },
         "plan": {
@@ -621,6 +622,17 @@
             "starters": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "string", "minLength": 1, "maxLength": 40 } }
           }
         }
+      }
+    },
+    "journeyFlow": {
+      "type": "object",
+      "required": ["start_step", "steps"],
+      "description": "The first-call agent's flow, in the dashboard's own flow format (what Settings → Advanced → Raw flow shows and the agents API's `flow` takes): `node scripts/build-agent-setup.mjs` writes it to agent-setup/<pack>/journey/consultation-flow.json for Import JSON. The app shows its steps' titles as what the first call covers.",
+      "properties": {
+        "schema_version": { "const": 1 },
+        "start_step": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,47}$" },
+        "briefing": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "steps": { "type": "object", "maxProperties": 40 }
       }
     },
     "journeyAgent": {

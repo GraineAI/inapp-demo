@@ -35,25 +35,18 @@ The app sends the profile as variables on every agent, at sign-up and at every l
 
 ## 2. Asha, the coach — 3 more minutes
 
-| Where | Setting | Value |
-|---|---|---|
-| Agents → New agent | Name | **Asha** (a prompt agent) |
-| Agent → Prompt | Prompt | everything below the line in `coach-prompt.md` |
-| Agent → Prompt | Welcome message | Hi {name}, I'm Asha, your health coach. Ask me anything about your plan. |
-| Agent → its language model's settings | Max tokens (`max_tokens`) | about **4,000**, so a whole week fits in one `save_plan` (a few hundred cuts the week short) |
-| Embed & Widgets → App actions | Import from JSON | **`coach-actions.json`**, then **Save** (an import that is not saved does nothing): `get_consultation`, `save_plan`, `get_plan`, `swap_item`, `log_check_in` |
-| Calls & scheduling | Name on the incoming call | **Asha · Graine Care** |
-| Calls & scheduling | Who may book a call | optional: *The agent, during a conversation* on, for follow-up calls it books |
-
-Import replaces the agent's actions. On a build where the same agent also runs the feature tour's list
-screen, add the tour's three actions (`../actions.json`) by hand after the import, and **Save**.
+Everything for the coach is in **`coach-agent.md`**: its settings (prompt, languages, memory, max tokens,
+actions, Calls & scheduling) and, below the line, its prompt. Import replaces an agent's actions: on a build
+where the same agent also runs the feature tour's list screen, add the tour's three actions
+(`../actions.json`) by hand after the import, and **Save**.
 
 ## 3. Asha · Consultation, the first call — 5 more minutes
 
 | Where | Setting | Value |
 |---|---|---|
 | Agents → New agent | Kind and name | a **flow** agent, **Asha · Consultation** |
-| Flow builder → Import / Export | Import JSON… | **`consultation-flow.json`** — its eight steps (routine, eating habits, likes and dislikes, allergies, challenges, activity and sleep, *Save and close*, *Goodbye*), its briefing and, ticked, its welcome message — then **Save** |
+| Flow builder → Import / Export | Import JSON… | **`consultation-flow.json`**, then **Save**: the flow in the dashboard's own format (what Settings → Advanced → Raw flow shows), eleven steps — *Welcome* (by name), *Routine*, *Eating habits*, *Food likes, dislikes and allergies*, *Challenges*, *Activity and sleep*, *Save and close* (calls `save_consultation`), *Goodbye* — and three polite endings: *Not now*, *Stop early*, *No answer* |
+| Agent → Prompt | Welcome message | empty: the *Welcome* step greets {name} and asks whether now is a good time |
 | Embed & Widgets → App actions | Import from JSON | **`consultation-actions.json`**, then **Save**: `save_consultation` |
 | Embed & Widgets → Components | New component | the one in **`components.json`**: template **Quick actions**, the seven options as written, **Tool name** `show_challenges`, Look & feel → **Choose: Several** (the "Select all that apply" question in the chat), selected for this agent |
 | Calls & scheduling | Who may book a call → Users, from your app | **On** (the app's "Choose a time" books with it) |
@@ -63,7 +56,11 @@ screen, add the tour's three actions (`../actions.json`) by hand after the impor
 | Calls & scheduling | Quiet hours | **22:00 – 07:00** |
 | Agent → Calling Window | Hours | on, 09:00–21:30 every day: the picker offers 10:30, 13:00, 17:30 and 20:00 inside it |
 
-The flow, step by step, and why it is built this way: `consultation-flow.md`. Every step can also run in
+The flow is the pack's own (`usecases/health-coach.json` → `journey.firstCall.flow`); `node
+scripts/build-agent-setup.mjs` writes this file from it, and the checker fails while they differ. Each topic
+is an AI reply step that follows up on the answer before moving on; no step can trap a caller: each has a
+turn limit (`_step_turns`) and, on a call, a way out for silence (`_silence_repeats`), besides "not now" and
+"stop". Nothing medical is promised: the briefing says Asha is a coach, not a doctor. Every step also runs in
 the chat: "Continue in chat" opens this agent's chat, which asks the same questions and saves the same way.
 "Select all that apply" is that component: the app draws a choices or quick-actions component set to
 **Several** as tickable chips with one **Done**, and answers with every pick at once (`chat.answerWidget`).

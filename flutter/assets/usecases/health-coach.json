@@ -308,6 +308,413 @@
         "title": "Your consultation",
         "body": "The same questions, in the chat. Take your time.",
         "start": "I'd like to do my consultation here in the chat."
+      },
+      "flow": {
+        "schema_version": 1,
+        "start_step": "intro",
+        "briefing": "You are Asha, {name}'s health coach at Graine Care, on their first consultation, by call or in the chat. You already know: {age} years, {gender}, {weight_kg} kg, {height_cm} cm, goal: {goal}, diet: {diet}, health notes: {health_notes}. Don't ask for these again. Speak in {language_style}. Learn their routine, eating habits, food likes and dislikes, allergies, what gets in the way, and their activity and sleep, so you can build their first week. Ask one question at a time, keep each reply to one or two short sentences, and follow up on what they say before moving on. Keep the whole consultation to about ten minutes. You are a coach, not a doctor: never diagnose, never promise a result, and for symptoms or medicines suggest they speak to their doctor, then carry on.",
+        "decision": {
+          "provider": "azure",
+          "model": "azure/gpt-4.1-mini",
+          "max_tokens": 250,
+          "guidance": "Move on only once {name} has answered the current topic, or said they would rather skip it. If they ask a question first, stay on the step so it can answer. If they want to stop, take the path that closes politely."
+        },
+        "defaults": {
+          "recipient_data": {
+            "name": "there",
+            "health_notes": "none",
+            "language_style": "English"
+          }
+        },
+        "steps": {
+          "intro": {
+            "kind": "converse",
+            "title": "Welcome",
+            "instructions": "Greet {name} by name, say you are Asha, their health coach, and that this is their onboarding consultation: about ten minutes on their routine and food, so you can build their first week. Ask whether now is a good time to start.",
+            "nudge_after_silence_s": 8,
+            "next": [
+              {
+                "to": "routine",
+                "label": "Ready",
+                "when": {
+                  "type": "ai",
+                  "description": "They are ready to start, or answered in a way that means yes."
+                }
+              },
+              {
+                "to": "not_now",
+                "label": "Not now",
+                "when": {
+                  "type": "ai",
+                  "description": "Now is not a good time, or they do not want the consultation."
+                }
+              },
+              {
+                "to": "silent_close",
+                "label": "Silent",
+                "order": 0,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_silence_repeats",
+                      "op": "at_least",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "routine",
+                "label": "Start anyway",
+                "order": 1,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_step_turns",
+                      "op": "at_least",
+                      "value": 3
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "routine": {
+            "kind": "converse",
+            "title": "Routine",
+            "instructions": "Ask what a typical weekday looks like: when they wake up, their work hours, when they usually eat, and when they go to bed. Follow up once on anything vague, for example whether weekends differ. Ask whether their day is mostly at a desk, on the move, shift or late-night work, or physically active.",
+            "nudge_after_silence_s": 8,
+            "next": [
+              {
+                "to": "eating_habits",
+                "label": "Routine covered",
+                "when": {
+                  "type": "ai",
+                  "description": "They have described a typical weekday, or would rather skip it."
+                }
+              },
+              {
+                "to": "wrap_up",
+                "label": "Wants to stop",
+                "when": {
+                  "type": "ai",
+                  "description": "They want to stop the consultation now."
+                }
+              },
+              {
+                "to": "silent_close",
+                "label": "Silent",
+                "order": 0,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_silence_repeats",
+                      "op": "at_least",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "eating_habits",
+                "label": "Enough on this",
+                "order": 1,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_step_turns",
+                      "op": "at_least",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "eating_habits": {
+            "kind": "converse",
+            "title": "Eating habits",
+            "instructions": "Ask how they eat today: how many meals, roughly when, how often they eat out or order in, and whether they snack between meals. Follow up once: what a usual breakfast, lunch or dinner is.",
+            "nudge_after_silence_s": 8,
+            "next": [
+              {
+                "to": "likes_and_allergies",
+                "label": "Eating habits covered",
+                "when": {
+                  "type": "ai",
+                  "description": "They have said how they eat today, or would rather skip it."
+                }
+              },
+              {
+                "to": "wrap_up",
+                "label": "Wants to stop",
+                "when": {
+                  "type": "ai",
+                  "description": "They want to stop the consultation now."
+                }
+              },
+              {
+                "to": "silent_close",
+                "label": "Silent",
+                "order": 0,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_silence_repeats",
+                      "op": "at_least",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "likes_and_allergies",
+                "label": "Enough on this",
+                "order": 1,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_step_turns",
+                      "op": "at_least",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "likes_and_allergies": {
+            "kind": "converse",
+            "title": "Food likes, dislikes and allergies",
+            "instructions": "Ask which foods they enjoy and would like in their plan, and which they dislike or will not eat, keeping their diet ({diet}) in mind. Then ask whether they have any food allergies or intolerances; if they say none, confirm it.",
+            "nudge_after_silence_s": 8,
+            "next": [
+              {
+                "to": "challenges",
+                "label": "Likes and allergies covered",
+                "when": {
+                  "type": "ai",
+                  "description": "They have named foods they like and dislike and said whether they have any allergies, or would rather skip it."
+                }
+              },
+              {
+                "to": "wrap_up",
+                "label": "Wants to stop",
+                "when": {
+                  "type": "ai",
+                  "description": "They want to stop the consultation now."
+                }
+              },
+              {
+                "to": "silent_close",
+                "label": "Silent",
+                "order": 0,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_silence_repeats",
+                      "op": "at_least",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "challenges",
+                "label": "Enough on this",
+                "order": 1,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_step_turns",
+                      "op": "at_least",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "challenges": {
+            "kind": "converse",
+            "title": "Challenges",
+            "instructions": "Ask what usually gets in the way of eating well: cravings, time, travel, stress, late dinners, eating out. In the chat, show `show_challenges` so they can tick every one that applies; on a call, ask in words. Follow up once on the one that matters most to them.",
+            "nudge_after_silence_s": 8,
+            "next": [
+              {
+                "to": "activity_and_sleep",
+                "label": "Challenges covered",
+                "when": {
+                  "type": "ai",
+                  "description": "They have said what gets in the way, or that nothing does."
+                }
+              },
+              {
+                "to": "wrap_up",
+                "label": "Wants to stop",
+                "when": {
+                  "type": "ai",
+                  "description": "They want to stop the consultation now."
+                }
+              },
+              {
+                "to": "silent_close",
+                "label": "Silent",
+                "order": 0,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_silence_repeats",
+                      "op": "at_least",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "activity_and_sleep",
+                "label": "Enough on this",
+                "order": 1,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_step_turns",
+                      "op": "at_least",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "activity_and_sleep": {
+            "kind": "converse",
+            "title": "Activity and sleep",
+            "instructions": "Ask how much they move today (exercise, walking, sport), how much water they drink in a day, and how many hours they usually sleep and how well. Follow up once on anything that stands out.",
+            "nudge_after_silence_s": 8,
+            "next": [
+              {
+                "to": "save_and_close",
+                "label": "Activity and sleep covered",
+                "when": {
+                  "type": "ai",
+                  "description": "They have described their activity and sleep, or would rather skip it."
+                }
+              },
+              {
+                "to": "silent_close",
+                "label": "Silent",
+                "order": 0,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_silence_repeats",
+                      "op": "at_least",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "save_and_close",
+                "label": "Enough on this",
+                "order": 1,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_step_turns",
+                      "op": "at_least",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "save_and_close": {
+            "kind": "converse",
+            "title": "Save and close",
+            "instructions": "Call save_consultation now, once, with everything {name} told you in this consultation: routine, weekday, eating habits, diet, likes, dislikes, allergies, challenges, activity, water, sleep, health notes and anything else that matters for their plan. Leave out anything they did not say; never guess. Do not say goodbye yet; if the app asks for something that is missing, ask {name} for it in one question and call save_consultation again.",
+            "next": [
+              {
+                "to": "goodbye",
+                "label": "Saved",
+                "when": {
+                  "type": "ai",
+                  "description": "The app answered save_consultation and confirmed it saved what they said."
+                }
+              },
+              {
+                "to": "goodbye",
+                "label": "Move on",
+                "order": 0,
+                "when": {
+                  "type": "rule",
+                  "match": "all",
+                  "rules": [
+                    {
+                      "field": "_step_turns",
+                      "op": "at_least",
+                      "value": 3
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "goodbye": {
+            "kind": "converse",
+            "title": "Goodbye",
+            "instructions": "Thank {name} in one sentence, and tell them their first plan will be ready in the chat in a few minutes.",
+            "force_tool": "end_call",
+            "next": []
+          },
+          "wrap_up": {
+            "kind": "converse",
+            "title": "Stop early",
+            "instructions": "Tell {name} that is no problem: they can carry on any time in the app's chat, or pick another time for this call in the app. Thank them and say goodbye.",
+            "force_tool": "end_call",
+            "next": []
+          },
+          "not_now": {
+            "kind": "converse",
+            "title": "Not now",
+            "instructions": "Say no problem: they can pick another time for this call in the app, or do the consultation in the app's chat whenever suits them. Say goodbye warmly.",
+            "force_tool": "end_call",
+            "next": []
+          },
+          "silent_close": {
+            "kind": "converse",
+            "title": "No answer",
+            "instructions": "They have gone quiet. Say you will stop here for now, and that they can carry on in the app's chat or pick another time in the app. Say goodbye.",
+            "force_tool": "end_call",
+            "next": []
+          }
+        }
       }
     },
     "plan": {

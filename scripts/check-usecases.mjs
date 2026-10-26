@@ -16,7 +16,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { actionsJsonFor } from "./usecase-tools.mjs";
+import { actionsJsonFor, flowJsonFor } from "./usecase-tools.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = join(root, "usecases");
@@ -188,6 +188,43 @@ function crossCheckJourney(pack) {
     for (const item of d.items) if (!kinds.includes(item.kind)) at(`plan.sample ${d.day} ${item.time}: kind ${item.kind} is not one of plan.kinds`);
   }
   for (const t of Object.keys(j.plan.sample.daily_targets ?? {})) if (!targets.includes(t)) at(`plan.sample.daily_targets: ${t} is not one of plan.targets`);
+  errors.push(...checkFlow(j, fieldVariables));
+  return errors;
+}
+
+/**
+ * The first-call flow, beyond what the dashboard's own checks say on import: it saves with the intake action,
+ * every way through ends the call, and it never gets stuck — every step that does not end the call has a way out
+ * that does not wait on the AI's judgement (a rule, such as `_step_turns` or `_silence_repeats`, or an always path).
+ */
+function checkFlow(j, fieldVariables) {
+  const flow = j.firstCall.flow;
+  if (!flow) return [];
+  const errors = [];
+  const at = (m) => errors.push(`journey.firstCall.flow: ${m}`);
+  const steps = flow.steps ?? {};
+  if (!steps[flow.start_step]) at(`start_step ${flow.start_step} is not one of its steps`);
+  const ends = (s) => s.force_tool === "end_call" && (s.next ?? []).length === 0;
+  for (const [id, s] of Object.entries(steps)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]{0,47}$/.test(id)) at(`step id ${id} is not one the dashboard takes`);
+    if (!["converse", "say", "route", undefined].includes(s.kind)) at(`${id}: kind ${s.kind}`);
+    if ((s.kind ?? "converse") === "converse" && !(s.instructions ?? "").trim()) at(`${id} has no instructions`);
+    for (const p of s.next ?? []) if (!steps[p.to]) at(`${id} leads to ${p.to}, which is not a step`);
+    if (!ends(s)) {
+      if ((s.next ?? []).length === 0) at(`${id} neither ends the call nor leads anywhere`);
+      else if (!(s.next ?? []).some((p) => p.when?.type === "rule" || p.when?.type === "always")) {
+        at(`${id} can get stuck: give it a way out that does not wait on the AI (a _step_turns or _silence_repeats rule, or an always path)`);
+      }
+    }
+  }
+  const seen = new Set([flow.start_step]);
+  const queue = [flow.start_step];
+  while (queue.length) for (const p of steps[queue.shift()]?.next ?? []) if (steps[p.to] && !seen.has(p.to)) { seen.add(p.to); queue.push(p.to); }
+  for (const id of Object.keys(steps)) if (!seen.has(id)) at(`nothing leads to ${id}`);
+  if (!Object.values(steps).some(ends)) at("no step ends the call");
+  if (!Object.values(steps).some((s) => (s.instructions ?? "").includes(j.actions.saveIntake))) at(`no step tells the agent to call ${j.actions.saveIntake}`);
+  for (const v of fieldVariables) if (!(flow.briefing ?? "").includes(`{${v}}`)) at(`the briefing never uses {${v}}`);
+  if (!/not a doctor|not a clinician|not medical advice/i.test(flow.briefing ?? "") && j.notice) at("the briefing should say what the agent is not, as the journey's notice does");
   return errors;
 }
 
@@ -232,30 +269,19 @@ function checkJourneyKit(pack) {
     if (JSON.stringify(names(list)) !== JSON.stringify(expected)) errors.push(`journey/coach-actions.json must declare exactly ${expected.join(", ")}`);
   }
   const flowPath = need("consultation-flow.json");
-  if (flowPath) {
-    let doc = null;
-    try { doc = JSON.parse(readFileSync(flowPath, "utf8")); } catch (e) { errors.push(`journey/consultation-flow.json is not JSON: ${e.message}`); }
-    const flow = doc?.flow ?? doc;
-    const steps = flow?.steps ?? {};
-    if (!flow?.start_step || !steps[flow.start_step]) errors.push("journey/consultation-flow.json: start_step must name one of its steps");
-    for (const [id, step] of Object.entries(steps)) {
-      if (!/^[A-Za-z_][A-Za-z0-9_]{0,47}$/.test(id)) errors.push(`journey/consultation-flow.json: step id ${id} is not one the builder accepts`);
-      for (const path of step.next ?? []) if (!steps[path.to]) errors.push(`journey/consultation-flow.json: ${id} leads to ${path.to}, which is not a step`);
-    }
-    if (!Object.values(steps).some((st) => (st.instructions ?? "").includes(j.actions.saveIntake))) errors.push(`journey/consultation-flow.json: no step tells the agent to call ${j.actions.saveIntake}`);
-    if (!Object.values(steps).some((st) => st.force_tool === "end_call")) errors.push("journey/consultation-flow.json: no step ends the call");
-    for (const v of j.onboarding.profile.fields.map((f) => f.variable).filter(Boolean)) {
-      if (!(flow?.briefing ?? "").includes(`{${v}}`)) errors.push(`journey/consultation-flow.json: the briefing never uses {${v}}`);
-    }
+  if (flowPath && flowJsonFor(pack) !== null && readFileSync(flowPath, "utf8") !== flowJsonFor(pack)) {
+    errors.push("journey/consultation-flow.json differs from the pack's journey.firstCall.flow (node scripts/build-agent-setup.mjs)");
   }
-  const promptPath = need("coach-prompt.md");
+  const promptPath = need("coach-agent.md");
   if (promptPath) {
     const text = readFileSync(promptPath, "utf8");
     for (const n of [j.actions.getIntake, j.actions.savePlan, j.actions.getPlan, j.actions.swapItem, j.actions.logCheckIn, j.events.firstCallFinished, j.events.checkIn]) {
-      if (!text.includes(`\`${n}\``)) errors.push(`journey/coach-prompt.md never names \`${n}\``);
+      if (!text.includes(`\`${n}\``)) errors.push(`journey/coach-agent.md never names \`${n}\``);
     }
-    for (const v of j.onboarding.profile.fields.map((f) => f.variable).filter(Boolean)) if (!text.includes(`{${v}}`)) errors.push(`journey/coach-prompt.md never uses {${v}}`);
-    if (!text.includes(j.agents.coach.name)) errors.push(`journey/coach-prompt.md never names ${j.agents.coach.name}`);
+    for (const v of j.onboarding.profile.fields.map((f) => f.variable).filter(Boolean)) if (!text.includes(`{${v}}`)) errors.push(`journey/coach-agent.md never uses {${v}}`);
+    for (const must of [j.agents.coach.name, j.identifierField, j.checkIns.quietStart, j.checkIns.quietEnd, "4,000"]) {
+      if (!text.includes(must)) errors.push(`journey/coach-agent.md never says "${must}"`);
+    }
   }
   const componentsPath = need("components.json");
   if (componentsPath) {
