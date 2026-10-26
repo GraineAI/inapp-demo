@@ -80,6 +80,12 @@ for both), the same `actions.json`, its own name on incoming calls. Copy its pub
 Put the publishable key into the app's configuration and start it (root `README.md`, *Run*). Sign in as
 one of the fictional people, then run the QA checklist in the root README.
 
+## 8. Your apps and your users — optional
+To let only the demo apps use the agent's key, and to see what Graine proves about each build: the demo's bundle ID,
+Team ID, package name and fingerprints, debug tokens for simulators and emulators, and the order to turn the
+switches on are in [`YOUR-APPS-AND-USERS.md`](YOUR-APPS-AND-USERS.md). Keep **Require verified users** off for the
+demo agent: the demo apps have no server to make identity tokens.
+
 ## Check your set-up
 - **The app says the key was refused** → Allowed domains lacks `app://`, or the key is from another agent.
 - **The agent says it cannot do something the app shows** → App actions were imported but not saved.
