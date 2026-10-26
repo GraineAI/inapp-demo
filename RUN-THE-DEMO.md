@@ -85,7 +85,7 @@ below is only for building against SDK sources on your machine:
 | npm (`@graineai/inapp-react-native` 0.44.1, `@graineai/inapp-react-native-calls` 0.5.1) | yes | React Native |
 | Maven Central (`ai.graine:inapp-android` 0.14.4, `ai.graine:inapp-kmp` 0.14.4) | yes | Android, Kotlin Multiplatform |
 | pub.dev (`graine_inapp` 0.14.4) | yes | Flutter |
-| CocoaPods trunk (`GraineInApp` 0.13.1) | yes | not used by these apps |
+| CocoaPods trunk (`GraineInApp` 0.14.4) | yes | not used by these apps |
 
 The local-SDK switches build against the SDK's public source repositories, tag `0.14.4` once it is published
 (or any checkout of the SDK's sources). Clone them beside this repository (commands below, run from the
@@ -303,11 +303,11 @@ scheduling**, **Memory → People** and **Call History**.
 2. **"No publishable key is set"** and Continue stays off — the configuration file is missing or the app was
    not rebuilt: `Config.xcconfig` and `local.properties` are read at build time; React Native reads `.env` when
    the bundler starts (`npx expo start --clear`); Flutter reads `--dart-define-from-file` at `flutter run`.
-3. **`Could not find ai.graine:inapp-android:0.7.0`** (or `inapp-kmp`) — Maven Central does not have it yet:
+3. **`Could not find ai.graine:inapp-android:0.14.4`** (or `inapp-android-rtc`, `inapp-kmp`) — Maven Central does not have it yet:
    set `graine.sdkDir` / `graine.kmpSdkDir` (section 3, 4). For Kotlin Multiplatform (`ai.graine:inapp-kmp:0.14.4`)
    the Android SDK must be in the folder `android` beside the multiplatform one (`../graine-sdk/android`); in
    Xcode, the Gradle phase also needs JDK 17+ as `java`.
-4. **`flutter pub get`: version solving failed for `graine_inapp`** — pub.dev does not have 0.7.0 yet: run
+4. **`flutter pub get`: version solving failed for `graine_inapp`** — pub.dev does not have 0.14.4 yet: run
    `scripts/use-local-sdks.sh local flutter` with `../inapp-flutter` cloned.
 5. **Memory stays empty, or the agent does not recognise the person** — Memory is off for the agent, **Who is
    the user?** is neither the pack's field (`patient_id`, `customer_id`, `shopper_id`) nor **User ID**, the

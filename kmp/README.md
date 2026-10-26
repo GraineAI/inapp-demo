@@ -136,8 +136,9 @@ the agent lets users book, and the user is identified with the agent's **Who is 
 `bookingState` (0.14.4): `Graine.bookingState` for the default agent, `Graine.agent("help")?.bookingState` for
 another. The SDK reads it again when the agent's session arrives, after `identify` and `setMemory`, and when the
 session could not load; the app collects it from launch and never asks again (`AppModel.collectBooking`). Do not
-read `bookingAvailable` once at launch: until the session has arrived the answer is `not_loaded` — "not yet", never
-"no" — and a button drawn from that read stays off.
+read `bookingAvailable` once at launch: until the session has arrived it is never available — for a signed-in user
+the reason is `not_loaded`, "not yet", never "no" (with nobody signed in, the settings the last launch kept may
+already say why not) — and a button drawn from that read stays off.
 
 ```kotlin
 // Every booking button, hint and time list, from the agent's bookingState as it changes.

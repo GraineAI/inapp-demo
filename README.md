@@ -2,7 +2,7 @@
 
 **Start here.** This page: what the demo shows, what the SDK does for you, set up, run and test.
 [RUN-THE-DEMO.md](RUN-THE-DEMO.md): the dashboard, ringing, every platform step by step, and a 10-minute demo
-script. Kotlin Multiplatform: [kmp/README.md](kmp/README.md). The full guide, offline:
+script. Kotlin Multiplatform, including the Journey: [kmp/README.md](kmp/README.md). The full guide, offline:
 [docs/integration-guide.pdf](docs/integration-guide.pdf). The documentation:
 [www.graine.ai/docs/in-app](https://www.graine.ai/docs/in-app).
 
@@ -61,6 +61,7 @@ All people, cards and orders are fictional.
 | Two agents in one app: a Help screen on a second agent (chat, voice, calls, booking), one sign-in for both, both agents' calls listed by name | ✓ ⁵ | ✓ ⁵ | ✓ | ✓ | ✓ | ✓ |
 | Your own design: the chat, voice, the call screen (with its connection report), booking and components drawn by the app from the SDK's public state, and a live Public state screen | — | — | — | — | — | ✓ ⁶ |
 | Past sessions: the user's earlier chats, voice conversations and calls with the agent, newest first, and each one's transcript, drawn by the app from the SDK's `chat.pastSessions` | — ⁷ | ✓ | ✓ | ✓ | ✓ ⁸ | ✓ ⁶ |
+| The Journey: an app's whole in-app journey — onboarding, a first consultation call (now or booked, with "We couldn't connect"), a plan the agent builds through the app's actions, check-in reminders, privacy | — | — | — | — | — | ✓ ⁹ |
 
 1. Flutter starts the chosen use case's two agents at launch: choosing a use case whose agents have other
    publishable keys takes effect the next time the app is opened (the app says so).
@@ -75,10 +76,15 @@ All people, cards and orders are fictional.
 5. The help agent's key is optional: without it the Help screen says how to add one.
 6. Home's switch, **Graine's screens / Your own design** ([`kmp/README.md`](kmp/README.md#your-own-design)): the
    same features with no SDK screen at all, for apps that draw every screen in their own design system.
-7. React Native: past sessions come with `@graineai/inapp-react-native` 0.47.2 (calls 0.8.2), not on npm yet.
+7. React Native: past sessions come with `@graineai/inapp-react-native` 0.47.2 and later (this release: 0.47.3, calls
+   0.8.3), not on npm yet.
 8. Website: the loader offers `chat.pastSessions` to pages that draw their own chat (`load({ headless: true })`); this
    page shows the loader's widget, so it reads the same public routes (`/api/embed/sessions/list`, `/transcript`) with
    the agent's key, the browser's install ID and the visitor's identifier ([`web/README.md`](web/README.md)).
+9. The health-coach pack's Journey (sign-in screen → **The full journey**), on three agents — the coach on the main
+   key, a first-call flow agent on a key of its own, support on the help key:
+   [RUN-THE-DEMO.md → The Journey](RUN-THE-DEMO.md#7-the-journey-an-apps-whole-in-app-journey-kotlin-multiplatform)
+   and [`agent-setup/health-coach/journey/`](agent-setup/health-coach/journey/README.md). The other packs have none.
 
 ## What the SDK does, and what your app does
 
@@ -177,7 +183,7 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 `kmp/iosApp/iosApp.xcodeproj`, choose your iPhone and run the **GraineDemoKMP** scheme
 ([`kmp/README.md`](kmp/README.md)).
 
-**Website** — from `demo/`: `npx serve .`, then open `http://localhost:3000/web/` ([`web/README.md`](web/README.md)).
+**Website** — from the repository root: `npx serve .`, then open `http://localhost:3000/web/` ([`web/README.md`](web/README.md)).
 
 ### Where the SDKs come from
 

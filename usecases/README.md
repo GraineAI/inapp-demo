@@ -88,16 +88,18 @@ none → refused `No <itemNoun> called "<x>". <items.title>: <titles>.`
 
 ## Booking a call
 
-Booking is the SDK's own booking sheet — the day, the time, the device's time zone and an optional note, drawn
-in the agent's design; the app has no booking screen. Each agent's booking button (`call.bookLabel`,
+Booking is the SDK's own booking sheet — the day, the time, the device's time zone and an optional note, drawn in
+the agent's design; the app has no booking screen. Each agent's booking button (`call.bookLabel`,
 `agents.help.bookLabel`) is enabled while that agent's `bookingAvailable` is true and opens its sheet with the
 first of its `reasons` (iOS `presentBooking(reason:)`, Android `presentBooking(activity, reason)`, Flutter
 `GraineBooking.show(context, app:, reason:)`, React Native `openBooking({ reason })`, the website
-`GraineAgent.openBooking({ reason })`); otherwise the button stays, disabled, with "Booking isn't available for
-this agent." The rules and the refusals are the SDK's: the sheet offers only times the agent allows and says
-any refusal (`outside_window`, `too_many_pending`…) in one line. After a booking the app reads its list again
-and draws the statuses (`scheduled`, `ringing`, `answered`, `completed`, `declined`, `missed`, `expired`,
-`noDevice`, `failed`, `cancelled`) as chips; Cancel is shown when the SDK says `canCancel`.
+`GraineAgent.openBooking({ reason })`); otherwise the button stays, disabled, with one line saying what to set
+("Booking needs, in Graine UI: users may book (Calls & scheduling), …"; Kotlin Multiplatform says why from the
+agent's `bookingState`, for example "Loading this agent's settings…"). The rules and the refusals are the SDK's:
+the sheet offers only times the agent allows and says any refusal (`outside_window`, `too_many_pending`…) in one
+line. After a booking the app reads its list again and draws the statuses (`scheduled`, `ringing`, `answered`,
+`completed`, `declined`, `missed`, `expired`, `noDevice`, `failed`, `cancelled`) as chips; Cancel is shown when the
+SDK says `canCancel`.
 
 A row's `actions` are the `set_status` actions it offers as buttons and accepts from the agent; a button is
 hidden while the row already has that status. Statuses live for the app session (they reset on restart) and
