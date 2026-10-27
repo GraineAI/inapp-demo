@@ -190,6 +190,60 @@ screens configures calls without it, and the SDK's own screen is back. Where a p
 3. Book a call on **Calls**, lock the phone, and it rings at that time — the SDK's call screen, in the
    brand's design.
 
+## Server tokens (optional, the strongest mode)
+
+With an agent's **Require server tokens** on (Agent → Embed & Widgets → Install → Server tokens), every request
+needs a short-lived token your server mints for the signed-in user — the publishable key alone opens nothing.
+In your app that is one line, `GraineConfig(tokenProvider = { myServer.fetchGraineToken() })`; your server calls
+`POST /v2/client-tokens` with your **secret** API key. The SDK asks again shortly before each token expires, and a
+token that expires never ends a chat or call in progress.
+
+This demo has no server and never carries a secret, so **Profile → Server token (demo)** offers three stand-ins
+(clearly marked, for development only; **Off** by default — verified users already come from the sign-in token; the
+choice takes effect when the app starts again):
+
+- **Graine demo server** — for Graine's demo agents only: Graine's demo token endpoint mints for whoever signs in,
+  with the demo workspace's secret key held on Graine's server (`../agent-setup/SETUP.md`, section 9). Any other
+  agent's key is refused.
+
+- **Paste a token** — mint one yourself and paste it in (it lasts at most an hour):
+
+  ```sh
+  curl -s https://api.graine.ai/v2/client-tokens -H "Authorization: Bearer $GRAINE_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{"agent_id":"<agent id>","user_id":"<the id you sign in with>","scopes":["chat","call","memory","booking"],"ttl_seconds":3600}'
+  ```
+
+- **Local minter** — run the demo minter on your own computer with **your** key, and the app fetches a token for
+  whoever signs in, again before each one expires:
+
+  ```sh
+  GRAINE_API_KEY=gat_… GRAINE_AGENT_ID=<agent id> node ../agent-setup/token-minter.mjs
+  ```
+
+  The Android emulator reaches it at `http://10.0.2.2:8787`, the iOS simulator at `http://localhost:8787` (the
+  app allows plain HTTP to those two addresses only). On a phone, use **Paste a token**. The minter mints for
+  any user id it is asked for — your real server must mint only for the user its own sign-in proved.
+
+Try it: set the agent to **Report only**, run the demo with each mode and watch Server tokens → What we've seen
+count valid and missing tokens; then **Enforce** — Off can no longer open a chat, the others still can. The
+help desk agent runs without tokens (the minter mints for one agent).
+
+## Rotating the publishable key
+
+Agent → Embed & Widgets → Install → **Keys**:
+
+1. **Create a new key.** The current key keeps working beside it — an agent has at most two working keys.
+2. Put the new key in `local.properties` (`graine.publishableKey`) and the iOS `Config.xcconfig`, rebuild, and
+   check the app works. **Last used** on each key shows which one your builds still send (it updates about every
+   ten minutes).
+3. **Revoke** the old key — **Report only** first: it keeps working and every use is counted, so you can see
+   whether an old build still uses it.
+4. When nothing uses it any more, **Refuse it now**: apps still on it get `key_revoked`
+   (`GraineErrorCode.KeyRevoked`) and say so.
+
+If a key is somewhere it should not be, **Replace now** makes a new key and refuses every other one at once.
+
 ## Memory, in a few minutes
 
 **How it works.** At sign-in the app identifies the user by the pack's field (`patient_id`, `customer_id` or

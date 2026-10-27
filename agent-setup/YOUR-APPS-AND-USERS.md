@@ -7,9 +7,11 @@ off until you turn it on, and each counts what it would refuse before it refuses
   app it is (iPhone: bundle ID and Team ID; Android: package name and the SHA-256 of its signing certificate). With
   **Require a verified app**, the app also proves it is yours: Apple App Attest on iPhone, Google Play Integrity on
   Android.
-- **Verified users** — an identity token proves that the person the app names really signed in. The token is made
-  by the app's own server. The demo apps have no server, so they never send one and never contain the secret that
-  signs it: keep **Prove who the user is** off, or on report only, for the demo agent.
+- **Verified users** — an identity token proves that the person the app names really signed in. The demo uses the
+  **sign-in token (JWT)** method — the one to use with your own sign-in: your identity provider signs a short-lived
+  ID token, publishes its public keys as a JWKS, and Graine checks the token against them, holding no secret. The demo
+  apps never contain a secret either: they ask **Graine's demo sign-in server** for the ID token of whoever signed in
+  (section 7).
 
 The Kotlin Multiplatform demo is ready for both: it proves the app at launch, its Android app includes Play
 Integrity and its iPhone app has the App Attest capability. **Profile → What Graine has proven** shows what Graine
@@ -88,18 +90,46 @@ an install with a registered debug token) are on the same page.
      give the dashboard the package's Play Integrity credentials when it asks, and the project's number if you
      linked a project of your own). Register the debug tokens of your test devices (section 2). Leave checking on
      report only, and watch What we've seen show *verified*, *Debug token* or *not verified* for each build.
-   - **Prove who the user is** — not for the demo apps: they have no server to make identity tokens. Leave it off,
-     or on report only to see every demo person counted as *unverified*.
+   - **Prove who the user is** — **Sign-in token (JWT)**, with the demo sign-in server's values (section 7). Leave it
+     on report only and watch What we've seen count every demo person as *verified*.
 4. **Turn it on → Only my apps.** From now on a request from an app that is not listed — another package name, Team
    ID or certificate — is refused (`AppNotAllowed`; the SDK's log says *This agent accepts only the apps listed under its Your apps settings*).
 5. **Turn it on → Require a verified app** — once What we've seen shows every build you use as *verified* or
    *Debug token*. A build without a valid proof or a registered, unexpired debug token is refused.
-6. **Turn it on → Require verified users** — not for the demo agent. With it on, a person without a valid identity
-   token is anonymous: no memory, no name in Call History, and memories, past sessions and booking are refused. Use
-   it in your own app once your server makes identity tokens.
+6. **Turn it on → Require verified users** — once What we've seen shows every demo person as *verified*. From then on
+   a person without a valid ID token is anonymous: no memory, no name in Call History, and memories, past sessions
+   and booking are refused (`IdentityUnverified`).
 
 Each switch is confirmed before it takes effect, with the requests it would have refused; turning one off takes
 effect at once.
+
+## 7. Verified users with the demo sign-in server
+
+The demo apps get their user's ID token from a **server**, exactly as your app gets one from your own sign-in —
+never from a secret built into the app:
+
+- At sign-in the app asks `POST https://www.graine.ai/api/demo/identity-token` with
+  `{ "publishableKey": "<the app's key>", "userId": "<the person who signed in>" }` and passes the answer's `token` to
+  the SDK (`Graine.setIdentityToken`, after `identify`). `Graine.identityTokenRefresher` asks again whenever the SDK
+  needs a fresh one (the token lasts ten minutes).
+- The server signs only for Graine's demo apps (any other publishable key is refused), with a private key that never
+  leaves Graine's server (`DEMO_IDP_PRIVATE_JWK` and `DEMO_IDP_ORG_ID` in its environment). Its public keys are the
+  JWKS below; a key rotation publishes the old key beside the new one until old tokens expire
+  (`DEMO_IDP_PREVIOUS_JWKS`).
+- The demo agent's **Verified users** — Agent → Embed & Widgets → Install → Your app and your users → **Prove who the
+  user is** → **Sign-in token (JWT)**:
+
+  | Field | Value |
+  |---|---|
+  | JWKS URL | `https://www.graine.ai/api/demo/idp/jwks` |
+  | Issuer | `https://www.graine.ai/api/demo/idp` |
+  | Audience | `graine-demo` |
+  | User ID claim | `sub` |
+
+  **Test a token** with one from the endpoint, then **Report only**, then **Enforce**. **Profile → What Graine has
+  proven** shows **User: verified** beside the app's line.
+- Like any demo, the server signs for the user id it is given. Your own sign-in signs only for the person who signed
+  in — that is what makes the token proof.
 
 ## Check your set-up
 

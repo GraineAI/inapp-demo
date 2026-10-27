@@ -1,5 +1,8 @@
 package ai.graine.demo.graine
 
+import ai.graine.demo.domain.DemoSignIn
+import ai.graine.demo.domain.DemoTokens
+import ai.graine.demo.domain.ServerTokenStore
 import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
@@ -71,6 +74,10 @@ interface GraineClient {
 
     // Who the user is, and memory (shared by every agent)
     fun identify(traits: Map<String, String>?, memory: Boolean?)
+    /** The signed-in user's ID token, from a server (Graine.setIdentityToken): it proves who they are. A fake ignores it. */
+    fun setIdentityToken(token: String?) {}
+    /** A fresh ID token for [userId] from the demo sign-in server (domain/DemoSignIn.kt); null when none can be had. A fake has none. */
+    suspend fun fetchIdentityToken(userId: String): String? = null
 
     /**
      * The agents' prompt {variables} — what an API call sends as `variables` — set through the SDK, for
@@ -226,6 +233,13 @@ class GraineService private constructor() : GraineClient {
 
     // null signs out everywhere: the device stops being this user's, and later conversations are anonymous.
     override fun identify(traits: Map<String, String>?, memory: Boolean?) = Graine.identify(traits, memory)
+
+    override fun setIdentityToken(token: String?) = Graine.setIdentityToken(token)
+
+    override suspend fun fetchIdentityToken(userId: String): String? {
+        val config = appConfig ?: return null
+        return DemoSignIn.fetch(config.baseUrl, config.publishableKey, userId) { url, json -> Platform.httpPost(url, json) }
+    }
     override fun setVariables(values: Map<String, String?>) = agents.forEach { sdk(it)?.setVariables(values) }
     override fun currentVariables(): Map<String, String> = Graine.currentVariables()
 
@@ -386,6 +400,8 @@ class GraineService private constructor() : GraineClient {
 
     companion object {
         private var instance: GraineService? = null
+        /** The keys and base URL this launch was configured with: the demo sign-in server is asked with them. */
+        private var appConfig: AppConfig? = null
 
         /** How long a chat session stays open after the chat screen closes, in seconds (GraineConfig.chatCloseDelaySeconds). */
         const val CHAT_CLOSE_DELAY_SECONDS = 15
@@ -398,14 +414,25 @@ class GraineService private constructor() : GraineClient {
         fun start(config: AppConfig, callName: String, appVersion: String, debug: Boolean): GraineService {
             instance?.let { return it }
             // A chat session closes this long after its screen closes (the SDK's default, set here so it is plain to see).
-            fun agentConfig(key: String) = GraineConfig(
+            fun agentConfig(key: String, tokenProvider: (suspend () -> String?)? = null) = GraineConfig(
                 baseUrl = config.baseUrl,
                 publishableKey = key,
                 appVersion = appVersion,
                 debug = debug,
                 chatCloseDelaySeconds = CHAT_CLOSE_DELAY_SECONDS,
+                // Server tokens (Profile → Server token (demo)): a DEMO stand-in for your own server. Off by default;
+                // null sends no token at all. The help desk agent runs without them (the minter mints for one agent).
+                tokenProvider = tokenProvider,
             )
-            Graine.configure(agentConfig(config.publishableKey))
+            val tokens = ServerTokenStore.load(Platform.store())
+            Graine.configure(agentConfig(config.publishableKey, DemoTokens.provider(
+                tokens, config.baseUrl, config.publishableKey,
+                get = { Platform.httpGet(it) }, post = { url, json -> Platform.httpPost(url, json) },
+            )))
+            // Verified users: whenever the SDK needs a fresh ID token (one expired, or is about to), it asks the demo sign-in
+            // server for the user who is signed in — a server, never a secret in the app (domain/DemoSignIn.kt).
+            appConfig = config
+            Graine.identityTokenRefresher = { DemoSignIn.userId?.let { id -> instance?.fetchIdentityToken(id) } }
             if (config.hasHelpKey) {
                 runCatching { Graine.configure(agentConfig(config.helpPublishableKey), name = DemoAgent.HELP.sdkName) }
                     .onFailure { Platform.log("The help agent is not available here: ${it.message}") }

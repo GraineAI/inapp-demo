@@ -88,8 +88,29 @@ one of the fictional people, then run the QA checklist in the root README.
 ## 8. Your apps and your users — optional
 To let only the demo apps use the agent's key, and to see what Graine proves about each build: the demo's bundle ID,
 Team ID, package name and fingerprints, debug tokens for simulators and emulators, and the order to turn the
-switches on are in [`YOUR-APPS-AND-USERS.md`](YOUR-APPS-AND-USERS.md). Keep **Require verified users** off for the
-demo agent: the demo apps have no server to make identity tokens.
+switches on are in [`YOUR-APPS-AND-USERS.md`](YOUR-APPS-AND-USERS.md). **Verified users** use the sign-in token
+(JWT) method: the demo apps get each person's ID token from Graine's demo sign-in server — a server, never a secret in
+the app — and the demo agent checks it against that server's JWKS (section 7 there).
+
+## 9. Server tokens and key rotation — optional
+
+The demo apps never carry a secret. Their user's token comes from a server:
+
+- **Graine's demo agents — the demo token endpoint.** `POST https://www.graine.ai/api/demo/client-token` with
+  `{ "publishableKey": "<the app's key>", "userId": "<the signed-in user>" }` answers `{ token, expires_at }`. It signs
+  only for agents of Graine's demo workspace: the workspace's secret API key stays on Graine's server
+  (`DEMO_TOKEN_API_KEY` and `DEMO_TOKEN_ORG_ID` in its environment), and any other key is refused. Server tokens are
+  **Off** in the demo apps until you choose one: Profile → Server token (demo) → **Graine demo server**. (Verified users
+  already work without them — the sign-in token above, section 8.)
+- **Your own agent — your own server.** In a real app your server mints the token for the user its sign-in proved,
+  with your secret API key: `POST /v2/client-tokens`. To try that with the demo, run `token-minter.mjs` (beside this
+  file) on your computer with **your** key and choose **Local minter** (debug builds reach your computer over plain
+  http), or mint one with curl and choose **Paste a token**.
+- **Turn it on:** Embed & Widgets → Install → Server tokens → **Report only**, then **Enforce** once What we've seen
+  shows only valid tokens. Profile → *What Graine has proven* then shows **User: verified** beside the app's state.
+- **Rotating the key:** Embed & Widgets → Install → Keys → Create a new key, update the apps' configuration, revoke the
+  old key (Report only first, then Refuse it now). Details: kmp/README.md "Rotating the publishable key".
+- **Website bot check:** Embed & Widgets → Install → Website bot check — for the website demo only; apps are not affected.
 
 ## Check your set-up
 - **The app says the key was refused** → Allowed domains lacks `app://`, or the key is from another agent.

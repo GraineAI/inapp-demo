@@ -24,6 +24,10 @@ expect object Platform {
     fun config(): AppConfig
     fun store(): KeyValueStore
     fun log(message: String)
+    /** A GET's body, or null on any failure — only the demo token minter on the developer's own computer uses it. */
+    suspend fun httpGet(url: String): String?
+    /** A JSON POST's answer body, or null on any failure — the demo sign-in server and the demo token endpoint. */
+    suspend fun httpPost(url: String, json: String): String?
 
     /**
      * Where "Your own design" draws the call screen: in place, over the app (iOS — the SDK opens no screen of its
