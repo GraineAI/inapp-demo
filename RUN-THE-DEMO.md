@@ -212,10 +212,10 @@ In `kmp/local.properties` set `sdk.dir`, `graine.publishableKey` (and `graine.he
 and `graine.applicationId` (the commands below use the default, `com.example.grainedemo.kmp`). In
 `kmp/iosApp/Config.xcconfig` set the same keys, `PRODUCT_BUNDLE_IDENTIFIER`, and `DEVELOPMENT_TEAM` for an iPhone.
 
-**Optional: the SDK from its sources** (the app normally takes 0.14.4 from Maven Central and Swift Package Manager;
-until 0.14.4 is published there, this is how it builds) — the multiplatform SDK with the Android SDK its Android side
-builds on (`kmp` and `android` side by side), and the iOS SDK with its WebRTC module (`ios` and `ios-rtc` side by
-side), all of one version:
+**Optional: the SDK from its sources** (the app normally takes 0.14.5 from Maven Central and Swift Package Manager —
+the Android SDK under it, 0.14.4, too; to try a version not published there, this is how it builds) — the
+multiplatform SDK with the Android SDK its Android side builds on (`kmp` and `android` side by side), and the iOS SDK
+with its WebRTC module (`ios` and `ios-rtc` side by side):
 
 ```sh
 echo "graine.kmpSdkDir=/path/to/sdk/kmp" >> kmp/local.properties   # or GRAINE_KMP_SDK_DIR=/path/to/sdk/kmp
@@ -225,8 +225,8 @@ GRAINE_IOS_SDK_PATH=/path/to/sdk/ios kmp/iosApp/use-local-sdk.sh    # writes kmp
 The tagged public repositories work for the Kotlin side, cloned beside this repository:
 
 ```sh
-git clone --branch 0.14.4 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.14.4 https://github.com/GraineAI/inapp-android ../graine-sdk/android
+git clone --branch 0.14.5 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.14.4 https://github.com/GraineAI/inapp-android ../graine-sdk/android   # the Android SDK KMP 0.14.5 builds on
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -268,7 +268,11 @@ button turns on by itself once the agent's settings have loaded (Graine rings th
 and the user is identified with the agent's **Who is the user?** field — the pack's or User ID);
 **Memory** → the test in [`kmp/README.md`](kmp/README.md#memory-in-a-few-minutes) (two facts in **Chat**, close it,
 a minute later **New conversation** → "What do you remember about me?").
-Then Home → **Your own design** and the same again, every screen drawn by the app: **Chat** (send, close, reopen — it
+**Profile → Security** → one block per agent this build talks to: **App**, **User** (*verified* once signed in, when the
+agent checks the demo sign-in token), **Server token** (*off* unless you choose one under Server token (demo)), and the
+last refusal; in a debug build, this install's **Debug token** with **Copy** — register it on each agent before you turn
+on *Require a verified app* (`agent-setup/YOUR-APPS-AND-USERS.md`; the code: `kmp/README.md` → *Security — how this app
+is set up*). Then Home → **Your own design** and the same again, every screen drawn by the app: **Chat** (send, close, reopen — it
 continues), **Talk** (it starts only on its **Start**), **Call** (the app's call screen, its **Connection** card live
 and, after the call, final), the booking button (the app's own picker of the SDK's times), and **Public state** (every
 value, live). Back to **Graine's screens**, and the SDK's own screens are there as before.
@@ -332,13 +336,20 @@ scheduling**, **Memory → People** and **Call History**.
    SDK's own builds find the Android SDK through `ANDROID_HOME` or the `sdk.dir` the switch hands them from
    `kmp/local.properties`: set `sdk.dir` there (Android Studio writes it when it opens `kmp/`), or
    `export ANDROID_HOME=$HOME/Library/Android/sdk`.
-10. **Xcode: `no versions of 'inapp-ios' match the requirement 0.14.4..<1.0.0`** — the Kotlin Multiplatform app's
+10. **Xcode: `no versions of 'inapp-ios' match the requirement 0.14.5..<1.0.0`** — the Kotlin Multiplatform app's
    `iosApp/iosApp.xcodeproj` asks Swift Package Manager for GraineInApp 0.14.5, and the tag is not there yet: run
    `kmp/iosApp/use-local-sdk.sh` with `GRAINE_IOS_SDK_PATH` at the iOS SDK's sources (its WebRTC module beside it,
    in `ios-rtc`, or `GRAINE_IOS_RTC_SDK_PATH`) and build `kmp/iosApp/iosAppLocal.xcodeproj`.
 11. **iOS: the booking button stays off, or `presentBooking` fails with `Unavailable`, though the agent can be
    booked** — the app links a GraineInApp older than the multiplatform SDK (0.7.0 has no booking sheet): link the
-   same version, 0.14.4.
+   same version, 0.14.5.
+12. **Kotlin Multiplatform: nothing connects after a switch under Your app and your users was turned on** — **Profile →
+   Security** names the refusal for each agent: `app_not_allowed` (this build is not under that agent's **Your apps**:
+   add its bundle ID and Team ID, or its package and this computer's debug-key SHA-256), *not verified — debug token
+   not registered* (register this install's debug token on that agent), *User: not proven* (the identity token did not
+   arrive, or the agent's sign-in settings differ from the demo sign-in server's), or a server token's code. Every agent
+   is set up on its own: the help agent needs its own apps and switches. Turning a switch off takes effect within 30
+   seconds.
 
 ## 7. The Journey: an app's whole in-app journey (Kotlin Multiplatform)
 

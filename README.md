@@ -143,11 +143,22 @@ pack its own keys to demo all three properly. The help key is optional.
   committed either: set your own (`DEVELOPMENT_TEAM` in `Config.xcconfig`, or in Xcode).
 - **The publishable key (`pk_live_…`) is the only Graine credential an app holds.** It belongs to one agent,
   works only where that agent's **Allowed domains** let it (`app://` for apps), and is made to ship inside your
-  app. Keep it out of public repositories all the same: whoever has it can talk to your agent, on your
-  workspace's credits. If one leaks, **Agent → Embed & Widgets → rotate the key**: the old key stops working at
-  once, so ship the new one in your app's next build.
+  app. Keep it out of public repositories all the same: until you lock the agent (below), whoever has it can talk to
+  your agent, on your workspace's credits. To change it: **Agent → Embed & Widgets → Install → Keys** — create a new
+  key while the old one keeps working, ship it, then revoke the old one (report only first); **Replace now** refuses
+  every other key at once ([Rotating the publishable key](https://www.graine.ai/docs/in-app/security/keys)).
+- **Lock each agent to your app and your users.** Per agent, under **Agent → Embed & Widgets → Install → Your app and
+  your users**: *Only my apps*, a verified app (App Attest, Play Integrity), verified users (your sign-in's ID token),
+  and **Server tokens** minted by your own server — each report-only first. Every agent whose key ships in an app needs
+  its own. The Kotlin Multiplatform demo is the reference: every line in one file,
+  `kmp/composeApp/src/commonMain/kotlin/ai/graine/demo/security/GraineSecurity.kt`, explained step by step in
+  [kmp/README.md → Security — how this app is set up](kmp/README.md#security--how-this-app-is-set-up); the demo's
+  values in [agent-setup/YOUR-APPS-AND-USERS.md](agent-setup/YOUR-APPS-AND-USERS.md); the guide:
+  [Secure your agent](https://www.graine.ai/docs/in-app/secure-your-agent).
 - **No secret goes in an app, and none is needed.** Chat, voice, calls, booking, memory and ringing all run on the
-  publishable key plus the signed-in user's ID that your app passes to the SDK.
+  publishable key plus the signed-in user's ID that your app passes to the SDK — and, once you turn them on, the proofs
+  the SDK makes by itself, your sign-in's ID token and your server's short-lived tokens. The demos' stand-ins for a
+  sign-in and a server are Graine's, for its own demo workspace only.
 - **Push credentials** — the APNs `.p8` key and the Firebase service-account JSON — are uploaded only in the
   dashboard (**Workspace settings → In-app calling**), where they are stored encrypted and never shown again.
   They never go in an app or a repository.
@@ -365,6 +376,7 @@ stays. Each pack has two facts to tell (`memoryExamples` in its file):
 | Calls | [In-app calling](https://www.graine.ai/docs/in-app/calling) · [How calls work](https://www.graine.ai/docs/in-app/calling/how-it-works) · [WhatsApp-style calls](https://www.graine.ai/docs/in-app/how-to/calls-from-the-app) · [Hosted ringing (push)](https://www.graine.ai/docs/in-app/calling/hosted) · [Scheduled calls](https://www.graine.ai/docs/in-app/calling/scheduled) · [Test and release](https://www.graine.ai/docs/in-app/calling/testing) |
 | Booking | [Booking from your app with the SDK's sheet](https://www.graine.ai/docs/in-app/how-to/booking-sheet) |
 | More than one agent | [Use more than one agent in your app](https://www.graine.ai/docs/in-app/multiple-agents) |
+| Security: your app, your users, your keys | [Secure your agent](https://www.graine.ai/docs/in-app/secure-your-agent) · [Server tokens](https://www.graine.ai/docs/in-app/security/server-tokens) · [Rotating the publishable key](https://www.graine.ai/docs/in-app/security/keys) |
 | Store review, privacy, going live | [Permissions](https://www.graine.ai/docs/in-app/permissions) · [Privacy and security](https://www.graine.ai/docs/in-app/privacy) · [Going live](https://www.graine.ai/docs/in-app/go-live) |
 | Reference | [SDK reference](https://www.graine.ai/docs/in-app/api-reference) · [Changelog](https://www.graine.ai/docs/in-app/changelog) |
 | SDK sources | [inapp-ios](https://github.com/GraineAI/inapp-ios) · [inapp-ios-rtc](https://github.com/GraineAI/inapp-ios-rtc) · [inapp-android](https://github.com/GraineAI/inapp-android) · [inapp-kmp](https://github.com/GraineAI/inapp-kmp) · [inapp-flutter](https://github.com/GraineAI/inapp-flutter) |

@@ -88,30 +88,39 @@ one of the fictional people, then run the QA checklist in the root README.
 ## 8. Your apps and your users — optional
 To let only the demo apps use the agent's key, and to see what Graine proves about each build: the demo's bundle ID,
 Team ID, package name and fingerprints, debug tokens for simulators and emulators, and the order to turn the
-switches on are in [`YOUR-APPS-AND-USERS.md`](YOUR-APPS-AND-USERS.md). **Verified users** use the sign-in token
-(JWT) method: the demo apps get each person's ID token from Graine's demo sign-in server — a server, never a secret in
-the app — and the demo agent checks it against that server's JWKS (section 7 there).
+switches on are in [`YOUR-APPS-AND-USERS.md`](YOUR-APPS-AND-USERS.md). Set them up on **every** agent whose key is in an
+app — the main agent, the help agent and the first-call agent each have their own.
+
+**Verified users** use the sign-in token (JWT) method: the demo apps get each person's ID token from Graine's **demo
+sign-in server**, and the demo agents check it against that server's JWKS (section 4 there). Graine enables the demo
+sign-in server for its own demo workspace only; any other workspace's key is refused. It signs for whatever user id it is
+given, so it is a stand-in, never a proof. Your own app proves its users with **its own** sign-in — an ID token your
+identity provider signs for the person who signed in, checked against its JWKS URL — or, recommended for sensitive data,
+with **server tokens** minted by your own server (section 9). See
+[Secure your agent](https://www.graine.ai/docs/in-app/secure-your-agent).
 
 ## 9. Server tokens and key rotation — optional
 
-The demo apps never carry a secret. Their user's token comes from a server:
+The demo apps never carry a secret. Their user's server token comes from a server:
 
 - **Graine's demo agents — the demo token endpoint.** `POST https://www.graine.ai/api/demo/client-token` with
-  `{ "publishableKey": "<the app's key>", "userId": "<the signed-in user>" }` answers `{ token, expires_at }`. It signs
-  only for agents of Graine's demo workspace: the workspace's secret API key stays on Graine's server
-  (`DEMO_TOKEN_API_KEY` and `DEMO_TOKEN_ORG_ID` in its environment), and any other key is refused. Unlike the
-  sign-in token, this one needs those two set on Graine's deployment — a server token is minted only with a
-  workspace's secret API key; until they are, the endpoint answers `not_configured`: choose **Local minter** or
-  **Paste a token** instead. Server tokens are **Off** in the demo apps until you choose one: Profile → Server token
-  (demo). (Verified users already work without them — the sign-in token above, section 8.)
+  `{ "publishableKey": "<the agent's key>", "userId": "<the signed-in user>" }` answers `{ token, expires_at }`. Graine
+  enables it for its own demo workspace only: the workspace's secret API key stays on Graine's server, and any other key
+  is refused. If it answers `not_configured`, choose **Local minter** or **Paste a token** instead. Server tokens are
+  **Off** in the demo apps until you choose one: Profile → Server token (demo). The Kotlin Multiplatform demo asks the
+  endpoint for every agent it talks to, each with its own key. (Verified users already work without them — the sign-in
+  token, section 8.)
 - **Your own agent — your own server.** In a real app your server mints the token for the user its sign-in proved,
-  with your secret API key: `POST /v2/client-tokens`. To try that with the demo, run `token-minter.mjs` (beside this
-  file) on your computer with **your** key and choose **Local minter** (debug builds reach your computer over plain
-  http), or mint one with curl and choose **Paste a token**.
+  with your secret API key: `POST /v2/client-tokens`, one token per agent. To try that with the demo, run
+  `token-minter.mjs` (beside this file) on your computer with **your** key and choose **Local minter** (debug builds
+  reach your computer over plain http), or mint one with curl and choose **Paste a token** — both for the main agent.
 - **Turn it on:** Embed & Widgets → Install → Server tokens → **Report only**, then **Enforce** once What we've seen
-  shows only valid tokens. Profile → *What Graine has proven* then shows **User: verified** beside the app's state.
+  shows only valid tokens — on each agent. In the Kotlin Multiplatform demo, Profile → Security then shows **Server
+  token: ok** for each agent that gets one, and a refused token's code (`token_required`, `token_invalid`,
+  `token_expired`, `token_scope`).
 - **Rotating the key:** Embed & Widgets → Install → Keys → Create a new key, update the apps' configuration, revoke the
-  old key (Report only first, then Refuse it now). Details: kmp/README.md "Rotating the publishable key".
+  old key (Report only first, then Refuse it now: apps still on it get `key_revoked`). Details: kmp/README.md "Rotating
+  the publishable key".
 - **Website bot check:** Embed & Widgets → Install → Website bot check — for the website demo only; apps are not affected.
 
 ## Check your set-up

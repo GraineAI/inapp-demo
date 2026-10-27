@@ -31,20 +31,20 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.4), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.5), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**The published SDK, or its sources.** The app is pinned to SDK **0.14.4**: `ai.graine:inapp-kmp`,
-`ai.graine:inapp-kmp-compose` and `ai.graine:inapp-android-rtc` from Maven Central, and GraineInApp and
-GraineInAppRTC from Swift Package Manager (`iosApp/iosApp.xcodeproj`). With 0.14.4 published, nothing is set:
-build and run as below.
+**The published SDK, or its sources.** The app is pinned to SDK **0.14.5** for Kotlin Multiplatform and iOS:
+`ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.5 from Maven Central (on Android they build on the Android
+SDK 0.14.4, with `ai.graine:inapp-android-rtc` 0.14.4 for WebRTC calls), and GraineInApp and GraineInAppRTC 0.14.5 from
+Swift Package Manager (`iosApp/iosApp.xcodeproj`). They are published, so nothing is set: build and run as below.
 
 **Your own app.** The multiplatform library calls Graine's iOS SDK and does not carry it, so an iOS app built
 with it links GraineInApp itself, at the same version: add `https://github.com/GraineAI/inapp-ios` (and
 `https://github.com/GraineAI/inapp-ios-rtc` for WebRTC calls) with Swift Package Manager to the **app target**, or
-`pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.4'` to its Podfile, and
+`pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.5'` to its Podfile, and
 build the shared framework static (`isStatic = true`, as `composeApp/build.gradle.kts` does). A link error naming
 `_OBJC_CLASS_$_GraineObjC` means the app target does not link GraineInApp: add it to the target (General →
 Frameworks, Libraries, and Embedded Content), clean the build folder and build again.
@@ -64,8 +64,8 @@ The public repositories are the same sources, tagged with each release — for e
 catches up with a tag that is already on GitHub (iOS then takes the tag from Swift Package Manager as usual):
 
 ```sh
-git clone --branch 0.14.4 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.14.4 https://github.com/GraineAI/inapp-android ../graine-sdk/android
+git clone --branch 0.14.5 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.14.4 https://github.com/GraineAI/inapp-android ../graine-sdk/android   # the Android SDK KMP 0.14.5 builds on
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -101,7 +101,11 @@ iPhone: open the same Xcode project, choose your iPhone and **Run** (your team i
 
 | | |
 |---|---|
-| `composeApp/src/commonMain/kotlin/ai/graine/demo/graine/GraineService.kt` | The one file that calls the SDK (identify, memory, screen context, actions, the booking sheet and scheduled calls, voice, chat, calls) |
+| `composeApp/src/commonMain/kotlin/ai/graine/demo/security/GraineSecurity.kt` | **Security — copy this file.** Every line of it: the agents configured (with server tokens), the app proven at launch, who the user is with their identity token at sign-in and every launch, sign-out, the debug token, refusals ([Security — how this app is set up](#security--how-this-app-is-set-up)) |
+| `…/security/SecurityText.kt` | A refusal in plain words for the user and a line for the log, read from the SDK's code; the Security card's lines |
+| `…/ui/SecurityCard.kt` | The Security card (Profile; the Journey's Account → Testing tools): every agent's App, User and Server token lines, the last refusal, the debug token |
+| `…/domain/DemoSignIn.kt`, `…/domain/ServerToken.kt` | **Demo only — never copy.** Stand-ins for your sign-in (an ID token) and your server (server tokens) |
+| `composeApp/src/commonMain/kotlin/ai/graine/demo/graine/GraineService.kt` | The one file that calls the SDK for everything else (memory, screen context, actions, the booking sheet and scheduled calls, voice, chat, calls) — through `GraineSecurity` for who the user is |
 | `…/domain/` | The pack model, the Items list, how calls read — no SDK rules re-implemented |
 | `…/ui/AppModel.kt` | The app's state and the agent's actions, run by effect in the pack's words |
 | `…/ui/*Screen.kt`, `DemoApp.kt` | Sign in · Home · Chat · Items · Scheduled calls · Memory · Profile · Help · Call activity |
@@ -128,8 +132,13 @@ Home, Chat and the Items screen talk to the main agent; the **Help** tab talks t
 signs in once and both agents know who they are; **Calls** lists the calls booked with either agent.
 Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the pack's `bookLabel` on
 **Calls** opens the main agent's, the one on **Help** the help desk's, each with the pack's first reason
-filled in. Both platforms run both agents (`ai.graine:inapp-kmp` 0.14.4 on Android and iOS alike), and
+filled in. Both platforms run both agents (`ai.graine:inapp-kmp` 0.14.5 on Android and iOS alike), and
 **Call activity** names the agent of every ring and outcome.
+
+**Each agent is locked on its own.** The help desk's publishable key ships in the app as the main agent's does, so it
+needs its own **Your app and your users** (apps, proofs, switches, debug tokens) and its own server tokens — nothing is
+shared between agents. **Profile → Security** lists both, and the **Help** screen says so when the help desk checks
+neither the app nor its users ([Security — how this app is set up](#security--how-this-app-is-set-up)).
 
 **Booking buttons follow `bookingState`.** Whether an agent can be booked from the app — Graine rings this phone,
 the agent lets users book, and the user is identified with the agent's **Who is the user?** field — is the SDK's
@@ -190,44 +199,224 @@ screens configures calls without it, and the SDK's own screen is back. Where a p
 3. Book a call on **Calls**, lock the phone, and it rings at that time — the SDK's call screen, in the
    brand's design.
 
-## Server tokens (optional, the strongest mode)
+## Security — how this app is set up
 
-With an agent's **Require server tokens** on (Agent → Embed & Widgets → Install → Server tokens), every request
-needs a short-lived token your server mints for the signed-in user — the publishable key alone opens nothing.
-In your app that is one line, `GraineConfig(tokenProvider = { myServer.fetchGraineToken() })`; your server calls
-`POST /v2/client-tokens` with your **secret** API key. The SDK asks again shortly before each token expires, and a
-token that expires never ends a chat or call in progress.
+This app is the reference for in-app security with Graine: **every line of it is in one file you can copy,
+[`security/GraineSecurity.kt`](composeApp/src/commonMain/kotlin/ai/graine/demo/security/GraineSecurity.kt)**, whose
+comments map each line to the dashboard step it satisfies. Graine sets security up **per agent**, under Agent →
+**Embed & Widgets** → **Install** → **Your app and your users** (six steps) and **Server tokens**. Each protection is off
+until you turn it on, and counts what it would refuse before it refuses anything. The guides:
+[Secure your agent](https://www.graine.ai/docs/in-app/secure-your-agent) ·
+[Server tokens](https://www.graine.ai/docs/in-app/security/server-tokens) ·
+[Rotating the publishable key](https://www.graine.ai/docs/in-app/security/keys).
 
-This demo has no server and never carries a secret, so **Profile → Server token (demo)** offers three stand-ins
-(clearly marked, for development only; **Off** by default — verified users already come from the sign-in token; the
-choice takes effect when the app starts again):
+**What you copy**
 
-- **Graine demo server** — for Graine's demo agents only: Graine's demo token endpoint mints for whoever signs in,
-  with the demo workspace's secret key held on Graine's server (`../agent-setup/SETUP.md`, section 9). Any other
-  agent's key is refused.
+| File | |
+|---|---|
+| `composeApp/src/commonMain/kotlin/ai/graine/demo/security/GraineSecurity.kt` | All the wiring. Supply the two things only you have: your sign-in's ID token (`identityTokens`) and, with server tokens, your server's token for each agent (`tokenProvider`) |
+| `…/security/SecurityText.kt` | Optional: a refusal in plain words for the user and a line for your log, read from the SDK's code; the Security card's lines |
+| `…/ui/SecurityCard.kt` | Optional: the card your testers read |
 
-- **Paste a token** — mint one yourself and paste it in (it lasts at most an hour):
+Never copy `…/domain/DemoSignIn.kt` or `…/domain/ServerToken.kt`: they are **demo-only stand-ins** for your sign-in and
+your server, and say so at the top.
 
-  ```sh
-  curl -s https://api.graine.ai/v2/client-tokens -H "Authorization: Bearer $GRAINE_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"agent_id":"<agent id>","user_id":"<the id you sign in with>","scopes":["chat","call","memory","booking"],"ttl_seconds":3600}'
-  ```
+### Dashboard step → where it is in this app
 
-- **Local minter** — run the demo minter on your own computer with **your** key, and the app fetches a token for
-  whoever signs in, again before each one expires:
+| Dashboard step | What the app needs | Where |
+|---|---|---|
+| **1 Your apps** | Nothing in code: the SDK says which app it is on every request. List each build: iPhone bundle ID and Team ID; Android package and the SHA-256 of **every** certificate that signs it | `iosApp/Config.xcconfig` (`PRODUCT_BUNDLE_IDENTIFIER`, `DEVELOPMENT_TEAM`); `local.properties` (`graine.applicationId`); fingerprints: [below](#android-play-integrity-and-signing-certificates) |
+| **2 What we've seen** | Nothing: the dashboard counts what the SDK sends | — |
+| **3 Prove it's your app** | iPhone: the App Attest capability. Android: the Play Integrity dependency. The app proven at launch, so the first conversation never waits | `iosApp/project.yml` (and `iosApp/iosApp/iosApp.entitlements`); `composeApp/build.gradle.kts`; `GraineSecurity.start` → `prepareAppVerification()` for every agent |
+| **3 → Development** | A debug build sends a debug token instead of a proof; register it on each agent | `GraineSecurity.debugToken` → **Profile → Security**, with **Copy** (debug builds only) |
+| **4 Prove who the user is** | Who the user is with their identity token, at sign-in **and at every launch** (the SDK holds both in memory only); a refresher for a fresh token; sign-out | `GraineSecurity.signIn`, from `AppModel.signIn` (the tour) and `JourneyModel.resume` (the Journey, every launch); the refresher in `GraineSecurity.start`; `GraineSecurity.signOut` |
+| **5 Turn it on** | Nothing new: a refusal arrives as the SDK's `GraineErrorCode` — show plain words, log the code, add no retry | `GraineSecurity.noteRefusal` and `SecurityRefusal` (`SecurityText.kt`), used by `GraineService`, `GraineJourneySdk` and `CallText.message` |
+| **6 Send setup to your developer** | — | This section, and `GraineSecurity.kt` |
+| **Server tokens** | Each agent's `GraineConfig.tokenProvider` asks **your** server, which mints with your secret API key | `GraineSecurity.start`, given the configs `GraineService.start` builds; the demo's stand-ins: **Profile → Server token (demo)** |
 
-  ```sh
-  GRAINE_API_KEY=gat_… GRAINE_AGENT_ID=<agent id> node ../agent-setup/token-minter.mjs
-  ```
+### In your app
 
-  The Android emulator reaches it at `http://10.0.2.2:8787`, the iOS simulator at `http://localhost:8787` (the
-  app allows plain HTTP to those two addresses only). On a phone, use **Paste a token**. The minter mints for
-  any user id it is asked for — your real server must mint only for the user its own sign-in proved.
+```kotlin
+// At launch, once — Application.onCreate on Android, the app's start on iOS — before anything else uses Graine.
+GraineSecurity.start(
+    agents = listOf(
+        GraineSecurity.Agent(Graine.DEFAULT_AGENT, GraineConfig(baseUrl, publishableKey = mainKey,
+            tokenProvider = { myServer.graineToken(agent = "main") })),   // server tokens: only with them on
+        GraineSecurity.Agent("help", GraineConfig(baseUrl, publishableKey = helpKey,
+            tokenProvider = { myServer.graineToken(agent = "help") })),   // one token per agent
+    ),
+    identityTokens = { userId -> mySignIn.currentIdToken() },          // your sign-in's ID token (a JWT), or null
+    debugBuild = isDebugBuild,
+)
 
-Try it: set the agent to **Report only**, run the demo with each mode and watch Server tokens → What we've seen
-count valid and missing tokens; then **Enforce** — Off can no longer open a chat, the others still can. The
-help desk agent runs without tokens (the minter mints for one agent).
+// At sign-in — and at every launch while someone is signed in. The id goes under the field your agents'
+// "Who is the user?" names (identityField: "patient_id" in this demo's care pack) and under user_id, the default.
+GraineSecurity.signIn(user.id, mapOf(identityField to user.id, "user_id" to user.id, "name" to user.firstName),
+    identityToken = idTokenFromYourSignIn)                              // in hand? pass it; else it is fetched
+
+// Sign-out.
+GraineSecurity.signOut()
+
+// A request refused: plain words for the user; the code, the reason and the fix in your log.
+try { agent.memories() } catch (e: GraineException) {
+    showError(GraineSecurity.noteRefusal("default", e)?.message ?: e.message)
+}
+```
+
+What it does with the SDK, should you write it yourself:
+
+```kotlin
+Graine.identityTokenRefresher = { mySignIn.currentIdToken() }        // before configure: one for the whole app
+Graine.configure(GraineConfig(baseUrl, mainKey, tokenProvider = { myServer.graineToken("main") }))
+Graine.configure(GraineConfig(baseUrl, helpKey, tokenProvider = { myServer.graineToken("help") }), name = "help")
+Graine.agents.values.forEach { agent -> scope.launch { agent.prepareAppVerification() } }   // never throws
+Graine.identify(traits, identityToken = idToken)                      // sign-in, and every launch
+Graine.identify(null)                                                 // sign-out: the token goes with the identity
+Graine.agent("help")?.verification?.collect { v -> log("help: app ${v.app.word}, user ${v.user.word}") }
+```
+
+`Graine.debugTokenMode` stays `AUTOMATIC`: a debug build sends its debug token; a release build never makes, logs or
+sends one. Never set `ALWAYS` in a build that reaches users.
+
+### iPhone: App Attest
+
+The app target has the **App Attest** capability: `com.apple.developer.devicecheck.appattest-environment` in
+`iosApp/project.yml` and `iosApp/iosApp/iosApp.entitlements`. In your app: Xcode → the app target → **Signing &
+Capabilities** → **+ Capability** → **App Attest**. Nothing to upload. Builds Xcode installs use App Attest's development
+environment, accepted only while the agent's **Allow development builds** is on (turn it off before you release);
+TestFlight and App Store builds use production. The Simulator cannot attest: it sends its debug token.
+
+### Android: Play Integrity and signing certificates
+
+The app depends on `com.google.android.play:integrity:1.4.0` (`composeApp/build.gradle.kts`, `androidMain`); the SDK
+only compiles against it. In Play Console → the app → **Test and release → App integrity → Play Integrity API**, link a
+Google Cloud project; enable the Play Integrity API in that project; create a service account with a JSON key and upload
+it under **Prove it's your app** (checked when saved, stored sealed, never shown again).
+
+Under **Your apps**, list the SHA-256 of every certificate that signs a build you run:
+
+- **Debug builds** — each computer has its own debug key: `./gradlew :composeApp:signingReport` (under *Variant: debug*,
+  the line *SHA-256*). Add each developer's, or rely on debug tokens.
+- **Google Play** — Play Console → **Test and release → App integrity**: the **App signing key certificate** (what users'
+  phones see, and the one most often missing after a Play release) and the **Upload key certificate**.
+
+### Debug tokens
+
+Simulators, emulators and debug builds cannot pass App Attest or Play Integrity. A debug build — on Android a
+debuggable one, on iPhone one built with the Debug configuration or running on the Simulator — sends a **debug token**,
+made once per install and logged once: `Graine debug token for this install: gdt_…`. **Profile → Security** shows it
+with **Copy** (debug builds only: `GraineSecurity.debugToken`). Register it on **each** agent: **Prove it's your app →
+Development → Debug tokens** (30 days unless you choose otherwise, 90 at most; revoke it there when the device is done).
+A reinstall makes a new one. **Test users** — user ids accepted without an identity token, only from an install whose
+debug token is registered — are on the same page.
+
+### Which identity method, and why
+
+This app proves its users with **your sign-in's ID token (JWT)** — the dashboard's recommended option, and the one that
+needs no server of yours:
+
+- **Graine holds no secret for it, and neither does the app.** Graine checks the token against the public keys your
+  sign-in provider publishes (its **JWKS URL**), with its **issuer**, its **audience** and the **claim** that holds the
+  user id.
+- **One token for every agent.** The SDK holds one identity token for the whole app, and every agent checks it the same
+  way. A signed user ID (HMAC) is made with one agent's secret, so it proves the user to that agent only — with several
+  agents, use the ID token. Each agent still needs its own **Prove who the user is** settings: proving a user to one
+  agent does not count for another.
+- **The claim must hold the id the app identifies the user with** — the value of the agent's **Who is the user?** field
+  (`patient_id` here). If your sign-in's user id is something else, put the id in a claim of its own and name that claim.
+
+`GraineSecurity.signIn` identifies the user at once (a call that rings now knows them) and hands the token with
+`identify` when it is in hand, or fetches it and hands it over with `Graine.setIdentityToken` when it comes; a token
+fetched for one user is never handed over for the next. The SDK asks the refresher by itself when a token expires, when a
+request is refused `identity_unverified` (then sends it once more), before a conversation whose JWT has less than a
+minute left, and when a call rings. The id is sent under the pack's field (`patient_id`) **and** under `user_id`, so the
+user is identified whichever field **Who is the user?** names, and `GraineSecurity` logs a warning when an agent names a
+field the app does not send.
+
+**This demo has no sign-in**: you pick a fictional person, and the ID token comes from Graine's **demo sign-in server**,
+which Graine enables for its own demo workspace only. It signs for whatever user id it is given, so it is a stand-in,
+never a proof (`domain/DemoSignIn.kt`). Your app proves its users with **its own** sign-in, whose tokens are signed only
+for the person who signed in — and, for sensitive data such as health records, with **server tokens** minted by your own
+server as well.
+
+### Server tokens
+
+The strongest mode: once an agent requires them, the publishable key alone opens nothing. Your server — which knows who
+signed in — mints a short-lived token for **one agent and one user** with your **secret** API key, and that agent's
+`GraineConfig.tokenProvider` fetches it. The SDK asks at start, shortly before each token expires, and when Graine
+refuses one; a token that expires never ends a chat or call in progress.
+
+```sh
+curl -s https://api.graine.ai/v2/client-tokens -H "Authorization: Bearer $GRAINE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id":"<agent id>","user_id":"<the id the app identifies the user with>","scopes":["chat","call","memory","booking"],"ttl_seconds":3600}'
+```
+
+This demo has no server and never carries a secret, so **Profile → Server token (demo)** offers stand-ins — demo only,
+**Off** by default, applied the next time the app starts (`domain/ServerToken.kt`):
+
+- **Graine demo server** — Graine's demo token endpoint, enabled for Graine's demo agents only: it mints for whoever
+  signs in, for **every** agent of the app, each with its own key. Any other agent's key is refused.
+- **Local minter** — `GRAINE_API_KEY=… GRAINE_AGENT_ID=<agent id> node ../agent-setup/token-minter.mjs` on your own
+  computer, with **your** key, for the main agent. The Android emulator reaches it at `http://10.0.2.2:8787`, the iOS
+  simulator at `http://localhost:8787` (a debug build allows plain HTTP to those two addresses only). It mints for any
+  user id it is asked for — your real server mints only for the user its sign-in proved.
+- **Paste a token** — one you minted with the curl above, for the main agent (it lasts at most an hour).
+
+### Every agent whose key ships in the app
+
+Each agent — here the main agent, the help desk and the Journey's first-call agent — has its own **Your app and your
+users** and **Server tokens**: list the apps, add the proofs, register the debug tokens and turn the switches on for
+**each one**. A key nobody checks is the one anyone would use. **Profile → Security** lists every configured agent, and
+the **Help** screen says so when the help desk checks neither the app nor its users.
+
+### Roll it out: report-only, then on
+
+1. Ship the SDK (0.14.4 or later; this app is on 0.14.5) with App Attest, Play Integrity and `GraineSecurity`.
+2. For each agent: **Your apps**, then **Check app proofs (report only)**, **Prove who the user is** (report only) and
+   **Server tokens → Report only**.
+3. Watch **What we've seen** for a few days, until *Not in your list*, *Not verified* and missing tokens are only traffic
+   you do not recognise. **Profile → Security** shows what this build sends.
+4. Turn on, one at a time and per agent: **Only my apps** → **Require a verified app** → **Require verified users** →
+   **Server tokens → Enforce**. Each asks you to confirm, with what it would have refused. Turning one off takes effect
+   within 30 seconds.
+
+### Reading refusals
+
+The SDK has done its own single retry before it reports any of these — it proves the app again, asks the identity token
+refresher, or asks the `tokenProvider`, then sends the request once more — and never retries the final ones. So the app
+adds **no retry of its own**: it shows the words below and logs the code with its fix (`GraineSecurity.noteRefusal`).
+The Journey does not reconnect its chat by itself after a final refusal.
+
+| Code (`GraineErrorCode`) | When | The user sees (this app) | Fix | Retried |
+|---|---|---|---|---|
+| `app_not_allowed` (`AppNotAllowed`) | *Only my apps* is on and this build is not listed | "This version of the app can't connect to the assistant. Please update the app." | List the build under **Your apps**, with every certificate | Never |
+| `app_not_verified` (`AppNotVerified`) | *Require a verified app* is on and this install has no valid proof | "We couldn't confirm this copy of the app. Please try again later, or update the app." | App Attest and Play Integrity set up; a debug build's token registered | Once, by the SDK |
+| `identity_unverified` (`IdentityUnverified`) | *Require verified users* is on and the user is not proven: memory, booking and past conversations refuse (chats and calls are answered anonymously) | "Please sign in again to continue." | The identity token: its issuer, audience, claim and expiry | Once, by the SDK |
+| `token_required` (`TokenRequired`) | Server tokens are enforced and none was sent | "The assistant isn't available right now. Please try again later." | Your server mints one for the signed-in user | Once, by the SDK |
+| `token_invalid` (`TokenInvalid`) | The token could not be checked (`reason`) | The same | Mint it with `POST /v2/client-tokens`; pass it as it came | Once, by the SDK |
+| `token_expired` (`TokenExpired`) | A fresh token did not come in time | The same | Your server answers within a few seconds | Once, by the SDK |
+| `token_scope` (`TokenScope`) | Another agent's or user's token, or a scope missing (`reason`) | "This isn't available in the app right now." | Mint it for this agent and user, with every scope the app uses | Never |
+| `key_revoked` (`KeyRevoked`) | The publishable key was revoked | "This version of the app can't connect to the assistant any more. Please update the app." | Ship the agent's new key ([Rotating the publishable key](#rotating-the-publishable-key)) | Never |
+
+Where they arrive: a suspending call (memories, booking, past sessions) throws `GraineException` with the `code`; a call
+that could not start ends `FAILED` with the code first in its reason (`"key_revoked: …"`); a chat that cannot connect
+says **FAILED** and its sentence arrives as `GraineEvent.Error`, which **Profile → Security** shows as *Last error* beside
+the agent's verdicts.
+
+### What a tester checks
+
+**Profile → Security** (in the Journey: **Account → Testing tools**), for every configured agent:
+
+| Line | What it says |
+|---|---|
+| *Name · configured name · agent id* | Which agent; *Who is the user?* names its identity field |
+| **Settings** | *not loaded yet* until the agent's settings arrive — still so with a wrong key or no network, and the last error says why |
+| **App** | *not checked* (the agent does not check proofs) · *checking…* · *verified* (App Attest or Play Integrity; a registered debug token; a development build) · *not verified* and why (*debug token not registered*, *proof expired*…) |
+| **User** | *nobody signed in* · *not checked* · *verified* (identity token; a test user) · *not proven* and why (*no identity token*, *identity token expired*…) — answered anonymously while **Require verified users** is on |
+| **Server token** | *off* (no `tokenProvider` for this agent) · *not asked yet* · *ok* · *missing* · *refused*, with the code |
+| **Last refusal**, **Last error** | The last security refusal its requests met, with the fix; the last error the SDK reported with no code |
+| **Debug token** | Debug builds only: this install's, with **Copy** |
 
 ## Rotating the publishable key
 
@@ -247,7 +436,8 @@ If a key is somewhere it should not be, **Replace now** makes a new key and refu
 ## Memory, in a few minutes
 
 **How it works.** At sign-in the app identifies the user by the pack's field (`patient_id`, `customer_id` or
-`shopper_id`) with their memory choice — `Graine.identify(traits, memory)` in `GraineService.kt` — before any chat,
+`shopper_id`) with their memory choice — `Graine.identify(traits, memory, identityToken)`, through `GraineSecurity.signIn`
+in `security/GraineSecurity.kt` — before any chat,
 Talk or call opens. The same id also goes under `user_id`, so the user is recognised whether the agent's
 **Who is the user?** is the pack's field or **User ID** (the dashboard's usual choice).
 A phone call to or from the agent is recognised by the caller's number instead: the app user and the caller are one
@@ -287,7 +477,9 @@ agent), **support** is the help agent. Set them up from `../agent-setup/health-c
 **1. Onboarding** — after sign-up and at every launch, who the user is and what they said; then the permissions.
 
 ```kotlin
-Graine.identify(mapOf("user_id" to userId, "name" to name))
+// Who the user is, proven by their identity token — at sign-up and at every launch (security/GraineSecurity.kt):
+// Graine.identify(traits, identityToken = …), the token fetched when none is in hand.
+GraineSecurity.signIn(userId, mapOf("user_id" to userId, "name" to name))
 // Each agent keeps its own variables: the journey sets them on every agent it talks to.
 Graine.agents.values.forEach { agent ->
     agent.setVariables(mapOf("gender" to "female", "age" to "33", "weight_kg" to "64.5", "height_cm" to "163",
@@ -345,7 +537,7 @@ Graine.registerAction("save_plan") { args -> store.savePlan(args); GraineActionR
 
 // After the call: the coach's chat connected, then told — it may speak first.
 Graine.chat.shown(true)
-Graine.chat.status.first { it == GraineChatStatus.ONLINE }
+Graine.chat.status.first { it == GraineChatStatus.CONNECTED }
 Graine.reportEvent("consultation_finished", "Build the user's first 7-day plan")
 // The coach calls get_consultation, builds the week, calls save_plan → "Your plan is ready", the card, My week.
 ```
@@ -354,7 +546,7 @@ Graine.reportEvent("consultation_finished", "Build the user's first 7-day plan")
 
 ```kotlin
 Graine.calls.startCall(reason = "coach_call")    // the call button in the chat's header (the coach is the default agent)
-// A check-in reminder opened (the app's own local notification): the chat, then once ONLINE —
+// A check-in reminder opened (the app's own local notification): the chat, then once CONNECTED —
 Graine.reportEvent("meal_check_in", "The user opened the breakfast reminder: Vegetable oats with paneer, planned for 8:00 am on Tuesday.")
 Graine.setScreen(GraineScreen("plan_item", title = item.title, fields = listOf(GraineField("day", "Day", "Tuesday"), …)))
 Graine.track("item_swapped", mapOf("day" to "tue", "time" to "13:30", "from" to old, "to" to new))
@@ -370,8 +562,8 @@ agent.chat.refreshPastSessions(); agent.chat.pastSessions; agent.chat.loadMorePa
 agent.chat.sessionTranscript(session.id)
 // Delete account: each agent forgets, then the user is let go, then the phone's data is erased.
 Graine.agents.values.forEach { it.forgetMemory() }
-Graine.identify(null)
-// Log out: identify(null), and this phone's journey erased.
+GraineSecurity.signOut()                  // Graine.identify(null): the identity token goes with the identity
+// Log out: signed out the same way, and this phone's journey erased.
 ```
 
 **What it holds to.** The actions are registered at launch, so a call that rings a closed app finds them, and a
