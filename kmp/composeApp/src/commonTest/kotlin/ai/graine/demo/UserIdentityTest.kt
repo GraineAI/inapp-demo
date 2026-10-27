@@ -21,7 +21,8 @@ import kotlin.test.assertTrue
 
 /**
  * Step 4's rules (security/GraineSecurity.kt): identify WITH the identity token — the one in hand at once, else the one
- * fetched first, waited for at most two seconds; after that without it, the token following when it comes. Nobody else
+ * fetched first, waited for at most two seconds; after that without it, the token following when it comes — and a
+ * conversation the user starts waits for the token itself, at most ten seconds. Nobody else
  * is ever identified meanwhile, a token fetched for one user never reaches the next, and sign-out cancels everything.
  * The SDK side is recorded here.
  */
@@ -218,7 +219,7 @@ class UserIdentityTest {
     }
 
     @Test
-    fun aCallWaitsForTheIdentifyAtMostTwoSeconds() = runTest {
+    fun aCallWaitsForTheTokenAtMostTenSeconds() = runTest {
         val sdk = Sdk()
         val gate = CompletableDeferred<String?>()
         val id = identity(sdk) { gate.await() }
@@ -235,14 +236,44 @@ class UserIdentityTest {
         assertTrue(started, "and starts once the user is identified with it")
         assertEquals("jwt", sdk.identified.single().third)
 
-        // A token that never comes: the call waits two seconds, no more.
+        // A token that never comes: the call waits for it ten seconds, no more, then starts (anonymously).
         val never = CompletableDeferred<String?>()
         val other = identity(Sdk()) { never.await() }
         other.signIn("P-2", traitsOf("P-2"), memory = null, identityToken = null)
         val from = currentTime
         other.awaitReady()
-        assertEquals(wait, currentTime - from)
+        assertEquals(UserIdentity.CONVERSATION_TOKEN_WAIT_MS, currentTime - from)
         never.complete(null)
+    }
+
+    @Test
+    fun aCallWaitsForASlowTokenPastTheIdentifyWait() = runTest {
+        // Seen live on a phone: the first token after launch took about 6 s. Identify goes without it at 2 s (a ring
+        // still knows the user), but a call the user places waits for the token itself, so it is never anonymous.
+        val sdk = Sdk()
+        val gate = CompletableDeferred<String?>()
+        val id = identity(sdk) { gate.await() }
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        var started = false
+        launch { id.awaitReady(); started = true }
+        advanceTimeBy(wait + 1)
+        assertEquals(null, sdk.identified.single().third, "identified without the token after the identify wait")
+        assertFalse(started, "but the call still waits for the token")
+        advanceTimeBy(4_000)
+        gate.complete("jwt")
+        runCurrent()
+        assertTrue(started, "and starts as soon as the token is handed over")
+        assertEquals(listOf("jwt"), sdk.tokens)
+    }
+
+    @Test
+    fun aTokenFetchThatFailsReleasesTheCallAtOnce() = runTest {
+        val sdk = Sdk()
+        val id = identity(sdk) { null }
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        val from = currentTime
+        id.awaitReady()
+        assertTrue(currentTime - from < UserIdentity.CONVERSATION_TOKEN_WAIT_MS, "no token is coming: nobody waits ten seconds for it")
     }
 
     @Test
