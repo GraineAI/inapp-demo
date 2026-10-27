@@ -229,7 +229,7 @@ your server, and say so at the top.
 | **2 What we've seen** | Nothing: the dashboard counts what the SDK sends | — |
 | **3 Prove it's your app** | iPhone: the App Attest capability. Android: the Play Integrity dependency. The app proven at launch, so the first conversation never waits | `iosApp/project.yml` (and `iosApp/iosApp/iosApp.entitlements`); `composeApp/build.gradle.kts`; `GraineSecurity.start` → `prepareAppVerification()` for every agent |
 | **3 → Development** | A debug build sends a debug token instead of a proof; register it on each agent | `GraineSecurity.debugToken` → **Profile → Security**, with **Copy** (debug builds only) |
-| **4 Prove who the user is** | Who the user is with their identity token, at sign-in **and at every launch** (the SDK holds both in memory only); a refresher for a fresh token; sign-out | `GraineSecurity.signIn`, from `AppModel.signIn` (the tour) and `JourneyModel.resume` (the Journey, every launch); the refresher in `GraineSecurity.start`; `GraineSecurity.signOut` |
+| **4 Prove who the user is** | Identify **with** the identity token, at sign-in **and at every launch** (the SDK holds both in memory only); calls start after it; a refresher for a fresh token; sign-out | `GraineSecurity.signIn`, from `AppModel.signIn` (the tour) and `JourneyModel.resume` (the Journey, every launch); `awaitSignIn` before a call (`AppModel`, `JourneyModel`) and every request (`guarded`); the refresher in `GraineSecurity.start`; `GraineSecurity.signOut` |
 | **5 Turn it on** | Nothing new: a refusal arrives as the SDK's `GraineErrorCode` — show plain words, log the code, add no retry | `GraineSecurity.noteRefusal` and `SecurityRefusal` (`SecurityText.kt`), used by `GraineService`, `GraineJourneySdk` and `CallText.message` |
 | **6 Send setup to your developer** | — | This section, and `GraineSecurity.kt` |
 | **Server tokens** | Each agent's `GraineConfig.tokenProvider` asks **your** server, which mints with your secret API key | `GraineSecurity.start`, given the configs `GraineService.start` builds; the demo's stand-ins: **Profile → Server token (demo)** |
@@ -251,8 +251,12 @@ GraineSecurity.start(
 
 // At sign-in — and at every launch while someone is signed in. The id goes under the field your agents'
 // "Who is the user?" names (identityField: "patient_id" in this demo's care pack) and under user_id, the default.
+// Identify WITH the token: pass the one you already hold. Without it, it is fetched before identify (2 s at most).
 GraineSecurity.signIn(user.id, mapOf(identityField to user.id, "user_id" to user.id, "name" to user.firstName),
-    identityToken = idTokenFromYourSignIn)                              // in hand? pass it; else it is fetched
+    identityToken = idTokenFromYourSignIn)
+
+// A call or the voice bar right after: once the user is identified with their token (at once when nothing waits).
+scope.launch { GraineSecurity.awaitSignIn(); Graine.calls.startCall(reason = "help") }
 
 // Sign-out.
 GraineSecurity.signOut()
@@ -270,7 +274,7 @@ Graine.identityTokenRefresher = { mySignIn.currentIdToken() }        // before c
 Graine.configure(GraineConfig(baseUrl, mainKey, tokenProvider = { myServer.graineToken("main") }))
 Graine.configure(GraineConfig(baseUrl, helpKey, tokenProvider = { myServer.graineToken("help") }), name = "help")
 Graine.agents.values.forEach { agent -> scope.launch { agent.prepareAppVerification() } }   // never throws
-Graine.identify(traits, identityToken = idToken)                      // sign-in, and every launch
+Graine.identify(traits, identityToken = mySignIn.currentIdToken())   // sign-in, every launch: the token BEFORE identify
 Graine.identify(null)                                                 // sign-out: the token goes with the identity
 Graine.agent("help")?.verification?.collect { v -> log("help: app ${v.app.word}, user ${v.user.word}") }
 ```
@@ -325,13 +329,22 @@ needs no server of yours:
 - **The claim must hold the id the app identifies the user with** — the value of the agent's **Who is the user?** field
   (`patient_id` here). If your sign-in's user id is something else, put the id in a claim of its own and name that claim.
 
-`GraineSecurity.signIn` identifies the user at once (a call that rings now knows them) and hands the token with
-`identify` when it is in hand, or fetches it and hands it over with `Graine.setIdentityToken` when it comes; a token
-fetched for one user is never handed over for the next. The SDK asks the refresher by itself when a token expires, when a
-request is refused `identity_unverified` (then sends it once more), before a conversation whose JWT has less than a
-minute left, and when a call rings. The id is sent under the pack's field (`patient_id`) **and** under `user_id`, so the
-user is identified whichever field **Who is the user?** names, and `GraineSecurity` logs a warning when an agent names a
-field the app does not send.
+**Pass the token you already hold; if you must fetch it, fetch it before identify — a conversation started before the
+token is answered anonymously** while the agent requires verified users. The SDK holds no token across launches, and
+before a chat, the voice bar or a call it asks the refresher only for a token about to expire, never for a missing one:
+identified without a token, the first conversation goes out unproven. So `GraineSecurity.signIn` identifies **with** the
+token: the one you pass at once; otherwise it fetches the token first and waits for it, at most 2 seconds
+(`UserIdentity.TOKEN_WAIT_MS`), then identifies without it, keeps fetching and hands it over with
+`Graine.setIdentityToken` when it comes. Meanwhile nobody is identified — never the last user — calls and the voice bar
+wait for it (`GraineSecurity.awaitSignIn`, at once when nothing waits), every request does too, a call that rings
+identifies the user at once (it knows who it rings; the token follows), and an open chat is reconnected as the user by
+the SDK when the identity arrives. A token fetched for one user is never handed over for the next, and sign-out cancels
+everything on its way. The SDK then asks the refresher by itself when a token expires, when a request is refused
+`identity_unverified` (then sends it once more), before a conversation whose JWT has less than a minute left, and when a
+call rings — and the refresher joins the fetch already on its way.
+
+The id is sent under the pack's field (`patient_id`) **and** under `user_id`, so the user is identified whichever field
+**Who is the user?** names, and `GraineSecurity` logs a warning when an agent names a field the app does not send.
 
 **This demo has no sign-in**: you pick a fictional person, and the ID token comes from Graine's **demo sign-in server**,
 which Graine enables for its own demo workspace only. It signs for whatever user id it is given, so it is a stand-in,
@@ -478,7 +491,7 @@ agent), **support** is the help agent. Set them up from `../agent-setup/health-c
 
 ```kotlin
 // Who the user is, proven by their identity token — at sign-up and at every launch (security/GraineSecurity.kt):
-// Graine.identify(traits, identityToken = …), the token fetched when none is in hand.
+// Graine.identify(traits, identityToken = …), the token fetched BEFORE identify when none is in hand (2 s at most).
 GraineSecurity.signIn(userId, mapOf("user_id" to userId, "name" to name))
 // Each agent keeps its own variables: the journey sets them on every agent it talks to.
 Graine.agents.values.forEach { agent ->
@@ -491,6 +504,7 @@ Graine.calls.requestCallPermissions()   // the microphone screen (and notificati
 **2. The first call** — now, or at a time the user picks from the agent's own times.
 
 ```kotlin
+GraineSecurity.awaitSignIn()             // a call takes who the user is at its start: after the sign-in's identify
 Graine.calls.startCall(reason = "onboarding_consultation", agent = "consultation")   // Start now
 
 val consultation = Graine.agent("consultation")!!

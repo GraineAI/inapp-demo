@@ -7,9 +7,11 @@ import ai.graine.inapp.kmp.GraineEvent
 import ai.graine.inapp.kmp.GraineException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,9 +19,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /*
  * ═══ GRAINE SECURITY — EVERY LINE OF IT IN THIS APP. COPY THIS FILE (and SecurityText.kt for the words). ═══
@@ -34,8 +38,9 @@ import kotlinx.coroutines.launch
  *   3 Prove it's your app .... iOS: the App Attest capability (iosApp/project.yml). Android: the Play Integrity
  *                              dependency (composeApp/build.gradle.kts). Here: start() proves the app at launch, and
  *                              debugToken is what a debug build sends instead (register it under Development).
- *   4 Prove who the user is .. Here: signIn() at sign-in AND at every launch, with your sign-in's ID token; the
- *                              refresher start() sets; signOut().
+ *   4 Prove who the user is .. Here: signIn() at sign-in AND at every launch — identify WITH the identity token: pass
+ *                              the one you hold, or it is fetched before identify (2 s at most); awaitSignIn() before
+ *                              a call or the voice bar; the refresher start() sets; signOut().
  *   5 Turn it on ............. Nothing new in code: a refusal arrives as the SDK's GraineErrorCode. noteRefusal()
  *                              keeps it for the Security card and logs it; SecurityRefusal says it to the user.
  *   6 Send setup to your developer — this file.
@@ -101,6 +106,9 @@ object GraineSecurity {
         val configured = agents.mapNotNull { configure(it) }
         configured.forEach { watch(it) }
         publish(configured)
+        // STEP 4 — a call that rings while signIn still waits for the token identifies the user at once: it knows who it
+        // is ringing; the token follows when it comes.
+        scope.launch { Graine.calls.incoming.collect { user.identifyPendingNow() } }
         return configured
     }
 
@@ -159,12 +167,25 @@ object GraineSecurity {
     /**
      * STEP 4 — AT SIGN-IN, AND AT EVERY LAUNCH while someone is signed in: the SDK keeps who the user is, and their
      * identity token, in memory only. [userId] is the value your sign-in proves — the same value [traits] carries under
-     * the field each agent's "Who is the user?" names (this app sends it under its own field and under `user_id`). Pass
-     * [identityToken] when your sign-in just gave you one; without it, one is fetched now from [start]'s identityTokens
-     * and handed to the SDK when it comes. Identifies at once either way, so a call that rings now knows the user.
+     * the field each agent's "Who is the user?" names (this app sends it under its own field and under `user_id`).
+     *
+     * IDENTIFY WITH THE TOKEN. Pass the [identityToken] you already hold (your sign-in hands you one; Firebase keeps it
+     * cached), and the user is identified with it at once. If you must fetch it, it is fetched BEFORE identify, from
+     * [start]'s identityTokens: identify waits for it, at most 2 seconds, then goes without it and hands the token over
+     * when it comes. A conversation started before the token is answered anonymously while the agent requires verified
+     * users — the SDK asks the refresher before a conversation only for a token about to expire — so start calls after
+     * [awaitSignIn].
      */
     fun signIn(userId: String, traits: Map<String, Any?>, memory: Boolean? = null, identityToken: String? = null) =
         user.signIn(userId, traits, memory, identityToken)
+
+    /**
+     * Waits until [signIn] has identified the user — with their token, or after its 2-second wait — and returns at once
+     * when nothing waits. Await it before starting a call or the voice bar right after signIn: a call takes who the user
+     * is at its start. Requests wait for it too (GraineService.guarded). A chat needs nothing: when the identity arrives,
+     * the SDK reconnects an open chat as the user.
+     */
+    suspend fun awaitSignIn() = user.awaitReady()
 
     /** Sign-out: the SDK forgets the user, their token and pass, and lets this device go; later conversations are anonymous. */
     fun signOut() = user.signOut()
@@ -221,9 +242,18 @@ object GraineSecurity {
 }
 
 /**
- * WHO IS SIGNED IN, AND THEIR IDENTITY TOKEN, KEPT STRAIGHT (step 4). Identifies at once — a call that rings now knows
- * the user — with the token in hand, or fetches one and hands it over when it comes; a token fetched for one user is
- * never handed over for the next. The SDK calls are passed in, so these rules are tested without the SDK. Main thread.
+ * WHO IS SIGNED IN, AND THEIR IDENTITY TOKEN, KEPT STRAIGHT (step 4).
+ *
+ * Identify WITH the token. The SDK holds no token across launches, and a conversation that starts while it holds none
+ * goes out unproven — answered anonymously while the agent requires verified users — because the SDK asks the refresher
+ * before a conversation only for a token about to expire, never for a missing one. So, with no token in hand, signIn
+ * fetches it FIRST and identifies with it, waiting at most [tokenWaitMs]; if it has not come by then (or the fetch
+ * failed), it identifies without it — a call that rings still knows the user — keeps fetching, and hands the token over
+ * with setIdentityToken when it comes. Meanwhile nobody is identified, never the last user: a call or the voice bar
+ * waits for this step ([awaitReady]), a ring identifies at once ([identifyPendingNow]). A token fetched for one user is
+ * never handed over for the next, and sign-out cancels everything on its way.
+ *
+ * The SDK calls are passed in, so these rules are tested without the SDK. Main thread.
  */
 internal class UserIdentity(
     private val scope: CoroutineScope,
@@ -231,63 +261,107 @@ internal class UserIdentity(
     private val identify: (traits: Map<String, Any?>?, memory: Boolean?, identityToken: String?) -> Unit,
     private val setIdentityToken: (String) -> Unit,
     private val log: (String) -> Unit,
+    /** How long identify waits for the token it fetches before it goes without it (tests shorten it). */
+    private val tokenWaitMs: Long = TOKEN_WAIT_MS,
 ) {
     /** The signed-in user, by the value the identity token proves; null when nobody is. */
     var current: String? = null
         private set
 
-    /** The user a token was handed over for: the SDK keeps it while the same user is identified again. */
-    private var tokened: String? = null
-    private var fetching: Job? = null
+    /** What identify will send once the token comes, or once the wait is over; null when nothing waits. */
+    private var pending: Pending? = null
+    /** identify has named [current] — with or without a token. */
+    private var identified = false
+    /** A token was handed over for [current]: the SDK keeps it while the same user is identified again. */
+    private var tokened = false
+    /** The token on its way for [current]: one fetch, joined by every wait and by the SDK's refresher. */
+    private var fetching: Deferred<String?>? = null
+    private var waiting: Job? = null
+    private var handover: Job? = null
+    /** False while an identify waits for its token. */
+    private val ready = MutableStateFlow(true)
 
     /** The traits identify was last given: each agent's "Who is the user?" field is checked against them. */
     private var traits: Map<String, Any?>? = null
 
+    private class Pending(val traits: Map<String, Any?>, val memory: Boolean?)
+
     fun signIn(userId: String, traits: Map<String, Any?>, memory: Boolean?, identityToken: String?) {
         if (userId != current) {
-            // Someone else: the last user's token, and a fetch still on its way for them, are never this user's.
-            fetching?.cancel()
-            fetching = null
-            tokened = null
+            // Someone else: nothing on its way for the last user is ever this user's.
+            val someoneBefore = current != null && identified
+            reset()
+            // While this user's token is fetched, nobody is identified — never the last user.
+            if (someoneBefore && identityToken == null) identify(null, null, null)
         }
         current = userId
         this.traits = traits
-        // The same user without a token keeps the one the SDK holds; another user starts with this one, or none.
-        identify(traits, memory, identityToken)
-        if (identityToken != null) {
-            tokened = userId
-            fetching?.cancel()
-            fetching = null
-            return
-        }
-        if (tokened == userId || fetching?.isActive == true) return
-        fetching = scope.launch {
-            val token = fetchOrNull(userId)
-            if (current != userId) return@launch
-            if (token == null) {
-                log("Graine: no identity token for the signed-in user yet — the SDK asks again when it needs one")
-            } else {
-                setIdentityToken(token)
-                tokened = userId
+        when {
+            // The token in hand goes WITH identify: the very first request proves the user.
+            identityToken != null -> {
+                waiting?.cancel()
+                fetching?.cancel()
+                fetching = null
+                pending = null
+                identifyNow(traits, memory, identityToken)
+            }
+            // The same user again (new traits, a new launch of the same screen): at once. The SDK keeps the token it
+            // holds; one still on its way follows.
+            identified -> {
+                identify(traits, memory, null)
+                if (!tokened) handOverLater(userId)
+            }
+            // No token in hand: fetch it FIRST and identify WITH it, waiting at most tokenWaitMs.
+            else -> {
+                pending = Pending(traits, memory ?: pending?.memory)
+                ready.value = false
+                val token = tokenFor(userId)
+                if (waiting?.isActive != true) {
+                    waiting = scope.launch {
+                        val inTime = withTimeoutOrNull(tokenWaitMs) { token.await() }
+                        if (current != userId) return@launch
+                        flush(inTime)
+                        when {
+                            inTime != null -> Unit
+                            // Not in time: identified without it — the token follows when it comes.
+                            token.isActive -> handOverLater(userId)
+                            // The fetch gave none: the SDK asks the refresher when it needs one.
+                            else -> log("Graine: no identity token for the signed-in user yet — the SDK asks again when it needs one")
+                        }
+                    }
+                }
             }
         }
     }
 
     fun signOut() {
-        fetching?.cancel()
-        fetching = null
+        reset()
         current = null
-        tokened = null
         traits = null
         identify(null, null, null)
     }
 
-    /** What the SDK's refresher answers: a fresh token for whoever is signed in now; null keeps the one it holds. */
+    /** Waits until signIn's identify has gone out — with the token, or after the wait — and returns at once when none waits. */
+    suspend fun awaitReady() {
+        // The wait above always ends within tokenWaitMs; the margin only guards against a wait that never ends.
+        withTimeoutOrNull(tokenWaitMs + READY_MARGIN_MS) { ready.first { it } }
+    }
+
+    /** A call rings before the token came: identify at once with what is in hand — it knows the user; the token follows. */
+    fun identifyPendingNow() {
+        val userId = current ?: return
+        if (pending == null) return
+        waiting?.cancel()
+        flush(null)
+        handOverLater(userId)
+    }
+
+    /** What the SDK's refresher answers: a fresh token for whoever is signed in now (joining one on its way); null keeps the one it holds. */
     suspend fun fresh(): String? {
         val asked = current ?: return null
-        val token = fetchOrNull(asked) ?: return null
+        val token = tokenFor(asked).await() ?: return null
         if (current != asked) return null
-        tokened = asked
+        tokened = true
         return token
     }
 
@@ -299,11 +373,69 @@ internal class UserIdentity(
         }
     }
 
+    private fun identifyNow(traits: Map<String, Any?>, memory: Boolean?, token: String?) {
+        identify(traits, memory, token)
+        identified = true
+        if (token != null) tokened = true
+        ready.value = true
+    }
+
+    private fun flush(token: String?) {
+        val p = pending ?: return
+        pending = null
+        identifyNow(p.traits, p.memory, token)
+    }
+
+    /** The token, when it comes, handed over for [userId] — if they are still the one signed in, and have none yet. */
+    private fun handOverLater(userId: String) {
+        if (handover?.isActive == true) return
+        val token = tokenFor(userId)
+        handover = scope.launch {
+            val late = token.await()
+            if (current != userId || tokened) return@launch
+            if (late == null) {
+                log("Graine: no identity token for the signed-in user yet — the SDK asks again when it needs one")
+                return@launch
+            }
+            setIdentityToken(late)
+            tokened = true
+        }
+    }
+
+    /** The fetch on its way for [userId], or a new one. */
+    private fun tokenFor(userId: String): Deferred<String?> =
+        fetching?.takeIf { it.isActive } ?: scope.async { fetchOrNull(userId) }.also { fetching = it }
+
+    private fun reset() {
+        waiting?.cancel()
+        waiting = null
+        handover?.cancel()
+        handover = null
+        fetching?.cancel()
+        fetching = null
+        pending = null
+        identified = false
+        tokened = false
+        ready.value = true
+    }
+
     private suspend fun fetchOrNull(userId: String): String? = try {
         fetch(userId)?.takeIf { it.isNotBlank() }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
         null
+    }
+
+    companion object {
+        /**
+         * How long identify waits for the token it fetches, in milliseconds: long enough for a sign-in's token on a phone
+         * network, short enough that a call placed at launch never waits noticeably. After it, the user is identified
+         * without the token, and the token follows.
+         */
+        const val TOKEN_WAIT_MS = 2_000L
+
+        /** The most awaitReady adds to the wait, should it ever not end by itself. */
+        private const val READY_MARGIN_MS = 500L
     }
 }

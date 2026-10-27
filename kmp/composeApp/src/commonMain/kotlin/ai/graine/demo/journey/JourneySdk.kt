@@ -50,6 +50,8 @@ interface JourneySdk {
     fun signIn(userId: String, traits: Map<String, String>)
     /** Nobody: every agent lets the user go. */
     fun signOut()
+    /** Waits until the sign-in has identified the user with their token (at most 2 s); a call starts after it. A fake never waits. */
+    suspend fun awaitSignIn() {}
     fun setVariables(values: Map<String, String?>)
     suspend fun requestCallPermissions(): CallPermissionAnswer
 
@@ -113,6 +115,8 @@ class GraineJourneySdk : JourneySdk {
      */
     private suspend fun <T> guarded(agent: JourneyAgent, request: suspend (GraineAgent) -> T): T {
         val graine = need(agent)
+        // Never before the sign-in's identify: the request carries who the user is, and their token.
+        GraineSecurity.awaitSignIn()
         return try {
             request(graine).also { GraineSecurity.noteAnswered(agent.sdkName) }
         } catch (e: GraineException) {
@@ -133,6 +137,8 @@ class GraineJourneySdk : JourneySdk {
 
     /** `Graine.identify(null)` through GraineSecurity: signed out everywhere, the token dropped with the identity. */
     override fun signOut() = GraineSecurity.signOut()
+
+    override suspend fun awaitSignIn() = GraineSecurity.awaitSignIn()
 
     /** The profile as prompt variables, on every agent the journey talks to (each agent keeps its own); null removes one. */
     override fun setVariables(values: Map<String, String?>) {

@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -408,8 +409,13 @@ class JourneyModel(
 
     val firstCallReady: Boolean get() = sdk.isConfigured(JourneyAgent.FIRST_CALL)
 
-    /** "Start now" (and "Start now instead" while one is booked): `Graine.calls.startCall(reason, agent = "consultation")`. */
-    fun startFirstCall() {
+    /**
+     * "Start now" (and "Start now instead" while one is booked): `Graine.calls.startCall(reason, agent = "consultation")`
+     * — once the sign-in has identified the user with their token ([afterSignIn]).
+     */
+    fun startFirstCall() = afterSignIn { startFirstCallNow() }
+
+    private fun startFirstCallNow() {
         if (stage == JourneyStage.IN_CALL || stage == JourneyStage.BUILDING_PLAN || stage == JourneyStage.READY) return
         if (!firstCallReady) {
             notice = NO_FIRST_CALL_AGENT
@@ -517,13 +523,13 @@ class JourneyModel(
     // ── 3. we couldn't connect ──────────────────────────────────────────────
 
     /** "Call me now": the missed ring called back (`Graine.calls.callBack()`), else a new call to the first-call agent. */
-    fun callMeNow() {
+    fun callMeNow() = afterSignIn {
         val id = if (call.missedCall != null) sdk.callBack() else null
         if (id != null) {
             setProgress { it.copy(stage = JourneyStage.IN_CALL, firstCallId = id, noConnect = null) }
             describe()
         } else {
-            startFirstCall()
+            startFirstCallNow()
         }
     }
 
@@ -968,9 +974,20 @@ class JourneyModel(
     }
 
     /** The call button in the chat's header: `Graine.calls.startCall(reason = "coach_call")`, the coach being the default agent. */
-    fun callCoach() {
+    fun callCoach() = afterSignIn {
         val id = sdk.startCall(journey.coach.callReason, JourneyAgent.COACH)
         if (id == null) notice = "Another call is in progress."
+    }
+
+    /**
+     * A call takes who the user is at its start, so it starts once the sign-in has identified them — with their identity
+     * token — at most 2 s after a launch (security/GraineSecurity.kt); at once when nothing waits.
+     */
+    private fun afterSignIn(start: () -> Unit) {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            sdk.awaitSignIn()
+            start()
+        }
     }
 
     // ── the call screen's controls ──────────────────────────────────────────

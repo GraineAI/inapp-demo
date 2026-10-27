@@ -81,6 +81,11 @@ interface GraineClient {
     fun signIn(userId: String, traits: Map<String, String>, memory: Boolean?)
     /** Sign out everywhere (GraineSecurity.signOut): this device stops being the user's; later conversations are anonymous. */
     fun signOut()
+    /**
+     * Waits until the sign-in has identified the user with their token — at most 2 s after signIn — and returns at once
+     * when nothing waits (GraineSecurity.awaitSignIn): a call or the voice bar starts after it. A fake never waits.
+     */
+    suspend fun awaitSignIn() {}
 
     /**
      * The agents' prompt {variables} — what an API call sends as `variables` — set through the SDK, for
@@ -237,11 +242,14 @@ class GraineService private constructor() : GraineClient {
     private fun noAgent() = GraineException(GraineErrorCode.InvalidKey, "No publishable key is set for this agent.")
 
     /**
-     * One of [agent]'s requests: a refusal about security is noted — the Security card, the log — and thrown on as it
-     * came, for the screen to say in plain words (CallText.message). No retry of the app's own: the SDK did its one.
+     * One of [agent]'s requests, once the sign-in has identified the user: a refusal about security is noted — the
+     * Security card, the log — and thrown on as it came, for the screen to say in plain words (CallText.message). No
+     * retry of the app's own: the SDK did its one.
      */
     private suspend fun <T> guarded(agent: DemoAgent, request: suspend (GraineAgent) -> T): T {
         val graine = sdk(agent) ?: throw noAgent()
+        // Never before the sign-in's identify: the request carries who the user is, and their token.
+        GraineSecurity.awaitSignIn()
         return try {
             request(graine).also { GraineSecurity.noteAnswered(agent.sdkName) }
         } catch (e: GraineException) {
@@ -252,11 +260,13 @@ class GraineService private constructor() : GraineClient {
 
     // ── who the user is, and memory (the SDK shares them with every agent) ──
 
-    // Identified at once, proven by the identity token as soon as it is had (security/GraineSecurity.kt).
+    // Identified WITH the identity token — fetched before identify when none is in hand, 2 s at most (security/GraineSecurity.kt).
     override fun signIn(userId: String, traits: Map<String, String>, memory: Boolean?) = GraineSecurity.signIn(userId, traits, memory)
 
     // Every agent: the device stops being this user's, and later conversations are anonymous.
     override fun signOut() = GraineSecurity.signOut()
+
+    override suspend fun awaitSignIn() = GraineSecurity.awaitSignIn()
 
     override fun setVariables(values: Map<String, String?>) = agents.forEach { sdk(it)?.setVariables(values) }
     override fun currentVariables(): Map<String, String> = Graine.currentVariables()

@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -563,7 +564,7 @@ class AppModel(
         if (!isAvailable(agent)) return
         if (voiceAgent != null && voiceAgent != agent) graine.endVoice()
         voiceAgent = agent
-        if (!ownDesign) graine.startVoice(agent)
+        if (!ownDesign) afterSignIn { if (voiceAgent == agent) graine.startVoice(agent) }
     }
 
     fun voiceBarClosed() {
@@ -573,7 +574,7 @@ class AppModel(
     /** The own voice panel's Start. */
     fun startTalk() {
         val agent = voiceAgent ?: return
-        graine.startVoice(agent)
+        afterSignIn { if (voiceAgent == agent) graine.startVoice(agent) }
     }
 
     /** The own voice panel's End: the conversation ends, the panel stays to start another. */
@@ -592,8 +593,21 @@ class AppModel(
         val pack = pack ?: return
         if (!isAvailable(agent)) return
         val entry = if (agent == DemoAgent.MAIN) "home" else "help"
-        val id = graine.startNativeCall(pack.placeReason(agent), mapOf("entry_point" to entry), agent)
-        if (id != null) record(CallEvent(id, "placed", null, agent)) else notice = "Another call is in progress."
+        afterSignIn {
+            val id = graine.startNativeCall(pack.placeReason(agent), mapOf("entry_point" to entry), agent)
+            if (id != null) record(CallEvent(id, "placed", null, agent)) else notice = "Another call is in progress."
+        }
+    }
+
+    /**
+     * A call or the voice bar takes who the user is at its start, so it starts once the sign-in has identified them —
+     * with their identity token — at most 2 s after signIn (security/GraineSecurity.kt); at once when nothing waits.
+     */
+    private fun afterSignIn(start: () -> Unit) {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            graine.awaitSignIn()
+            start()
+        }
     }
 
     // ── items ───────────────────────────────────────────────────────────────

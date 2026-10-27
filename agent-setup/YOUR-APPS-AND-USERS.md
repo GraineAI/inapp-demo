@@ -123,9 +123,12 @@ secret built into the app:
 
 - At sign-in, and at every launch while someone is signed in, the app asks
   `POST https://www.graine.ai/api/demo/identity-token` with
-  `{ "publishableKey": "<the app's key>", "userId": "<the person who signed in>" }` and hands the answer's `token` to the
-  SDK with who the user is (`Graine.identify(…, identityToken = …)`, or `Graine.setIdentityToken` once it arrives).
-  `Graine.identityTokenRefresher` asks again whenever the SDK needs a fresh one (the token lasts ten minutes).
+  `{ "publishableKey": "<the app's key>", "userId": "<the person who signed in>" }` **before** it identifies the user,
+  and identifies them with the answer's `token` (`Graine.identify(…, identityToken = …)`). Should the token take longer
+  than 2 seconds, the user is identified without it and the token follows (`Graine.setIdentityToken`); calls placed
+  meanwhile wait for it. A conversation started before the token is answered anonymously, so an app that already holds
+  the token passes it straight to `identify`. `Graine.identityTokenRefresher` asks again whenever the SDK needs a fresh
+  one (the token lasts ten minutes).
 - **The demo sign-in server is Graine's, for Graine's demo workspace only.** Graine enables it for its own demo
   workspace; any other workspace's publishable key is refused. It signs with a private key that never leaves Graine's
   server, and the JWKS below publishes its public half.

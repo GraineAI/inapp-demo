@@ -4,20 +4,26 @@ import ai.graine.demo.security.UserIdentity
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Step 4's rules (security/GraineSecurity.kt): the user is identified at once, their identity token goes with identify
- * when it is in hand or follows when it comes, a token fetched for one user never reaches the next, and sign-out
- * drops it all. The SDK side is recorded here.
+ * Step 4's rules (security/GraineSecurity.kt): identify WITH the identity token — the one in hand at once, else the one
+ * fetched first, waited for at most two seconds; after that without it, the token following when it comes. Nobody else
+ * is ever identified meanwhile, a token fetched for one user never reaches the next, and sign-out cancels everything.
+ * The SDK side is recorded here.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserIdentityTest {
@@ -29,6 +35,8 @@ class UserIdentityTest {
 
     private fun traitsOf(id: String): Map<String, Any?> = mapOf("patient_id" to id, "user_id" to id)
 
+    private val wait = UserIdentity.TOKEN_WAIT_MS
+
     private fun TestScope.identity(sdk: Sdk, fetch: suspend (String) -> String?) = UserIdentity(
         this,
         fetch,
@@ -38,30 +46,61 @@ class UserIdentityTest {
     )
 
     @Test
-    fun identifiesAtOnceThenHandsOverTheTokenWhenItComes() = runTest {
+    fun theTokenIsFetchedFirstAndGoesWithIdentify() = runTest {
         val sdk = Sdk()
         val gate = CompletableDeferred<String?>()
         val id = identity(sdk) { gate.await() }
         id.signIn("P-1", traitsOf("P-1"), memory = true, identityToken = null)
-        assertEquals(Triple(traitsOf("P-1"), true, null), sdk.identified.single(), "identified at once: a call ringing now knows the user")
         runCurrent()
-        assertTrue(sdk.tokens.isEmpty())
-        gate.complete("jwt-P-1")
-        advanceUntilIdle()
-        assertEquals(listOf("jwt-P-1"), sdk.tokens)
+        assertTrue(sdk.identified.isEmpty(), "nothing identified before the token, so nothing goes out unproven")
         assertEquals("P-1", id.current)
+        gate.complete("jwt-P-1")
+        runCurrent()
+        assertEquals(Triple(traitsOf("P-1"), true, "jwt-P-1"), sdk.identified.single(), "identified WITH the token")
+        assertTrue(sdk.tokens.isEmpty(), "no separate setIdentityToken: it went with identify")
     }
 
     @Test
-    fun aTokenInHandGoesWithIdentify() = runTest {
+    fun aTokenInHandGoesWithIdentifyAtOnce() = runTest {
         val sdk = Sdk()
         var fetched = 0
         val id = identity(sdk) { fetched++; "fresh" }
         id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = "from-the-sign-in")
+        assertEquals(Triple(traitsOf("P-1"), null, "from-the-sign-in"), sdk.identified.single(), "at once")
         advanceUntilIdle()
-        assertEquals("from-the-sign-in", sdk.identified.single().third)
         assertEquals(0, fetched, "nothing to fetch")
         assertTrue(sdk.tokens.isEmpty())
+    }
+
+    @Test
+    fun aSlowTokenIsWaitedForTwoSecondsThenFollows() = runTest {
+        val sdk = Sdk()
+        val gate = CompletableDeferred<String?>()
+        val id = identity(sdk) { gate.await() }
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        advanceTimeBy(wait - 1)
+        assertTrue(sdk.identified.isEmpty(), "still waiting for the token")
+        advanceTimeBy(2)
+        assertEquals(Triple(traitsOf("P-1"), null, null), sdk.identified.single(), "after 2 s: without it — a call that rings knows the user")
+        gate.complete("jwt-P-1")
+        runCurrent()
+        assertEquals(listOf("jwt-P-1"), sdk.tokens, "the token follows when it comes")
+        assertEquals(1, sdk.identified.size)
+    }
+
+    @Test
+    fun aFetchThatFailsIdentifiesAtOnceWithoutAToken() = runTest {
+        val sdk = Sdk()
+        var fetched = 0
+        val id = identity(sdk) { fetched++; throw IllegalStateException("offline") }
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        runCurrent()
+        assertTrue(currentTime < wait, "no waiting out the two seconds for a fetch that already failed")
+        assertEquals(Triple(traitsOf("P-1"), null, null), sdk.identified.single())
+        advanceUntilIdle()
+        assertTrue(sdk.tokens.isEmpty())
+        assertEquals(1, fetched, "not asked again at once: the SDK's refresher asks when it needs one")
+        assertTrue(sdk.logs.single().contains("no identity token"), sdk.logs.toString())
     }
 
     @Test
@@ -73,15 +112,65 @@ class UserIdentityTest {
         id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
         runCurrent()
         id.signIn("P-2", traitsOf("P-2"), memory = null, identityToken = null)
-        advanceUntilIdle()
+        runCurrent()
         late.complete("jwt-P-1")
         advanceUntilIdle()
-        assertEquals(listOf("jwt-P-2"), sdk.tokens, "P-1's token, come late, is never handed over for P-2")
-        assertEquals(listOf("P-1", "P-2"), sdk.identified.map { it.first?.get("user_id") })
+        assertEquals(listOf<Triple<Map<String, Any?>?, Boolean?, String?>>(Triple(traitsOf("P-2"), null, "jwt-P-2")), sdk.identified, "only P-2, with P-2's token")
+        assertTrue(sdk.tokens.isEmpty(), "P-1's token, come late, is never handed over")
     }
 
     @Test
-    fun theSameUserAgainKeepsTheirToken() = runTest {
+    fun whileTheNextUsersTokenIsFetchedNobodyIsIdentified() = runTest {
+        val sdk = Sdk()
+        val gate = CompletableDeferred<String?>()
+        val id = identity(sdk) { user -> if (user == "P-1") "jwt-P-1" else gate.await() }
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        runCurrent()
+        id.signIn("P-2", traitsOf("P-2"), memory = null, identityToken = null)
+        assertEquals(Triple(null, null, null), sdk.identified.last(), "P-1 let go at once — never P-1 in P-2's place")
+        gate.complete("jwt-P-2")
+        runCurrent()
+        assertEquals(Triple(traitsOf("P-2"), null, "jwt-P-2"), sdk.identified.last())
+    }
+
+    @Test
+    fun signOutWhileTheTokenIsOnItsWayCancelsEverything() = runTest {
+        val sdk = Sdk()
+        val late = CompletableDeferred<String?>()
+        val id = identity(sdk) { withContext(NonCancellable) { late.await() } }
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        runCurrent()
+        id.signOut()
+        assertEquals(listOf<Triple<Map<String, Any?>?, Boolean?, String?>>(Triple(null, null, null)), sdk.identified, "identify(null): signed out everywhere")
+        late.complete("jwt-P-1")
+        advanceUntilIdle()
+        assertEquals(1, sdk.identified.size, "never identified after sign-out")
+        assertTrue(sdk.tokens.isEmpty(), "the token, come late, goes nowhere")
+        assertNull(id.current)
+        assertNull(id.fresh(), "the refresher has nobody to ask for")
+    }
+
+    @Test
+    fun theSameUserAgainWhileWaitingIsIdentifiedOnceWithTheLatestTraits() = runTest {
+        val sdk = Sdk()
+        val gate = CompletableDeferred<String?>()
+        var fetched = 0
+        val id = identity(sdk) { fetched++; gate.await() }
+        id.signIn("P-1", traitsOf("P-1"), memory = true, identityToken = null)
+        runCurrent()
+        id.signIn("P-1", traitsOf("P-1") + ("name" to "Riya"), memory = null, identityToken = null)
+        runCurrent()
+        gate.complete("jwt")
+        advanceUntilIdle()
+        assertEquals(1, fetched, "one fetch")
+        assertEquals(
+            Triple(traitsOf("P-1") + ("name" to "Riya"), true, "jwt"), sdk.identified.single(),
+            "once, with the latest traits and the memory choice made",
+        )
+    }
+
+    @Test
+    fun theSameUserAgainAfterwardsIsIdentifiedAtOnceAndKeepsTheirToken() = runTest {
         val sdk = Sdk()
         var fetched = 0
         val id = identity(sdk) { fetched++; "jwt" }
@@ -89,27 +178,71 @@ class UserIdentityTest {
         advanceUntilIdle()
         // The profile changed: the same user, identified again with new traits.
         id.signIn("P-1", traitsOf("P-1") + ("name" to "Riya"), memory = null, identityToken = null)
+        assertEquals(Triple(traitsOf("P-1") + ("name" to "Riya"), null, null), sdk.identified.last(), "at once — the SDK keeps the token it holds")
         advanceUntilIdle()
-        assertEquals(1, fetched, "fetched once: the SDK keeps the token for the same user")
-        assertEquals(listOf("jwt"), sdk.tokens)
+        assertEquals(1, fetched)
         assertEquals(2, sdk.identified.size)
-        assertNull(sdk.identified.last().third, "no token: the SDK keeps the one it holds")
     }
 
     @Test
-    fun signOutDropsTheUserAndTheirToken() = runTest {
+    fun theRefresherJoinsTheFetchOnItsWay() = runTest {
         val sdk = Sdk()
-        val id = identity(sdk) { "jwt" }
+        val gate = CompletableDeferred<String?>()
+        var fetched = 0
+        val id = identity(sdk) { fetched++; gate.await() }
         id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        runCurrent()
+        val refreshed = async { id.fresh() }
+        runCurrent()
+        gate.complete("jwt")
         advanceUntilIdle()
-        id.signOut()
-        assertEquals(Triple(null, null, null), sdk.identified.last(), "identify(null): signed out everywhere")
-        assertNull(id.current)
-        assertNull(id.fresh(), "the refresher has nobody to ask for")
-        // Signing in again fetches again: a token is never kept across a sign-out.
+        assertEquals("jwt", refreshed.await())
+        assertEquals(1, fetched, "one fetch, for the sign-in and the SDK's refresher alike")
+        assertEquals("jwt", sdk.identified.single().third)
+    }
+
+    @Test
+    fun aRingBeforeTheTokenIdentifiesAtOnceAndTheTokenFollows() = runTest {
+        val sdk = Sdk()
+        val gate = CompletableDeferred<String?>()
+        val id = identity(sdk) { gate.await() }
         id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
-        advanceUntilIdle()
-        assertEquals(listOf("jwt", "jwt"), sdk.tokens)
+        runCurrent()
+        id.identifyPendingNow()
+        assertEquals(Triple(traitsOf("P-1"), null, null), sdk.identified.single(), "the ringing call knows the user")
+        gate.complete("jwt")
+        runCurrent()
+        assertEquals(listOf("jwt"), sdk.tokens)
+        id.identifyPendingNow()
+        assertEquals(1, sdk.identified.size, "nothing waits any more: a later ring changes nothing")
+    }
+
+    @Test
+    fun aCallWaitsForTheIdentifyAtMostTwoSeconds() = runTest {
+        val sdk = Sdk()
+        val gate = CompletableDeferred<String?>()
+        val id = identity(sdk) { gate.await() }
+        id.awaitReady()
+        assertEquals(0L, currentTime, "nothing waits: at once")
+
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        var started = false
+        launch { id.awaitReady(); started = true }
+        runCurrent()
+        assertFalse(started, "a call placed now waits for the token")
+        gate.complete("jwt")
+        runCurrent()
+        assertTrue(started, "and starts once the user is identified with it")
+        assertEquals("jwt", sdk.identified.single().third)
+
+        // A token that never comes: the call waits two seconds, no more.
+        val never = CompletableDeferred<String?>()
+        val other = identity(Sdk()) { never.await() }
+        other.signIn("P-2", traitsOf("P-2"), memory = null, identityToken = null)
+        val from = currentTime
+        other.awaitReady()
+        assertEquals(wait, currentTime - from)
+        never.complete(null)
     }
 
     @Test
@@ -120,17 +253,6 @@ class UserIdentityTest {
         id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = "in-hand")
         assertEquals("jwt-P-1", id.fresh())
         assertEquals(listOf("P-1"), asked)
-    }
-
-    @Test
-    fun aFetchThatFailsIsNoTokenAndIsLogged() = runTest {
-        val sdk = Sdk()
-        val id = identity(sdk) { throw IllegalStateException("offline") }
-        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
-        advanceUntilIdle()
-        assertTrue(sdk.tokens.isEmpty())
-        assertTrue(sdk.logs.single().contains("no identity token"), sdk.logs.toString())
-        assertNull(id.fresh(), "a refresher that fails keeps the token the SDK holds")
     }
 
     @Test
