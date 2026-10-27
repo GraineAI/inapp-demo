@@ -1,6 +1,8 @@
 package ai.graine.demo.graine
 
 import ai.graine.demo.domain.DemoSignIn
+import ai.graine.demo.domain.DemoTokens
+import ai.graine.demo.domain.ServerTokenStore
 import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
@@ -412,14 +414,21 @@ class GraineService private constructor() : GraineClient {
         fun start(config: AppConfig, callName: String, appVersion: String, debug: Boolean): GraineService {
             instance?.let { return it }
             // A chat session closes this long after its screen closes (the SDK's default, set here so it is plain to see).
-            fun agentConfig(key: String) = GraineConfig(
+            fun agentConfig(key: String, tokenProvider: (suspend () -> String?)? = null) = GraineConfig(
                 baseUrl = config.baseUrl,
                 publishableKey = key,
                 appVersion = appVersion,
                 debug = debug,
                 chatCloseDelaySeconds = CHAT_CLOSE_DELAY_SECONDS,
+                // Server tokens (Profile → Server token (demo)): a DEMO stand-in for your own server. Off by default;
+                // null sends no token at all. The help desk agent runs without them (the minter mints for one agent).
+                tokenProvider = tokenProvider,
             )
-            Graine.configure(agentConfig(config.publishableKey))
+            val tokens = ServerTokenStore.load(Platform.store())
+            Graine.configure(agentConfig(config.publishableKey, DemoTokens.provider(
+                tokens, config.baseUrl, config.publishableKey,
+                get = { Platform.httpGet(it) }, post = { url, json -> Platform.httpPost(url, json) },
+            )))
             // Verified users: whenever the SDK needs a fresh ID token (one expired, or is about to), it asks the demo sign-in
             // server for the user who is signed in — a server, never a secret in the app (domain/DemoSignIn.kt).
             appConfig = config

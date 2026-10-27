@@ -24,7 +24,9 @@ expect object Platform {
     fun config(): AppConfig
     fun store(): KeyValueStore
     fun log(message: String)
-    /** A JSON POST's answer body, or null on any failure — the demo sign-in server (verified users). */
+    /** A GET's body, or null on any failure — only the demo token minter on the developer's own computer uses it. */
+    suspend fun httpGet(url: String): String?
+    /** A JSON POST's answer body, or null on any failure — the demo sign-in server and the demo token endpoint. */
     suspend fun httpPost(url: String, json: String): String?
 
     /**
