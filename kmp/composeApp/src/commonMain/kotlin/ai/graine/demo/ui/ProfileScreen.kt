@@ -179,8 +179,8 @@ private fun VerificationSection(model: AppModel) {
         Field("User", VerificationText.user(proven))
         if (debugToken != null) Field("Debug token", debugToken, monospace = true)
         Text(
-            "Set per agent under Embed & Widgets → Install → Your app and your users. This demo has no server, so it " +
-                "sends no identity token: keep its users on report only.",
+            "Set per agent under Embed & Widgets → Install → Your app and your users. The user is proven by the ID token " +
+                "the demo gets from Graine's demo sign-in server for whoever signed in — a server, never a secret in the app.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

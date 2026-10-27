@@ -24,6 +24,8 @@ expect object Platform {
     fun config(): AppConfig
     fun store(): KeyValueStore
     fun log(message: String)
+    /** A JSON POST's answer body, or null on any failure — the demo sign-in server (verified users). */
+    suspend fun httpPost(url: String, json: String): String?
 
     /**
      * Where "Your own design" draws the call screen: in place, over the app (iOS — the SDK opens no screen of its

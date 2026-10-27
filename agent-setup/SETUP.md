@@ -88,8 +88,9 @@ one of the fictional people, then run the QA checklist in the root README.
 ## 8. Your apps and your users — optional
 To let only the demo apps use the agent's key, and to see what Graine proves about each build: the demo's bundle ID,
 Team ID, package name and fingerprints, debug tokens for simulators and emulators, and the order to turn the
-switches on are in [`YOUR-APPS-AND-USERS.md`](YOUR-APPS-AND-USERS.md). Keep **Require verified users** off for the
-demo agent: the demo apps have no server to make identity tokens.
+switches on are in [`YOUR-APPS-AND-USERS.md`](YOUR-APPS-AND-USERS.md). **Verified users** use the sign-in token
+(JWT) method: the demo apps get each person's ID token from Graine's demo sign-in server — a server, never a secret in
+the app — and the demo agent checks it against that server's JWKS (section 7 there).
 
 ## Check your set-up
 - **The app says the key was refused** → Allowed domains lacks `app://`, or the key is from another agent.

@@ -64,6 +64,23 @@ actual object Platform {
         Log.i("GraineDemo", message)
     }
 
+    actual suspend fun httpPost(url: String, json: String): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 10_000
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json")
+            try {
+                conn.outputStream.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                if (conn.responseCode !in 200..299) null else conn.inputStream.bufferedReader().use { it.readText() }
+            } finally {
+                conn.disconnect()
+            }
+        }.getOrNull()
+    }
+
     /** The SDK opens a call screen for every call: the app's own is OwnCallActivity, named by [ownCallActivity]. */
     actual val ownCallScreenInPlace: Boolean = false
 

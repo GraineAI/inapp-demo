@@ -1,5 +1,6 @@
 package ai.graine.demo.ui
 
+import ai.graine.demo.domain.DemoSignIn
 import ai.graine.demo.domain.AgentCall
 import ai.graine.demo.domain.AgentProfile
 import ai.graine.demo.domain.AppConfig
@@ -359,6 +360,12 @@ class AppModel(
     fun signIn(user: UseCasePack.User, memory: Boolean) {
         val pack = pack ?: return
         graine.identify(pack.traitsFor(user), memory)
+        // Verified users: the ID token for this person comes from the demo sign-in server — a server, never a secret in
+        // the app. Given to the SDK when it arrives; the SDK asks again by itself when it expires (GraineService.start).
+        DemoSignIn.userId = user.id
+        scope.launch {
+            graine.fetchIdentityToken(user.id)?.let { token -> if (DemoSignIn.userId == user.id) graine.setIdentityToken(token) }
+        }
         graine.setVariables(pack.variablesFor(user))
         refreshVariables()
         // The microphone (and notifications on Android 13+) now, so a call or a ring never waits on a prompt.
@@ -389,6 +396,7 @@ class AppModel(
         addedVariables = emptyMap()
         sentVariables = emptyMap()
         graine.identify(null, null)
+        DemoSignIn.userId = null
         user = null
         items = null
         expandedRowId = null
