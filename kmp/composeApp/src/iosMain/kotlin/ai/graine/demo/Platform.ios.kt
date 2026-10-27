@@ -56,6 +56,24 @@ actual object Platform {
         task.resume()
     }
 
+    @OptIn(kotlinx.cinterop.BetaInteropApi::class, kotlinx.cinterop.ExperimentalForeignApi::class)
+    actual suspend fun httpGet(url: String): String? = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        val nsUrl = platform.Foundation.NSURL.URLWithString(url)
+        if (nsUrl == null) {
+            cont.resumeWith(Result.success(null))
+            return@suspendCancellableCoroutine
+        }
+        val task = platform.Foundation.NSURLSession.sharedSession.dataTaskWithURL(nsUrl) { data, response, error ->
+            val status = (response as? platform.Foundation.NSHTTPURLResponse)?.statusCode?.toInt() ?: 0
+            val body = if (error == null && status in 200..299 && data != null) {
+                platform.Foundation.NSString.create(data = data, encoding = platform.Foundation.NSUTF8StringEncoding)?.toString()
+            } else null
+            cont.resumeWith(Result.success(body))
+        }
+        cont.invokeOnCancellation { task.cancel() }
+        task.resume()
+    }
+
     actual fun log(message: String) {
         println("GraineDemo: $message")
     }

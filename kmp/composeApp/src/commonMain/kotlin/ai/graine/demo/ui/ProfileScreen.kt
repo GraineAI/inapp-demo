@@ -1,6 +1,8 @@
 package ai.graine.demo.ui
 
 import ai.graine.demo.domain.DemoScreen
+import ai.graine.demo.domain.ServerTokenMode
+import ai.graine.demo.domain.ServerTokenSettings
 import ai.graine.demo.domain.VerificationText
 import ai.graine.demo.platform.CallReadiness
 import androidx.compose.foundation.layout.Arrangement
@@ -88,6 +90,7 @@ fun ProfileScreen(model: AppModel) {
         }
 
         VerificationSection(model)
+        ServerTokenSection(model)
 
         OutlinedButton(
             onClick = { model.signOut() },
@@ -180,10 +183,69 @@ private fun VerificationSection(model: AppModel) {
         if (debugToken != null) Field("Debug token", debugToken, monospace = true)
         Text(
             "Set per agent under Embed & Widgets → Install → Your app and your users. The user is proven by the ID token " +
-                "the demo gets from Graine's demo sign-in server for whoever signed in — a server, never a secret in the app.",
+                "the demo gets from Graine's demo sign-in server for whoever signed in — a server, never a secret in the app. " +
+                "A server token (Server token, below) proves the user too once the agent checks server tokens.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/**
+ * Profile → Server token (demo): how this demo gets a server token. A DEMO TOKEN MINTER, clearly marked — a real
+ * app's tokenProvider asks the app's own server, which mints with its secret API key (domain/ServerToken.kt).
+ */
+@Composable
+private fun ServerTokenSection(model: AppModel) {
+    val saved = model.serverToken
+    var mode by remember(saved) { mutableStateOf(saved.mode) }
+    var token by remember(saved) { mutableStateOf(saved.token) }
+    var minter by remember(saved) { mutableStateOf(saved.minterUrl) }
+    val draft = ServerTokenSettings(mode, token.trim(), minter.trim())
+    Section("Server token (demo)") {
+        Text(
+            "The app never holds a secret: its token comes from a server. In your app, your server mints it for the " +
+                "signed-in user with your secret API key and your tokenProvider returns it. Here: Graine's demo server for " +
+                "Graine's demo agents, or — for your own agent — the local minter you run with your own key " +
+                "(agent-setup/token-minter.mjs), or a token you paste.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (m in ServerTokenMode.entries) {
+                val chosen = m == mode
+                if (chosen) {
+                    OutlinedButton(onClick = {}, modifier = Modifier.testTag("server_token_${m.wire}")) { Text(m.label, fontWeight = FontWeight.SemiBold) }
+                } else {
+                    TextButton(onClick = { mode = m }, modifier = Modifier.testTag("server_token_${m.wire}")) { Text(m.label) }
+                }
+            }
+        }
+        when (mode) {
+            ServerTokenMode.PASTE -> OutlinedTextField(
+                value = token, onValueChange = { token = it }, singleLine = true,
+                label = { Text("Token from POST /v2/client-tokens") },
+                modifier = Modifier.fillMaxWidth().testTag("server_token_value"),
+            )
+            ServerTokenMode.MINTER -> OutlinedTextField(
+                value = minter, onValueChange = { minter = it }, singleLine = true,
+                label = { Text("Local minter address") },
+                supportingText = { Text("Android emulator: http://10.0.2.2:8787 · iOS simulator: http://localhost:8787") },
+                modifier = Modifier.fillMaxWidth().testTag("server_token_minter"),
+            )
+            ServerTokenMode.DEMO -> Text(
+                "The app asks Graine's demo token endpoint for a token for the signed-in user. It signs only for Graine's demo " +
+                    "agents, with the demo workspace's secret key held on Graine's server.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            ServerTokenMode.OFF -> Text("No token is sent: the agent's publishable key is used alone.", style = MaterialTheme.typography.bodySmall)
+        }
+        val changed = draft != saved
+        TextButton(
+            enabled = changed && (draft.mode == ServerTokenMode.OFF || draft.usable),
+            onClick = { model.saveServerToken(draft) },
+            modifier = Modifier.testTag("server_token_save"),
+        ) { Text("Save — takes effect when the app starts again") }
     }
 }
 

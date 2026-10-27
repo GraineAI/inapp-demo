@@ -81,6 +81,19 @@ actual object Platform {
         }.getOrNull()
     }
 
+    actual suspend fun httpGet(url: String): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 10_000
+            try {
+                if (conn.responseCode !in 200..299) null else conn.inputStream.bufferedReader().use { it.readText() }
+            } finally {
+                conn.disconnect()
+            }
+        }.getOrNull()
+    }
+
     /** The SDK opens a call screen for every call: the app's own is OwnCallActivity, named by [ownCallActivity]. */
     actual val ownCallScreenInPlace: Boolean = false
 

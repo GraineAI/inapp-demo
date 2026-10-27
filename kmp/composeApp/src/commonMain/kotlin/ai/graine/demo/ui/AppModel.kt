@@ -1,6 +1,9 @@
 package ai.graine.demo.ui
 
 import ai.graine.demo.domain.DemoSignIn
+import ai.graine.demo.domain.DemoTokens
+import ai.graine.demo.domain.ServerTokenSettings
+import ai.graine.demo.domain.ServerTokenStore
 import ai.graine.demo.domain.AgentCall
 import ai.graine.demo.domain.AgentProfile
 import ai.graine.demo.domain.AppConfig
@@ -183,6 +186,15 @@ class AppModel(
      */
     var ownDesign by mutableStateOf(store.getString(OWN_DESIGN_KEY) == "on")
         private set
+    /** Profile → Server token (demo): how this app gets a server token, kept on the device (domain/ServerToken.kt). */
+    var serverToken by mutableStateOf(ServerTokenStore.load(store))
+        private set
+
+    /** Keep a new server-token choice; it takes effect the next time the app starts. */
+    fun saveServerToken(settings: ServerTokenSettings) {
+        ServerTokenStore.save(store, settings)
+        serverToken = settings
+    }
     /** The app's own booking screen, while it is open: its agent, the day and time picked, and how booking went. */
     var ownBooking by mutableStateOf<OwnBooking?>(null)
         private set
@@ -366,6 +378,9 @@ class AppModel(
         scope.launch {
             graine.fetchIdentityToken(user.id)?.let { token -> if (DemoSignIn.userId == user.id) graine.setIdentityToken(token) }
         }
+        // The server-token stand-ins (the demo endpoint, the local minter) mint for whoever is signed in — a real app's
+        // server knows that from its own sign-in.
+        DemoTokens.userId = user.id
         graine.setVariables(pack.variablesFor(user))
         refreshVariables()
         // The microphone (and notifications on Android 13+) now, so a call or a ring never waits on a prompt.
@@ -397,6 +412,7 @@ class AppModel(
         sentVariables = emptyMap()
         graine.identify(null, null)
         DemoSignIn.userId = null
+        DemoTokens.userId = null
         user = null
         items = null
         expandedRowId = null
