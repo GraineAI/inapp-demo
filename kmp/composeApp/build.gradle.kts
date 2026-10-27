@@ -102,11 +102,11 @@ kotlin {
         commonMain {
             kotlin.srcDir(generatePacks)
             dependencies {
-                // The Graine in-app SDK, as published (0.14.4; since 0.14.0 every state the SDK's own screens read is public, so the
+                // The Graine in-app SDK, as published (0.14.5; since 0.14.0 every state the SDK's own screens read is public, so the
                 // app's "Your own design" screens draw chat, voice, calls, booking and components themselves). The
                 // local-SDK switch in settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
-                implementation("ai.graine:inapp-kmp:0.14.4")
-                implementation("ai.graine:inapp-kmp-compose:0.14.4")
+                implementation("ai.graine:inapp-kmp:0.14.5")
+                implementation("ai.graine:inapp-kmp-compose:0.14.5")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
