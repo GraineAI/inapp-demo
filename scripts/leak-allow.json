@@ -1,0 +1,9 @@
+{
+  "description": "Public demo endpoints on www.graine.ai that the demo apps and their setup guides use by design: Graine's demo sign-in server (an ID token, its issuer and its JWKS) and its demo client-token endpoint. The repository's publish check allows exactly these paths: nothing else under /api, and nothing below them but /api/demo/idp/jwks, listed on its own.",
+  "paths": [
+    "/api/demo/identity-token",
+    "/api/demo/idp",
+    "/api/demo/idp/jwks",
+    "/api/demo/client-token"
+  ]
+}
