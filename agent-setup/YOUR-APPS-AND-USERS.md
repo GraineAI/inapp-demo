@@ -112,10 +112,12 @@ never from a secret built into the app:
   `{ "publishableKey": "<the app's key>", "userId": "<the person who signed in>" }` and passes the answer's `token` to
   the SDK (`Graine.setIdentityToken`, after `identify`). `Graine.identityTokenRefresher` asks again whenever the SDK
   needs a fresh one (the token lasts ten minutes).
-- The server signs only for Graine's demo apps (any other publishable key is refused), with a private key that never
-  leaves Graine's server (`DEMO_IDP_PRIVATE_JWK` and `DEMO_IDP_ORG_ID` in its environment). Its public keys are the
-  JWKS below; a key rotation publishes the old key beside the new one until old tokens expire
-  (`DEMO_IDP_PREVIOUS_JWKS`).
+- The server signs only for Graine's demo apps — their own publishable keys, built into Graine's server; any other key
+  is refused — with a private key that never leaves Graine's server. **Nothing to set up for Graine's own demo:** the
+  key comes from a secret Graine's server already holds, so there is no environment step; the JWKS below publishes its
+  public half. (A deployment may still name its own: `DEMO_IDP_PRIVATE_JWK` overrides the key, `DEMO_IDP_ORG_ID` signs
+  for one workspace's apps instead, and `DEMO_IDP_PREVIOUS_JWKS` keeps an old public key published until its tokens
+  expire.)
 - The demo agent's **Verified users** — Agent → Embed & Widgets → Install → Your app and your users → **Prove who the
   user is** → **Sign-in token (JWT)**:
 

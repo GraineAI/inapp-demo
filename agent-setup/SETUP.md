@@ -99,9 +99,11 @@ The demo apps never carry a secret. Their user's token comes from a server:
 - **Graine's demo agents — the demo token endpoint.** `POST https://www.graine.ai/api/demo/client-token` with
   `{ "publishableKey": "<the app's key>", "userId": "<the signed-in user>" }` answers `{ token, expires_at }`. It signs
   only for agents of Graine's demo workspace: the workspace's secret API key stays on Graine's server
-  (`DEMO_TOKEN_API_KEY` and `DEMO_TOKEN_ORG_ID` in its environment), and any other key is refused. Server tokens are
-  **Off** in the demo apps until you choose one: Profile → Server token (demo) → **Graine demo server**. (Verified users
-  already work without them — the sign-in token above, section 8.)
+  (`DEMO_TOKEN_API_KEY` and `DEMO_TOKEN_ORG_ID` in its environment), and any other key is refused. Unlike the
+  sign-in token, this one needs those two set on Graine's deployment — a server token is minted only with a
+  workspace's secret API key; until they are, the endpoint answers `not_configured`: choose **Local minter** or
+  **Paste a token** instead. Server tokens are **Off** in the demo apps until you choose one: Profile → Server token
+  (demo). (Verified users already work without them — the sign-in token above, section 8.)
 - **Your own agent — your own server.** In a real app your server mints the token for the user its sign-in proved,
   with your secret API key: `POST /v2/client-tokens`. To try that with the demo, run `token-minter.mjs` (beside this
   file) on your computer with **your** key and choose **Local minter** (debug builds reach your computer over plain
