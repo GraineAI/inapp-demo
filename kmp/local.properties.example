@@ -7,7 +7,8 @@ graine.publishableKey=pk_live_replace_me
 graine.helpPublishableKey=
 # Optional: the Journey's first-call agent (a flow agent), configured as "consultation" (../agent-setup/<pack>/journey).
 graine.consultationPublishableKey=
-# Optional: another server (default https://www.graine.ai).
+# Optional: another server (default https://www.graine.ai). A debug build may also use plain http to this
+# computer — http://10.0.2.2:<port> from the emulator (src/androidDebug); a release build is https only.
 graine.baseUrl=https://www.graine.ai
 # Your Android application id. It must match the Android app registered under Workspace settings ->
 # In-app calling, and the package in composeApp/google-services.json, for Graine to ring this app.
