@@ -1,5 +1,6 @@
 package ai.graine.demo.domain
 
+import ai.graine.demo.security.SecurityRefusal
 import ai.graine.inapp.kmp.GraineCallSource
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineErrorCode
@@ -55,13 +56,16 @@ object CallText {
 
     /**
      * Plain words for a refusal of the list or a cancel (the SDK's error codes; a
-     * booking's refusals are the sheet's own). For a code the app has no words of
-     * its own for, the SDK's message — the server's sentence when there was one.
+     * booking's refusals are the sheet's own). A refusal about the app, the user,
+     * the server token or the key reads as SecurityRefusal says it. For a code the
+     * app has no words of its own for, the SDK's message — the server's sentence
+     * when there was one.
      */
     fun message(error: Throwable?): String {
         val e = error as? GraineException
         // Not the SDK's refusal (an agent that is not configured, say): its own words.
         if (error != null && e == null) return error.message?.takeIf { it.isNotBlank() } ?: "Something went wrong. Try again."
+        e?.let { SecurityRefusal.of(it.code, it.reason) }?.let { return it.message }
         return when (e?.code ?: GraineErrorCode.Network) {
             GraineErrorCode.IdentityRequired -> "Sign in to use this."
             GraineErrorCode.DeviceLimit -> "This user is signed in on the maximum number of devices. Sign out on another device first."

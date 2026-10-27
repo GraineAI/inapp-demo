@@ -2,6 +2,7 @@ package ai.graine.demo.ui
 
 import ai.graine.demo.domain.CallText
 import ai.graine.demo.domain.DemoAgent
+import ai.graine.demo.security.SecurityText
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -81,6 +84,7 @@ fun HelpScreen(model: AppModel) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            NotLockedNote(model, name)
         } else {
             DemoCard(name) {
                 Text(
@@ -92,5 +96,29 @@ fun HelpScreen(model: AppModel) {
             }
         }
         Spacer(Modifier.height(72.dp))
+    }
+}
+
+/**
+ * A second agent's key ships in the app too, so it must be locked like the first: once this agent's settings have
+ * loaded and its verification reads off — it checks neither the app nor its users — the Help screen says so. Every
+ * agent has its own Your app and your users in the dashboard; nothing is shared with the main agent.
+ */
+@Composable
+private fun NotLockedNote(model: AppModel, name: String) {
+    val statuses by model.graine.security.collectAsState()
+    val help = statuses.firstOrNull { it.name == DemoAgent.HELP.sdkName } ?: return
+    if (!SecurityText.checksNothing(help)) return
+    val main = statuses.firstOrNull { it.name == DemoAgent.MAIN.sdkName }
+    val mainChecks = main != null && main.agentId != null && !SecurityText.checksNothing(main)
+    DemoCard("Security checks are off for $name") {
+        Text(
+            "Graine proves neither this app nor its users for $name: its verification reads off" +
+                (if (mainChecks) ", while it is on for ${model.agentName} — and the key nobody checks is the one anyone would use" else "") +
+                ". Every agent whose key ships in an app needs its own Your app and your users: set up its apps, proofs and " +
+                "switches too, under $name's Agent → Embed & Widgets → Install.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.testTag("help_not_locked"),
+        )
     }
 }

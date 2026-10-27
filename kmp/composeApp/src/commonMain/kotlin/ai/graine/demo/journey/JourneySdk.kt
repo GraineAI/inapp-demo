@@ -1,5 +1,6 @@
 package ai.graine.demo.journey
 
+import ai.graine.demo.security.GraineSecurity
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.GraineActionResult
 import ai.graine.inapp.kmp.GraineAgent
@@ -44,8 +45,11 @@ data class CallPermissionAnswer(val microphone: Boolean, val notifications: Bool
 interface JourneySdk {
     fun isConfigured(agent: JourneyAgent): Boolean
 
-    // 1. Onboarding: who the user is, what the agents know about them, the permissions a call needs
-    fun identify(traits: Map<String, String>?)
+    // 1. Onboarding: who the user is (and their proof), what the agents know about them, the permissions a call needs
+    /** Who the user is, proven by their identity token — at sign-up and at every launch while signed in. */
+    fun signIn(userId: String, traits: Map<String, String>)
+    /** Nobody: every agent lets the user go. */
+    fun signOut()
     fun setVariables(values: Map<String, String?>)
     suspend fun requestCallPermissions(): CallPermissionAnswer
 
@@ -103,12 +107,32 @@ class GraineJourneySdk : JourneySdk {
     private fun need(agent: JourneyAgent): GraineAgent =
         sdk(agent) ?: throw GraineException(GraineErrorCode.InvalidKey, "No publishable key is set for this agent.")
 
+    /**
+     * One of [agent]'s requests: a refusal about the app, the user, the server token or the key is noted
+     * (security/GraineSecurity.kt: the Security card, the log) and thrown on as it came. No retry of the app's own.
+     */
+    private suspend fun <T> guarded(agent: JourneyAgent, request: suspend (GraineAgent) -> T): T {
+        val graine = need(agent)
+        return try {
+            request(graine).also { GraineSecurity.noteAnswered(agent.sdkName) }
+        } catch (e: GraineException) {
+            GraineSecurity.noteRefusal(agent.sdkName, e)
+            throw e
+        }
+    }
+
     override fun isConfigured(agent: JourneyAgent): Boolean = sdk(agent) != null
 
     // ── 1. onboarding ───────────────────────────────────────────────────────
 
-    /** `Graine.identify(mapOf("user_id" to id, "name" to name))` — every agent hears who it is; null signs out everywhere. */
-    override fun identify(traits: Map<String, String>?) = Graine.identify(traits)
+    /**
+     * `Graine.identify(mapOf("user_id" to id, "name" to name), identityToken = …)` through GraineSecurity — every agent
+     * hears who it is, proven by the identity token.
+     */
+    override fun signIn(userId: String, traits: Map<String, String>) = GraineSecurity.signIn(userId, traits)
+
+    /** `Graine.identify(null)` through GraineSecurity: signed out everywhere, the token dropped with the identity. */
+    override fun signOut() = GraineSecurity.signOut()
 
     /** The profile as prompt variables, on every agent the journey talks to (each agent keeps its own); null removes one. */
     override fun setVariables(values: Map<String, String?>) {
@@ -149,12 +173,13 @@ class GraineJourneySdk : JourneySdk {
     override fun bookingSlots(day: LocalDate, agent: JourneyAgent): List<Instant> = sdk(agent)?.bookingSlots(day) ?: emptyList()
 
     /** `agent.scheduleCall(at, reason)`: Graine rings this phone then. Every refusal is a GraineException. */
-    override suspend fun scheduleCall(at: Instant, reason: String, agent: JourneyAgent): GraineScheduledCall = need(agent).scheduleCall(at, reason)
+    override suspend fun scheduleCall(at: Instant, reason: String, agent: JourneyAgent): GraineScheduledCall =
+        guarded(agent) { it.scheduleCall(at, reason) }
 
     /** The agent's calls for this user, with their status: a ring missed while the app was closed reads Missed. */
-    override suspend fun scheduledCalls(agent: JourneyAgent): List<GraineScheduledCall> = need(agent).scheduledCalls()
+    override suspend fun scheduledCalls(agent: JourneyAgent): List<GraineScheduledCall> = guarded(agent) { it.scheduledCalls() }
 
-    override suspend fun cancelScheduledCall(id: String, agent: JourneyAgent): GraineCallStatus = need(agent).cancelScheduledCall(id)
+    override suspend fun cancelScheduledCall(id: String, agent: JourneyAgent): GraineCallStatus = guarded(agent) { it.cancelScheduledCall(id) }
 
     // ── 3. we couldn't connect ──────────────────────────────────────────────
 
@@ -174,7 +199,9 @@ class GraineJourneySdk : JourneySdk {
         sdk(agent)?.chat?.shown(visible)
     }
 
+    /** `chat.retry()` — never after a refusal no retry can lift (app_not_allowed, key_revoked, token_scope). */
     override fun chatRetry(agent: JourneyAgent) {
+        if (GraineSecurity.refusedForGood(agent.sdkName)) return
         sdk(agent)?.chat?.retry()
     }
 
@@ -215,10 +242,10 @@ class GraineJourneySdk : JourneySdk {
     // ── 6. privacy ──────────────────────────────────────────────────────────
 
     /** `Graine.memories()`: what the coach remembers about the user, newest first. */
-    override suspend fun memories(): List<GraineMemory> = Graine.memories()
+    override suspend fun memories(): List<GraineMemory> = guarded(JourneyAgent.COACH) { it.memories() }
 
     /** `agent.forgetMemory()`: what that agent remembers about the user, and the conversation it kept, gone. */
-    override suspend fun forgetMemory(agent: JourneyAgent): Int = need(agent).forgetMemory()
+    override suspend fun forgetMemory(agent: JourneyAgent): Int = guarded(agent) { it.forgetMemory() }
 
     /**
      * `chat.pastSessions`, loaded page by page (`refreshPastSessions`, then `loadMorePastSessions`) up to [max]: the
@@ -229,7 +256,13 @@ class GraineJourneySdk : JourneySdk {
         chat.refreshPastSessions()
         var state = withTimeoutOrNull(PAGE_WAIT_MS) { chat.pastSessions.first { !it.loading } }
             ?: throw GraineException(GraineErrorCode.Network, "The conversations did not load in time.")
-        state.error?.let { if (state.sessions.isEmpty()) throw GraineException(GraineErrorCode.from(it), "The conversations could not be read ($it).") }
+        state.error?.let {
+            if (state.sessions.isEmpty()) {
+                val refused = GraineException(GraineErrorCode.from(it), "The conversations could not be read ($it).")
+                GraineSecurity.noteRefusal(agent.sdkName, refused)
+                throw refused
+            }
+        }
         while (state.hasMore && state.sessions.size < max) {
             val before = state.sessions.size
             chat.loadMorePastSessions()
@@ -240,7 +273,8 @@ class GraineJourneySdk : JourneySdk {
     }
 
     /** `chat.sessionTranscript(id)`: one past session's messages, oldest first. */
-    override suspend fun sessionTranscript(agent: JourneyAgent, id: String): GraineSessionTranscript = need(agent).chat.sessionTranscript(id)
+    override suspend fun sessionTranscript(agent: JourneyAgent, id: String): GraineSessionTranscript =
+        guarded(agent) { it.chat.sessionTranscript(id) }
 
     private companion object {
         const val PAGE_WAIT_MS = 10_000L

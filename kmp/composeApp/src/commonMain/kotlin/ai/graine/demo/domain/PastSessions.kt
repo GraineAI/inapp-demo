@@ -1,5 +1,6 @@
 package ai.graine.demo.domain
 
+import ai.graine.demo.security.SecurityRefusal
 import kotlinx.datetime.Instant
 
 /*
@@ -63,13 +64,16 @@ object PastSessionsText {
     const val EMPTY = "No past sessions yet. A session appears here once it has closed."
     const val LOADING = "Loading past sessions…"
 
-    /** Why the list did not load, in plain words: the two the SDK names for this list first, then the rest. */
+    /**
+     * Why the list did not load, in plain words: the two the SDK names for this list first, a refusal about the app,
+     * the user, the server token or the key as SecurityRefusal says it, then the rest.
+     */
     fun error(code: String?): String? = when (code) {
         null, "" -> null
         "identity_required" -> "Sign in to see past sessions."
         "device_limit" -> "Not available on this device."
         "rate_limited" -> "Too many requests. Try again in a few minutes."
-        else -> "Past sessions could not be loaded. Try again."
+        else -> SecurityRefusal.ofText(code)?.message ?: "Past sessions could not be loaded. Try again."
     }
 
     /** Why a transcript did not open: an unknown session, or another user's, is `not_found`; the rest as for the list. */

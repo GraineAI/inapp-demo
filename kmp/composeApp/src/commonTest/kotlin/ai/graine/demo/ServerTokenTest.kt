@@ -23,8 +23,11 @@ class ServerTokenTest {
         }
     }
 
+    /** Who is signed in, as GraineSecurity would say. */
+    private var signedIn: String? = null
+
     private fun provider(s: ServerTokenSettings, get: suspend (String) -> String? = { null }, post: suspend (String, String) -> String? = { _, _ -> null }) =
-        DemoTokens.provider(s, "https://www.graine.ai", "pk_test_demo", get, post)
+        DemoTokens.provider(s, "https://www.graine.ai", "pk_test_demo", user = { signedIn }, get = get, post = post)
 
     @Test
     fun offByDefault() {
@@ -39,11 +42,11 @@ class ServerTokenTest {
         val s = ServerTokenSettings(ServerTokenMode.DEMO)
         val sent = mutableListOf<Pair<String, String>>()
         val p = assertNotNull(provider(s, post = { url, json -> sent += url to json; """{"token":"from-the-server"}""" }))
-        DemoTokens.userId = "user-7"
+        assertNull(p(), "nobody signed in: nothing asked")
+        signedIn = "user-7"
         assertEquals("from-the-server", p())
         assertEquals("https://www.graine.ai/api/demo/client-token", sent.single().first)
         assertEquals("""{"publishableKey":"pk_test_demo","userId":"user-7"}""", sent.single().second)
-        DemoTokens.userId = null
     }
 
     @Test
@@ -74,12 +77,17 @@ class ServerTokenTest {
                 """{"token":"minted","expires_at":"2026-10-27T10:00:00Z"}"""
             }),
         )
-        DemoTokens.userId = null
         assertNull(p(), "nobody signed in: no token")
-        DemoTokens.userId = "user 1+é"
+        signedIn = "user 1+é"
         assertEquals("minted", p())
         assertEquals(listOf("http://10.0.2.2:8787/token?user_id=user%201%2B%C3%A9"), asked)
-        DemoTokens.userId = null
+    }
+
+    @Test
+    fun onlyTheDemoServerMintsForEveryAgent() {
+        // Each agent's token is its own: the demo endpoint mints for any of Graine's demo agents by its key; the local
+        // minter and a pasted token are one agent's — the main one.
+        assertEquals(listOf(ServerTokenMode.DEMO), ServerTokenMode.entries.filter { it.everyAgent })
     }
 
     @Test

@@ -82,6 +82,7 @@ class AppModelTest {
         advanceUntilIdle()
         // The id rides under the pack's field and under user_id, so either "Who is the user?" choice recognises the user.
         assertEquals(mapOf("plan" to "Diabetes care", "name" to "Riya Sharma", "patient_id" to "P-1", "user_id" to "P-1") to false, fake.identified.single())
+        assertEquals(listOf("P-1"), fake.signedInIds, "signed in by the user's id: the value the identity token proves")
         assertEquals(listOf("metformin", "atorvastatin", "vitamin-d3"), m.items!!.rows.map { it.id }, "only this user's rows")
         assertEquals("home", fake.lastScreen?.screen)
         assertEquals(listOf("memory", "next_call"), fake.lastScreen?.fields?.map { it.name })
@@ -89,6 +90,14 @@ class AppModelTest {
         assertEquals(null to null, fake.identified.last())
         assertNull(m.user)
         assertEquals("sign_in", fake.lastScreen?.screen)
+    }
+
+    @Test
+    fun theSecurityCardNamesEachAgentInThePacksWords() = runTest {
+        val (m, _) = model()
+        assertEquals("Asha", m.securityName("default"))
+        assertEquals("Help", m.securityName("help"), "a pack without a help agent's name")
+        assertEquals("consultation", m.securityName("consultation"), "a pack without a journey: the SDK's name")
     }
 
     @Test

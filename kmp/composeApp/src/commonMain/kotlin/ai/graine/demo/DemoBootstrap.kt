@@ -32,6 +32,7 @@ object DemoBootstrap {
             callName = pack?.call?.callName ?: "Graine Demo",
             appVersion = Platform.appVersion,
             debug = Platform.debug,
+            debugBuild = Platform.debugTools,
         )
         val journeySdk = GraineJourneySdk()
         val files = Platform.files()

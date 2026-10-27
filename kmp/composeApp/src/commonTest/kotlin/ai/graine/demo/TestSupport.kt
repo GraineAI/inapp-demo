@@ -141,7 +141,13 @@ class FakeGraineClient : GraineClient {
     override var onSessionReady: (() -> Unit)? = null
     override var onCallEvent: ((CallEvent) -> Unit)? = null
 
-    override fun identify(traits: Map<String, String>?, memory: Boolean?) { identified += traits to memory }
+    /** Every signIn's user id, in order. */
+    val signedInIds = mutableListOf<String>()
+    override fun signIn(userId: String, traits: Map<String, String>, memory: Boolean?) {
+        signedInIds += userId
+        identified += traits to memory
+    }
+    override fun signOut() { identified += null to null }
     val variables = mutableListOf<Map<String, String?>>()
     /** What the SDK would hold: every setVariables merged, null removing. */
     val held = LinkedHashMap<String, String>()

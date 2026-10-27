@@ -137,8 +137,15 @@ class FakeJourneySdk : JourneySdk {
     val configured = JourneyAgent.entries.toMutableSet()
     override fun isConfigured(agent: JourneyAgent): Boolean = agent in configured
 
+    /** What each signIn identified (null: a signOut), in order. */
     val identified = mutableListOf<Map<String, String>?>()
-    override fun identify(traits: Map<String, String>?) { identified += traits }
+    /** Every signIn's user id, in order. */
+    val signedInIds = mutableListOf<String>()
+    override fun signIn(userId: String, traits: Map<String, String>) {
+        signedInIds += userId
+        identified += traits
+    }
+    override fun signOut() { identified += null }
 
     val variables = mutableListOf<Map<String, String?>>()
     val held = LinkedHashMap<String, String>()

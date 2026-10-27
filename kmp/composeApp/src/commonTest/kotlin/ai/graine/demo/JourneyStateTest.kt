@@ -97,6 +97,7 @@ class JourneyStateTest {
 
         assertTrue(m.saveProfile(TestJourney.profile + ("notes" to "  ")).isEmpty())
         assertEquals(mapOf("user_id" to "user-test-1", "name" to "Sam"), h.sdk.identified.last(), "identify(user_id, name)")
+        assertEquals("user-test-1", h.sdk.signedInIds.last(), "signed in by the id the identity token proves")
         assertEquals(
             mapOf("level" to "beginner", "age" to "36", "hours_week" to "6", "notes" to null, "agent_language" to null, "language_style" to null),
             h.sdk.variables.last(),
@@ -710,6 +711,7 @@ class JourneyStateTest {
         val sdk = FakeJourneySdk()
         val again = JourneyHarness(this, sdk = sdk, files = h.files).model()
         assertEquals(mapOf("user_id" to "user-test-1", "name" to "Sam"), sdk.identified.first(), "identify at every launch")
+        assertEquals(listOf("user-test-1"), sdk.signedInIds.take(1), "with the identity token's user, at every launch")
         assertEquals("36", sdk.held["age"])
         assertTrue(sdk.actions.getValue(JourneyAgent.COACH).containsKey("save_week"))
         assertEquals(JourneyStage.READY, again.stage)

@@ -239,7 +239,7 @@ class JourneyModel(
     /** The user is gone from this phone: no variables, no identity, no reminders, nothing of theirs on screen or on disk. */
     private fun leaveThisPhone() {
         sdk.setVariables(journey.variableNames.associateWith { null })
-        sdk.identify(null)
+        sdk.signOut()
         reminders.replaceAll(emptyList())
         releaseCoachChat()
         pendingEvents.clear()
@@ -400,7 +400,7 @@ class JourneyModel(
     /** identify, then setVariables: the agents know who it is and the profile, from their next conversation on. */
     private fun tellAgentsWhoItIs() {
         val acc = account ?: return
-        sdk.identify(ProfileRules.traits(journey, acc.userId, profile))
+        sdk.signIn(acc.userId, ProfileRules.traits(journey, acc.userId, profile))
         sdk.setVariables(ProfileRules.variables(journey, profile, today()))
     }
 

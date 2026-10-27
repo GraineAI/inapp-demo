@@ -1,11 +1,14 @@
 package ai.graine.demo.ui.journey
 
 import ai.graine.demo.journey.ItemRef
+import ai.graine.demo.journey.JourneyAgent
 import ai.graine.demo.journey.JourneyModel
 import ai.graine.demo.journey.JourneyStats
 import ai.graine.demo.journey.JourneyText
 import ai.graine.demo.journey.JourneyTime
 import ai.graine.demo.journey.Weekday
+import ai.graine.demo.security.GraineSecurity
+import ai.graine.demo.ui.SecurityCard
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +28,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -235,6 +239,7 @@ fun AccountScreen(journey: JourneyModel, onMenu: () -> Unit) {
             // Always on in a debug build.
             Switch(checked = journey.testingTools, onCheckedChange = { journey.setTestingTools(it) }, enabled = !journey.isDebugBuild, modifier = Modifier.testTag("journey_testing_tools"))
         }
+        if (journey.testingTools) JourneySecurity(journey)
         QuietButton("Log out", { journey.logOut() }, tag = "journey_log_out")
     }
     if (confirmDelete) {
@@ -254,3 +259,27 @@ fun AccountScreen(journey: JourneyModel, onMenu: () -> Unit) {
 
 private val QUIET_STARTS = listOf("21:00", "22:00", "23:00")
 private val QUIET_ENDS = listOf("06:00", "07:00", "08:00")
+
+/**
+ * Testing tools → Security: what Graine has proven for each of the journey's agents — the app, the user, the server
+ * token, the last refusal — and, in a debug build only, this install's debug token (security/GraineSecurity.kt).
+ */
+@Composable
+private fun JourneySecurity(journey: JourneyModel) {
+    val statuses by GraineSecurity.statuses.collectAsState()
+    val agents = journey.journey.agents
+    Text("Security", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
+    SecurityCard(
+        statuses,
+        signedIn = GraineSecurity.userId != null,
+        debugToken = GraineSecurity.debugToken,
+        nameOf = { name ->
+            when (JourneyAgent.ofSdkName(name)) {
+                JourneyAgent.COACH -> agents.coach.name
+                JourneyAgent.FIRST_CALL -> agents.firstCall.name
+                JourneyAgent.SUPPORT -> agents.support.name
+                null -> name
+            }
+        },
+    )
+}

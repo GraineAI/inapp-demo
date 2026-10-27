@@ -1,16 +1,18 @@
 package ai.graine.demo.graine
 
-import ai.graine.demo.domain.DemoSignIn
-import ai.graine.demo.domain.DemoTokens
-import ai.graine.demo.domain.ServerTokenStore
 import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoScreenContext
+import ai.graine.demo.domain.DemoSignIn
+import ai.graine.demo.domain.DemoTokens
 import ai.graine.demo.domain.PastSessionsState
+import ai.graine.demo.domain.ServerTokenStore
 import ai.graine.demo.domain.SessionTranscript
 import ai.graine.demo.journey.JourneyAgent
 import ai.graine.demo.platform.Platform
+import ai.graine.demo.security.AgentSecurity
+import ai.graine.demo.security.GraineSecurity
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.GraineCallTransport
 import ai.graine.inapp.kmp.GraineActionResult
@@ -29,7 +31,6 @@ import ai.graine.inapp.kmp.GraineMemory
 import ai.graine.inapp.kmp.GraineScheduledCall
 import ai.graine.inapp.kmp.GraineSchedulingRules
 import ai.graine.inapp.kmp.GraineScreen
-import ai.graine.inapp.kmp.GraineVerification
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -72,12 +73,14 @@ interface GraineClient {
     /** The agents configured: the main one always, the help desk when its key is set. */
     val agents: List<DemoAgent>
 
-    // Who the user is, and memory (shared by every agent)
-    fun identify(traits: Map<String, String>?, memory: Boolean?)
-    /** The signed-in user's ID token, from a server (Graine.setIdentityToken): it proves who they are. A fake ignores it. */
-    fun setIdentityToken(token: String?) {}
-    /** A fresh ID token for [userId] from the demo sign-in server (domain/DemoSignIn.kt); null when none can be had. A fake has none. */
-    suspend fun fetchIdentityToken(userId: String): String? = null
+    // Who the user is, and memory (shared by every agent) — through security/GraineSecurity.kt
+    /**
+     * Sign-in (and every launch while someone is signed in): who the user is — [userId] rides in [traits] under the
+     * pack's field and under user_id — proven by their identity token (GraineSecurity.signIn), with their memory choice.
+     */
+    fun signIn(userId: String, traits: Map<String, String>, memory: Boolean?)
+    /** Sign out everywhere (GraineSecurity.signOut): this device stops being the user's; later conversations are anonymous. */
+    fun signOut()
 
     /**
      * The agents' prompt {variables} — what an API call sends as `variables` — set through the SDK, for
@@ -154,10 +157,10 @@ interface GraineClient {
     /** How long [agent]'s chat stays open once no screen shows it (chat.closeDelaySeconds; set at launch with GraineConfig.chatCloseDelaySeconds). */
     fun chatCloseDelaySeconds(agent: DemoAgent): Int
 
-    // Your app and your users (SDK 0.14.4): what Graine has proven about this build and the person, for the main agent
-    /** The SDK's own state (Graine.verification): both OFF until the agent's settings ask for them. */
-    val verification: StateFlow<GraineVerification> get() = NOTHING_PROVEN
-    /** This install's debug token while the build sends one — a debug build (Graine.debugToken); null in a release build. */
+    // Your app and your users, and server tokens: what Graine has proven, per agent (security/GraineSecurity.kt)
+    /** Every configured agent's security, as it changes — Profile's Security card, the Help screen's note. */
+    val security: StateFlow<List<AgentSecurity>> get() = NO_AGENTS
+    /** This install's debug token — in a debug build only (GraineSecurity.debugToken); null in a release build. */
     val debugToken: String? get() = null
 
     // What the SDK reports
@@ -165,12 +168,14 @@ interface GraineClient {
     var onCallEvent: ((CallEvent) -> Unit)?
 }
 
-/** Nothing proven, nothing asked: what a client without the SDK (the tests' fake) reports. */
-private val NOTHING_PROVEN: StateFlow<GraineVerification> = MutableStateFlow(GraineVerification())
+/** No agent configured: what a client without the SDK (the tests' fake) reports. */
+private val NO_AGENTS: StateFlow<List<AgentSecurity>> = MutableStateFlow(emptyList())
 
 /**
  * THE ONE FILE THAT CALLS THE GRAINE SDK — `ai.graine:inapp-kmp`, from shared
- * code, on Android and iOS alike.
+ * code, on Android and iOS alike — except security: who the user is and their
+ * proof, the app's proof, server tokens and refusals are all in
+ * security/GraineSecurity.kt, which this file calls.
  *
  * Two agents, each with its own publishable key: the main one is the SDK's
  * default agent, the help desk is configured under the name "help" when its
@@ -215,6 +220,8 @@ class GraineService private constructor() : GraineClient {
         }
         scope.launch {
             Graine.calls.outcomes.collect { o ->
+                // A call that could not start for the app, the user, the server token or the key says why with the code first.
+                if (o.outcome == GraineCallOutcome.Kind.FAILED) GraineSecurity.noteRefusalText(o.agent ?: Graine.DEFAULT_AGENT, o.reason)
                 // The ring itself is the "incoming" line already.
                 if (o.outcome != GraineCallOutcome.Kind.RINGING) {
                     onCallEvent?.invoke(CallEvent(o.callId, o.outcome.wire, o.reason, DemoAgent.ofSdkName(o.agent), o.durationSeconds, o.connection, o.endCause))
@@ -229,17 +236,28 @@ class GraineService private constructor() : GraineClient {
 
     private fun noAgent() = GraineException(GraineErrorCode.InvalidKey, "No publishable key is set for this agent.")
 
+    /**
+     * One of [agent]'s requests: a refusal about security is noted — the Security card, the log — and thrown on as it
+     * came, for the screen to say in plain words (CallText.message). No retry of the app's own: the SDK did its one.
+     */
+    private suspend fun <T> guarded(agent: DemoAgent, request: suspend (GraineAgent) -> T): T {
+        val graine = sdk(agent) ?: throw noAgent()
+        return try {
+            request(graine).also { GraineSecurity.noteAnswered(agent.sdkName) }
+        } catch (e: GraineException) {
+            GraineSecurity.noteRefusal(agent.sdkName, e)
+            throw e
+        }
+    }
+
     // ── who the user is, and memory (the SDK shares them with every agent) ──
 
-    // null signs out everywhere: the device stops being this user's, and later conversations are anonymous.
-    override fun identify(traits: Map<String, String>?, memory: Boolean?) = Graine.identify(traits, memory)
+    // Identified at once, proven by the identity token as soon as it is had (security/GraineSecurity.kt).
+    override fun signIn(userId: String, traits: Map<String, String>, memory: Boolean?) = GraineSecurity.signIn(userId, traits, memory)
 
-    override fun setIdentityToken(token: String?) = Graine.setIdentityToken(token)
+    // Every agent: the device stops being this user's, and later conversations are anonymous.
+    override fun signOut() = GraineSecurity.signOut()
 
-    override suspend fun fetchIdentityToken(userId: String): String? {
-        val config = appConfig ?: return null
-        return DemoSignIn.fetch(config.baseUrl, config.publishableKey, userId) { url, json -> Platform.httpPost(url, json) }
-    }
     override fun setVariables(values: Map<String, String?>) = agents.forEach { sdk(it)?.setVariables(values) }
     override fun currentVariables(): Map<String, String> = Graine.currentVariables()
 
@@ -251,9 +269,9 @@ class GraineService private constructor() : GraineClient {
 
     override val installId: String get() = Graine.installId
 
-    override suspend fun forgetMemory(): Int = Graine.forgetMemory()
+    override suspend fun forgetMemory(): Int = guarded(DemoAgent.MAIN) { it.forgetMemory() }
 
-    override suspend fun memories(): List<GraineMemory> = Graine.memories()
+    override suspend fun memories(): List<GraineMemory> = guarded(DemoAgent.MAIN) { it.memories() }
 
     override val agentMemoryEnabled: Boolean? get() = Graine.session.value?.memoryEnabled
 
@@ -299,12 +317,12 @@ class GraineService private constructor() : GraineClient {
 
     // The day, the time, the time zone, "What's it about?" and its refusals are the sheet's own.
     override suspend fun presentBooking(reason: String?, agent: DemoAgent): GraineScheduledCall? =
-        (sdk(agent) ?: throw noAgent()).presentBooking(reason)
+        guarded(agent) { it.presentBooking(reason) }
 
-    override suspend fun scheduledCalls(agent: DemoAgent): List<GraineScheduledCall> = (sdk(agent) ?: throw noAgent()).scheduledCalls()
+    override suspend fun scheduledCalls(agent: DemoAgent): List<GraineScheduledCall> = guarded(agent) { it.scheduledCalls() }
 
     override suspend fun cancelScheduledCall(id: String, agent: DemoAgent): GraineCallStatus =
-        (sdk(agent) ?: throw noAgent()).cancelScheduledCall(id)
+        guarded(agent) { it.cancelScheduledCall(id) }
 
     // Your own design: the same rules and times the SDK's sheet uses, read from its public state.
     override fun schedulingRules(agent: DemoAgent): GraineSchedulingRules = sdk(agent)?.schedulingRules ?: GraineSchedulingRules()
@@ -312,7 +330,7 @@ class GraineService private constructor() : GraineClient {
     override fun bookingSlots(day: LocalDate, agent: DemoAgent): List<Instant> = sdk(agent)?.bookingSlots(day) ?: emptyList()
 
     override suspend fun scheduleCall(at: Instant, reason: String?, agent: DemoAgent): GraineScheduledCall =
-        (sdk(agent) ?: throw noAgent()).scheduleCall(at, reason)
+        guarded(agent) { it.scheduleCall(at, reason) }
 
     // ── voice in the bar, chat, and native calls ────────────────────────────
 
@@ -355,7 +373,10 @@ class GraineService private constructor() : GraineClient {
     private val pastSessionFlows = mutableMapOf<DemoAgent, StateFlow<PastSessionsState>>()
 
     override fun pastSessions(agent: DemoAgent): StateFlow<PastSessionsState> = pastSessionFlows.getOrPut(agent) {
-        sdk(agent)?.let { PastSessionsSdk.state(it, scope) } ?: MutableStateFlow(PastSessionsState(error = "unavailable"))
+        val state = sdk(agent)?.let { PastSessionsSdk.state(it, scope) } ?: return@getOrPut MutableStateFlow(PastSessionsState(error = "unavailable"))
+        // The list's refusal is a word ("identity_unverified"): one about security is noted like any other request's.
+        scope.launch { state.collect { s -> s.error?.let { GraineSecurity.noteRefusalText(agent.sdkName, it) } } }
+        state
     }
 
     override fun refreshPastSessions(agent: DemoAgent) {
@@ -367,31 +388,15 @@ class GraineService private constructor() : GraineClient {
     }
 
     override suspend fun sessionTranscript(id: String, agent: DemoAgent): SessionTranscript =
-        PastSessionsSdk.transcript(sdk(agent) ?: throw noAgent(), id)
+        guarded(agent) { PastSessionsSdk.transcript(it, id) }
 
     override fun chatCloseDelaySeconds(agent: DemoAgent): Int = sdk(agent)?.chat?.closeDelaySeconds ?: CHAT_CLOSE_DELAY_SECONDS
 
-    // ── your app and your users (SDK 0.14.4) ───────────────────────────────
+    // ── your app and your users, and server tokens (security/GraineSecurity.kt) ──
 
-    override val verification: StateFlow<GraineVerification> get() = Graine.verification
+    override val security: StateFlow<List<AgentSecurity>> get() = GraineSecurity.statuses
 
-    override val debugToken: String? get() = Graine.debugToken
-
-    /**
-     * Prove this build at launch, so the first conversation never waits for it: the SDK sends nothing when the agent
-     * does not ask for a verified app, or while it holds a pass with hours left. A debug build never asks App Attest
-     * or Play Integrity: it sends this install's debug token instead (Graine.debugTokenMode stays automatic — never
-     * forced on for a release build) and logs it once, to register on the agent. Never throws for a failed proof.
-     */
-    private fun prepareAppVerification() {
-        for (agent in agents) {
-            val graine = sdk(agent) ?: continue
-            scope.launch {
-                val verdict = graine.prepareAppVerification()
-                Platform.log("App verification (${agent.sdkName}): ${verdict.word}")
-            }
-        }
-    }
+    override val debugToken: String? get() = GraineSecurity.debugToken
 
     override fun startNativeCall(reason: String, variables: Map<String, String>, agent: DemoAgent): String? {
         if (sdk(agent) == null) return null
@@ -400,53 +405,58 @@ class GraineService private constructor() : GraineClient {
 
     companion object {
         private var instance: GraineService? = null
-        /** The keys and base URL this launch was configured with: the demo sign-in server is asked with them. */
-        private var appConfig: AppConfig? = null
 
         /** How long a chat session stays open after the chat screen closes, in seconds (GraineConfig.chatCloseDelaySeconds). */
         const val CHAT_CLOSE_DELAY_SECONDS = 15
 
         /**
-         * Configure the agents and the calls. Once per launch. The help desk is
-         * optional: without its key — or if it cannot be started, which the log
-         * says — the Help screen says so and everything else works.
+         * Configure the agents and the calls. Once per launch. The help desk and the Journey's first-call agent are
+         * optional: without a key — or if one cannot be started, which the log says — its screens say so and
+         * everything else works. [debugBuild]: a debug build, which shows its debug token on Profile.
          */
-        fun start(config: AppConfig, callName: String, appVersion: String, debug: Boolean): GraineService {
+        fun start(config: AppConfig, callName: String, appVersion: String, debug: Boolean, debugBuild: Boolean): GraineService {
             instance?.let { return it }
-            // A chat session closes this long after its screen closes (the SDK's default, set here so it is plain to see).
-            fun agentConfig(key: String, tokenProvider: (suspend () -> String?)? = null) = GraineConfig(
-                baseUrl = config.baseUrl,
-                publishableKey = key,
-                appVersion = appVersion,
-                debug = debug,
-                chatCloseDelaySeconds = CHAT_CLOSE_DELAY_SECONDS,
-                // Server tokens (Profile → Server token (demo)): a DEMO stand-in for your own server. Off by default;
-                // null sends no token at all. The help desk agent runs without them (the minter mints for one agent).
-                tokenProvider = tokenProvider,
-            )
+            // DEMO ONLY — server tokens from a stand-in for your server (Profile → Server token (demo), domain/ServerToken.kt).
+            // Off by default: no agent gets a tokenProvider, and no token is ever sent.
             val tokens = ServerTokenStore.load(Platform.store())
-            Graine.configure(agentConfig(config.publishableKey, DemoTokens.provider(
-                tokens, config.baseUrl, config.publishableKey,
-                get = { Platform.httpGet(it) }, post = { url, json -> Platform.httpPost(url, json) },
-            )))
-            // Verified users: whenever the SDK needs a fresh ID token (one expired, or is about to), it asks the demo sign-in
-            // server for the user who is signed in — a server, never a secret in the app (domain/DemoSignIn.kt).
-            appConfig = config
-            Graine.identityTokenRefresher = { DemoSignIn.userId?.let { id -> instance?.fetchIdentityToken(id) } }
-            if (config.hasHelpKey) {
-                runCatching { Graine.configure(agentConfig(config.helpPublishableKey), name = DemoAgent.HELP.sdkName) }
-                    .onFailure { Platform.log("The help agent is not available here: ${it.message}") }
-            }
-            // The Journey's first-call agent (a flow agent): its first call, booked or now, and its chat version.
-            if (config.hasConsultationKey) {
-                runCatching { Graine.configure(agentConfig(config.consultationPublishableKey), name = JourneyAgent.FIRST_CALL.sdkName) }
-                    .onFailure { Platform.log("The first-call agent is not available here: ${it.message}") }
-            }
+            fun demoTokens(key: String, main: Boolean): (suspend () -> String?)? =
+                if (!main && !tokens.mode.everyAgent) null
+                else DemoTokens.provider(
+                    tokens, config.baseUrl, key, user = { GraineSecurity.userId },
+                    get = { Platform.httpGet(it) }, post = { url, json -> Platform.httpPost(url, json) },
+                )
+            // Each agent: its own publishable key — and, when server tokens are on, its own tokenProvider. A chat session
+            // closes this long after its screen closes (the SDK's default, set here so it is plain to see).
+            fun agent(name: String, key: String, main: Boolean = false) = GraineSecurity.Agent(
+                name,
+                GraineConfig(
+                    baseUrl = config.baseUrl,
+                    publishableKey = key,
+                    appVersion = appVersion,
+                    debug = debug,
+                    chatCloseDelaySeconds = CHAT_CLOSE_DELAY_SECONDS,
+                    tokenProvider = demoTokens(key, main),
+                ),
+            )
+            GraineSecurity.start(
+                agents = buildList {
+                    add(agent(Graine.DEFAULT_AGENT, config.publishableKey, main = true))
+                    if (config.hasHelpKey) add(agent(DemoAgent.HELP.sdkName, config.helpPublishableKey))
+                    // The Journey's first-call agent (a flow agent): its first call, booked or now, and its chat version.
+                    if (config.hasConsultationKey) add(agent(JourneyAgent.FIRST_CALL.sdkName, config.consultationPublishableKey))
+                },
+                // DEMO ONLY — your sign-in hands you the user's ID token (Firebase: user.getIdToken(false)). This demo has no
+                // sign-in, so Graine's demo sign-in server signs one for the person picked (domain/DemoSignIn.kt).
+                identityTokens = { userId ->
+                    DemoSignIn.fetch(config.baseUrl, config.publishableKey, userId) { url, json -> Platform.httpPost(url, json) }
+                },
+                debugBuild = debugBuild,
+                log = { Platform.log(it) },
+            )
             // iOS: receive the agents' calls as VoIP pushes (Android: the SDK's own messaging service rings them).
             Graine.calls.enableVoIPPushes()
             return GraineService().also {
                 it.setCallName(callName)
-                it.prepareAppVerification()
                 instance = it
             }
         }

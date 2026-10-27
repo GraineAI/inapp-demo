@@ -1,29 +1,26 @@
 package ai.graine.demo.domain
 
 /*
- * VERIFIED USERS IN THE DEMO — the user's ID token comes from a SERVER, never
- * from a secret in the app.
+ * ═══ DEMO ONLY — YOUR SIGN-IN DOES THIS. DO NOT COPY THIS FILE. ═══
  *
- * In your app, your own sign-in gives the app an ID token (a JWT) for the person
- * who signed in; the app passes it to identify() and gives the SDK a refresher
- * that asks for a fresh one. The agent's Verified users setting names your sign-in's
- * JWKS URL, issuer, audience and the claim that carries the user id — Graine
- * holds no secret for it.
+ * Step 4, Prove who the user is: GraineSecurity.signIn needs the signed-in user's ID token. In your app it comes from
+ * YOUR sign-in — Firebase `user.getIdToken(false)`, or your Auth0, Cognito or Okta session — a token your identity
+ * provider signs for the person who really signed in. The agent's Prove who the user is names that provider's JWKS
+ * URL, issuer, audience and user-ID claim; Graine holds no secret for it, and neither does your app.
  *
- * The demo apps have no sign-in server of their own, so they ask Graine's DEMO
- * SIGN-IN SERVER, which signs only for Graine's demo apps, with a private key
- * held on Graine's server:
+ * This demo has no sign-in — you pick a fictional person — so it asks Graine's DEMO SIGN-IN SERVER, which signs a
+ * ten-minute ID token for whatever user id it is given, with a private key that never leaves Graine's server. Graine
+ * enables it for its own demo workspace only: any other workspace's publishable key is refused.
  *
  *   POST {baseUrl}/api/demo/identity-token  { publishableKey, userId }  →  { token, expires_at }
  *
- * The demo agent's Verified users setting then uses the JWT method with
- * JWKS URL {baseUrl}/api/demo/idp/jwks, issuer {baseUrl}/api/demo/idp, audience
- * graine-demo and claim sub (agent-setup/YOUR-APPS-AND-USERS.md).
+ * Signing for any user id it is asked for is what makes it a stand-in, never a proof: your sign-in signs only for the
+ * person who signed in, and that is what makes the token a proof. (For sensitive data, add server tokens minted by
+ * your own server: https://www.graine.ai/docs/in-app/secure-your-agent.) The demo agent's Prove who the user is uses
+ * JWKS URL {baseUrl}/api/demo/idp/jwks, issuer {baseUrl}/api/demo/idp, audience graine-demo and claim sub
+ * (agent-setup/YOUR-APPS-AND-USERS.md).
  */
 object DemoSignIn {
-    /** Who is signed in now, as the demo identifies them; null when nobody is. */
-    var userId: String? = null
-
     fun url(baseUrl: String): String = baseUrl.trimEnd('/') + "/api/demo/identity-token"
 
     fun body(publishableKey: String, userId: String): String =

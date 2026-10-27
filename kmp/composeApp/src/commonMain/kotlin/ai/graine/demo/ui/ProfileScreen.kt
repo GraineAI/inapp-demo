@@ -3,7 +3,6 @@ package ai.graine.demo.ui
 import ai.graine.demo.domain.DemoScreen
 import ai.graine.demo.domain.ServerTokenMode
 import ai.graine.demo.domain.ServerTokenSettings
-import ai.graine.demo.domain.VerificationText
 import ai.graine.demo.platform.CallReadiness
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -89,7 +88,7 @@ fun ProfileScreen(model: AppModel) {
             )
         }
 
-        VerificationSection(model)
+        SecuritySection(model)
         ServerTokenSection(model)
 
         OutlinedButton(
@@ -169,22 +168,18 @@ private fun VariablesSection(model: AppModel, agent: String) {
 }
 
 /**
- * Your app and your users (SDK 0.14.4): what Graine has proven about this build and about the person, read from the
- * SDK's public state. Both say "not checked" until the agent's settings ask for them. A debug build also shows its
- * debug token, to copy into the agent's Development → Debug tokens; a release build has none.
+ * Security: for every agent this app talks to, what Graine has proven about this build, the person and the server
+ * token, the last refusal — and, in a debug build only, this install's debug token with Copy (SecurityCard, read from
+ * security/GraineSecurity.kt). Everything says "not checked" or "off" until the agent's settings ask for it.
  */
 @Composable
-private fun VerificationSection(model: AppModel) {
-    val proven by model.graine.verification.collectAsState()
-    val debugToken = model.graine.debugToken
-    Section("What Graine has proven") {
-        Field("App", VerificationText.app(proven))
-        Field("User", VerificationText.user(proven))
-        if (debugToken != null) Field("Debug token", debugToken, monospace = true)
+private fun SecuritySection(model: AppModel) {
+    val statuses by model.graine.security.collectAsState()
+    Section("Security") {
+        SecurityCard(statuses, signedIn = model.user != null, debugToken = model.graine.debugToken, nameOf = { model.securityName(it) })
         Text(
-            "Set per agent under Embed & Widgets → Install → Your app and your users. The user is proven by the ID token " +
-                "the demo gets from Graine's demo sign-in server for whoever signed in — a server, never a secret in the app. " +
-                "A server token (Server token, below) proves the user too once the agent checks server tokens.",
+            "This demo proves its users with an ID token from Graine's demo sign-in server — a stand-in for your own " +
+                "sign-in, which signs only for the person who signed in. No secret is ever in the app.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -192,8 +187,8 @@ private fun VerificationSection(model: AppModel) {
 }
 
 /**
- * Profile → Server token (demo): how this demo gets a server token. A DEMO TOKEN MINTER, clearly marked — a real
- * app's tokenProvider asks the app's own server, which mints with its secret API key (domain/ServerToken.kt).
+ * Profile → Server token (demo): how this demo gets a server token. DEMO ONLY, clearly marked — a real app's
+ * tokenProvider asks the app's own server, which mints with its secret API key (domain/ServerToken.kt).
  */
 @Composable
 private fun ServerTokenSection(model: AppModel) {
@@ -204,10 +199,10 @@ private fun ServerTokenSection(model: AppModel) {
     val draft = ServerTokenSettings(mode, token.trim(), minter.trim())
     Section("Server token (demo)") {
         Text(
-            "The app never holds a secret: its token comes from a server. In your app, your server mints it for the " +
-                "signed-in user with your secret API key and your tokenProvider returns it. Here: Graine's demo server for " +
-                "Graine's demo agents, or — for your own agent — the local minter you run with your own key " +
-                "(agent-setup/token-minter.mjs), or a token you paste.",
+            "Demo only. The app never holds a secret: its token comes from a server. In your app, your server mints it for " +
+                "the signed-in user with your secret API key, one per agent, and that agent's tokenProvider returns it. " +
+                "Here: Graine's demo server for Graine's demo agents (every agent of the app), or — for your own main agent — " +
+                "the local minter you run with your own key (agent-setup/token-minter.mjs), or a token you paste.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

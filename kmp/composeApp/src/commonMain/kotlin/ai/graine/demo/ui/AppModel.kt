@@ -1,7 +1,5 @@
 package ai.graine.demo.ui
 
-import ai.graine.demo.domain.DemoSignIn
-import ai.graine.demo.domain.DemoTokens
 import ai.graine.demo.domain.ServerTokenSettings
 import ai.graine.demo.domain.ServerTokenStore
 import ai.graine.demo.domain.AgentCall
@@ -27,8 +25,10 @@ import ai.graine.demo.domain.UseCasePack
 import ai.graine.demo.domain.UseCasePacks
 import ai.graine.demo.graine.CallEvent
 import ai.graine.demo.graine.GraineClient
+import ai.graine.demo.journey.JourneyAgent
 import ai.graine.demo.journey.JourneyModel
 import ai.graine.demo.platform.KeyValueStore
+import ai.graine.demo.security.SecurityRefusal
 import ai.graine.inapp.kmp.GraineBookingState
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineException
@@ -346,6 +346,11 @@ class AppModel(
     /** The agent's name as the app shows it. */
     fun nameOf(agent: DemoAgent): String = profile(agent)?.name ?: if (agent == DemoAgent.MAIN) agentName else "Help"
 
+    /** An agent's name on the Security card, by the name the SDK knows it by: the pack's words, else that name. */
+    fun securityName(sdkName: String): String = DemoAgent.ofSdkName(sdkName)?.let { nameOf(it) }
+        ?: (if (sdkName == JourneyAgent.FIRST_CALL.sdkName) pack?.journey?.agents?.firstCall?.name else null)
+        ?: sdkName
+
     val chatOpen: Boolean get() = chatAgent != null
     val voiceBarVisible: Boolean get() = voiceAgent != null
 
@@ -368,19 +373,13 @@ class AppModel(
 
     // ── signing in and out ──────────────────────────────────────────────────
 
-    /** The demo's sign-in: identify the user once, with their memory consent. The SDK identifies them to every agent. */
+    /**
+     * The demo's sign-in: the user identified once, with their memory consent — and proven by their identity token
+     * (security/GraineSecurity.kt). The SDK identifies them to every agent.
+     */
     fun signIn(user: UseCasePack.User, memory: Boolean) {
         val pack = pack ?: return
-        graine.identify(pack.traitsFor(user), memory)
-        // Verified users: the ID token for this person comes from the demo sign-in server — a server, never a secret in
-        // the app. Given to the SDK when it arrives; the SDK asks again by itself when it expires (GraineService.start).
-        DemoSignIn.userId = user.id
-        scope.launch {
-            graine.fetchIdentityToken(user.id)?.let { token -> if (DemoSignIn.userId == user.id) graine.setIdentityToken(token) }
-        }
-        // The server-token stand-ins (the demo endpoint, the local minter) mint for whoever is signed in — a real app's
-        // server knows that from its own sign-in.
-        DemoTokens.userId = user.id
+        graine.signIn(user.id, pack.traitsFor(user), memory)
         graine.setVariables(pack.variablesFor(user))
         refreshVariables()
         // The microphone (and notifications on Android 13+) now, so a call or a ring never waits on a prompt.
@@ -410,9 +409,7 @@ class AppModel(
         }
         addedVariables = emptyMap()
         sentVariables = emptyMap()
-        graine.identify(null, null)
-        DemoSignIn.userId = null
-        DemoTokens.userId = null
+        graine.signOut()
         user = null
         items = null
         expandedRowId = null
@@ -788,8 +785,15 @@ class AppModel(
         )
     }
 
-    /** A booking refused: the SDK's sentence (its booking sheet's words, or the server's), else the app's words. */
-    private fun refusal(e: Throwable): String = (e as? GraineException)?.message?.trim()?.takeIf { it.isNotEmpty() } ?: words(e)
+    /**
+     * A booking refused: a refusal about the app, the user, the server token or the key in SecurityRefusal's words;
+     * else the SDK's sentence (its booking sheet's words, or the server's), else the app's words.
+     */
+    private fun refusal(e: Throwable): String {
+        val g = e as? GraineException
+        g?.let { SecurityRefusal.of(it.code, it.reason) }?.let { return it.message }
+        return g?.message?.trim()?.takeIf { it.isNotEmpty() } ?: words(e)
+    }
 
     // ── call activity ───────────────────────────────────────────────────────
 
