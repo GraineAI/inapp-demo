@@ -9,8 +9,21 @@ import ai.graine.demo.journey.ReminderScheduler
 import ai.graine.demo.journey.TextStore
 import androidx.compose.runtime.Composable
 import kotlin.experimental.ExperimentalNativeApi
+import platform.Foundation.HTTPBody
+import platform.Foundation.HTTPMethod
 import platform.Foundation.NSBundle
+import platform.Foundation.NSHTTPURLResponse
+import platform.Foundation.NSMutableURLRequest
+import platform.Foundation.NSString
+import platform.Foundation.NSURL
+import platform.Foundation.NSURLSession
+import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.NSUserDefaults
+import platform.Foundation.create
+import platform.Foundation.dataTaskWithRequest
+import platform.Foundation.dataTaskWithURL
+import platform.Foundation.dataUsingEncoding
+import platform.Foundation.setValue
 
 actual object Platform {
     actual val name: String = "iOS"
@@ -36,19 +49,21 @@ actual object Platform {
 
     @OptIn(kotlinx.cinterop.BetaInteropApi::class, kotlinx.cinterop.ExperimentalForeignApi::class)
     actual suspend fun httpPost(url: String, json: String): String? = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-        val nsUrl = platform.Foundation.NSURL.URLWithString(url)
+        val nsUrl = NSURL.URLWithString(url)
         if (nsUrl == null) {
             cont.resumeWith(Result.success(null))
             return@suspendCancellableCoroutine
         }
-        val request = platform.Foundation.NSMutableURLRequest.requestWithURL(nsUrl)
-        request.setHTTPMethod("POST")
+        // HTTPMethod, HTTPBody, setValue(_:forHTTPHeaderField:), dataUsingEncoding and the completion-handler
+        // dataTask calls come from Objective-C categories: Kotlin has them as imported extensions, not members.
+        val request = NSMutableURLRequest.requestWithURL(nsUrl)
+        request.HTTPMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField = "Content-Type")
-        request.setHTTPBody(platform.Foundation.NSString.create(string = json).dataUsingEncoding(platform.Foundation.NSUTF8StringEncoding))
-        val task = platform.Foundation.NSURLSession.sharedSession.dataTaskWithRequest(request) { data, response, error ->
-            val status = (response as? platform.Foundation.NSHTTPURLResponse)?.statusCode?.toInt() ?: 0
+        request.HTTPBody = NSString.create(string = json).dataUsingEncoding(NSUTF8StringEncoding)
+        val task = NSURLSession.sharedSession.dataTaskWithRequest(request) { data, response, error ->
+            val status = (response as? NSHTTPURLResponse)?.statusCode?.toInt() ?: 0
             val body = if (error == null && status in 200..299 && data != null) {
-                platform.Foundation.NSString.create(data = data, encoding = platform.Foundation.NSUTF8StringEncoding)?.toString()
+                NSString.create(data = data, encoding = NSUTF8StringEncoding)?.toString()
             } else null
             cont.resumeWith(Result.success(body))
         }
@@ -58,15 +73,15 @@ actual object Platform {
 
     @OptIn(kotlinx.cinterop.BetaInteropApi::class, kotlinx.cinterop.ExperimentalForeignApi::class)
     actual suspend fun httpGet(url: String): String? = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-        val nsUrl = platform.Foundation.NSURL.URLWithString(url)
+        val nsUrl = NSURL.URLWithString(url)
         if (nsUrl == null) {
             cont.resumeWith(Result.success(null))
             return@suspendCancellableCoroutine
         }
-        val task = platform.Foundation.NSURLSession.sharedSession.dataTaskWithURL(nsUrl) { data, response, error ->
-            val status = (response as? platform.Foundation.NSHTTPURLResponse)?.statusCode?.toInt() ?: 0
+        val task = NSURLSession.sharedSession.dataTaskWithURL(nsUrl) { data, response, error ->
+            val status = (response as? NSHTTPURLResponse)?.statusCode?.toInt() ?: 0
             val body = if (error == null && status in 200..299 && data != null) {
-                platform.Foundation.NSString.create(data = data, encoding = platform.Foundation.NSUTF8StringEncoding)?.toString()
+                NSString.create(data = data, encoding = NSUTF8StringEncoding)?.toString()
             } else null
             cont.resumeWith(Result.success(body))
         }
