@@ -61,7 +61,7 @@ android {
         minSdk = 26
         targetSdk = 36
         // The build number, as the iOS app's CURRENT_PROJECT_VERSION: an APK and an IPA of the same code carry the same one.
-        versionCode = 19
+        versionCode = 20
         versionName = "1.0.0"
         buildConfigField("String", "GRAINE_PUBLISHABLE_KEY", "\"${setting("graine.publishableKey", "GRAINE_PUBLISHABLE_KEY", "")}\"")
         // Optional: a second agent (the pack's help desk) for the Help tab.
