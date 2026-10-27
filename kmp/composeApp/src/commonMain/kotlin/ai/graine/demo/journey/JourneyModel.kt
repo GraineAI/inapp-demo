@@ -665,7 +665,7 @@ class JourneyModel(
     fun onForeground() {
         if (!open) return
         if (stage == JourneyStage.BOOKED || stage == JourneyStage.IN_CALL) reconcile()
-        if (stage == JourneyStage.BUILDING_PLAN && coachStatus != GraineChatStatus.ONLINE && coachStatus != GraineChatStatus.CONNECTING) {
+        if (stage == JourneyStage.BUILDING_PLAN && coachStatus != GraineChatStatus.CONNECTED && coachStatus != GraineChatStatus.CONNECTING) {
             sdk.chatRetry(JourneyAgent.COACH)
         }
     }
@@ -754,13 +754,16 @@ class JourneyModel(
     }
 
     /**
-     * An event for the coach to speak up about: reported once its chat is ONLINE (`Graine.reportEvent` is dropped
-     * with no conversation live), in the order they came. A chat that gave up is asked to connect again.
+     * An event for the coach to speak up about: reported once its chat is CONNECTED (`Graine.reportEvent` is dropped
+     * with no conversation live), in the order they came. A chat that is offline, gave up (FAILED, SDK 0.14.5) or was
+     * ended is asked to connect again.
      */
     private fun report(name: String, detail: String?) {
         pendingEvents.addLast(name to detail)
-        if (coachStatus == GraineChatStatus.ONLINE) flushEvents()
-        else if (coachStatus == GraineChatStatus.OFFLINE || coachStatus == GraineChatStatus.DISCONNECTED) sdk.chatRetry(JourneyAgent.COACH)
+        if (coachStatus == GraineChatStatus.CONNECTED) flushEvents()
+        else if (coachStatus == GraineChatStatus.OFFLINE || coachStatus == GraineChatStatus.FAILED || coachStatus == GraineChatStatus.DISCONNECTED) {
+            sdk.chatRetry(JourneyAgent.COACH)
+        }
     }
 
     /**
@@ -770,14 +773,14 @@ class JourneyModel(
     private fun onCoachStatus(status: GraineChatStatus) {
         coachStatus = status
         when (status) {
-            GraineChatStatus.ONLINE -> {
+            GraineChatStatus.CONNECTED -> {
                 if (askAgainWhenOnline && stage == JourneyStage.BUILDING_PLAN) {
                     askAgainWhenOnline = false
                     pendingEvents.addLast(journey.events.firstCallFinished to journey.events.firstCallFinishedDetail)
                 }
                 flushEvents()
             }
-            GraineChatStatus.IDLE, GraineChatStatus.OFFLINE, GraineChatStatus.DISCONNECTED ->
+            GraineChatStatus.IDLE, GraineChatStatus.OFFLINE, GraineChatStatus.FAILED, GraineChatStatus.DISCONNECTED ->
                 if (planAsked && stage == JourneyStage.BUILDING_PLAN) askAgainWhenOnline = true
             else -> Unit
         }

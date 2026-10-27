@@ -141,10 +141,10 @@ class JourneyStateTest {
 
         h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTING
         assertTrue(h.sdk.reported.isEmpty())
-        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTED
         assertEquals(listOf<Pair<String, String?>>("kickoff_done" to "Build the first study week"), h.sdk.reported, "Graine.reportEvent, once")
         h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.RECONNECTING
-        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTED
         assertEquals(1, h.sdk.reported.size, "never twice")
 
         // The coach reads what the first call learned and saves the week.
@@ -486,7 +486,7 @@ class JourneyStateTest {
     @Test
     fun aSlowPlanCanBeAskedForAgainOrSkippedToTheChat() = runTest {
         val (m, h) = buildingPlan()
-        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTED
         assertEquals(1, h.sdk.reported.size)
         assertFalse(m.planSlow)
         advanceTimeBy(JourneyModel.PLAN_SLOW_MS + 1)
@@ -528,7 +528,7 @@ class JourneyStateTest {
 
     private suspend fun TestScope.ready(): Pair<JourneyModel, JourneyHarness> {
         val (m, h) = buildingPlan()
-        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTED
         h.sdk.run(JourneyAgent.COACH, "save_week", week)
         assertEquals(JourneyStage.READY, m.stage)
         h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.IDLE
@@ -557,7 +557,7 @@ class JourneyStateTest {
         m.openCheckIn(CheckInSchedule.id(LocalDate(2026, 10, 14), "14:00"))
         assertEquals(JourneyRoute.CHAT, m.route)
         assertTrue(h.sdk.reported.isEmpty(), "waits for ONLINE")
-        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTED
         assertEquals(listOf<Pair<String, String?>>("lesson_check_in" to "Opened the lesson reminder: Lesson 2 at 2:00 pm on Wednesday."), h.sdk.reported)
         m.openCheckIn("not-an-id")
         m.openCheckIn(CheckInSchedule.id(LocalDate(2026, 10, 14), "09:00"))
@@ -568,7 +568,7 @@ class JourneyStateTest {
     @Test
     fun simulateReminderOpensTheNextCheckIn() = runTest {
         val (m, h) = ready()
-        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTED
         m.simulateReminder()
         assertEquals("lesson_check_in", h.sdk.reported.single().first)
         assertTrue(h.sdk.reported.single().second!!.contains("Lesson 2"))
@@ -582,7 +582,7 @@ class JourneyStateTest {
         ai.graine.demo.journey.ReminderTaps.deliver(CheckInSchedule.id(LocalDate(2026, 10, 14), "14:00"))
         val again = JourneyHarness(this, sdk = h.sdk, files = h.files).model()
         assertEquals(JourneyRoute.CHAT, again.route)
-        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(JourneyAgent.COACH).value = GraineChatStatus.CONNECTED
         assertEquals("lesson_check_in", h.sdk.reported.last().first)
         again.close()
     }

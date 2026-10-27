@@ -76,7 +76,7 @@ class JourneyEdgeCasesTest {
     @Test
     fun aPlanSavedTwiceKeepsTheLastAndMovesOnOnce() = runTest {
         val (m, h) = building()
-        h.sdk.chats.getValue(coach).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(coach).value = GraineChatStatus.CONNECTED
         h.sdk.run(coach, "save_week", week("wed"))
         val shown = h.sdk.shown.toList()
         h.sdk.run(coach, "save_week", week("thu", "fri"))
@@ -91,22 +91,22 @@ class JourneyEdgeCasesTest {
     fun aPlanAskedForInAConversationThatEndedIsAskedForAgain() = runTest {
         val (m, h) = building()
         val chat = h.sdk.chats.getValue(coach)
-        chat.value = GraineChatStatus.ONLINE
+        chat.value = GraineChatStatus.CONNECTED
         assertEquals(1, h.sdk.reported.size)
         // A blip on the same conversation: not asked twice.
         chat.value = GraineChatStatus.RECONNECTING
-        chat.value = GraineChatStatus.ONLINE
+        chat.value = GraineChatStatus.CONNECTED
         assertEquals(1, h.sdk.reported.size)
         // The app went to the background: the conversation ended. Back in front, the chat comes back and is asked again.
         chat.value = GraineChatStatus.IDLE
         m.onForeground()
         assertEquals(1, h.sdk.retries, "the chat connects again")
-        chat.value = GraineChatStatus.ONLINE
+        chat.value = GraineChatStatus.CONNECTED
         assertEquals(listOf("kickoff_done", "kickoff_done"), h.sdk.reported.map { it.first })
         h.sdk.run(coach, "save_week", week("wed"))
         assertEquals(JourneyStage.READY, m.stage)
         chat.value = GraineChatStatus.IDLE
-        chat.value = GraineChatStatus.ONLINE
+        chat.value = GraineChatStatus.CONNECTED
         assertEquals(2, h.sdk.reported.size, "once the plan is in, nothing more")
         m.close()
     }
@@ -119,7 +119,7 @@ class JourneyEdgeCasesTest {
         val again = JourneyHarness(this, sdk = sdk, files = h.files).model()
         assertEquals(JourneyStage.BUILDING_PLAN, again.stage)
         assertEquals(listOf(coach to true), sdk.shown)
-        sdk.chats.getValue(coach).value = GraineChatStatus.ONLINE
+        sdk.chats.getValue(coach).value = GraineChatStatus.CONNECTED
         assertEquals("kickoff_done", sdk.reported.single().first)
         again.close()
     }
@@ -140,7 +140,7 @@ class JourneyEdgeCasesTest {
     @Test
     fun aPlanThatNeverComesNeverSpinsForever() = runTest {
         val (m, h) = building()
-        h.sdk.chats.getValue(coach).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(coach).value = GraineChatStatus.CONNECTED
         advanceTimeBy(JourneyModel.PLAN_SLOW_MS + 1)
         assertTrue(m.planSlow, "the screen offers Ask again and the chat")
         m.askForPlanAgain()
@@ -264,7 +264,7 @@ class JourneyEdgeCasesTest {
 
     private suspend fun TestScope.ready(): Pair<JourneyModel, JourneyHarness> {
         val (m, h) = building()
-        h.sdk.chats.getValue(coach).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(coach).value = GraineChatStatus.CONNECTED
         h.sdk.run(coach, "save_week", week("wed", "thu"))
         h.sdk.chats.getValue(coach).value = GraineChatStatus.IDLE
         h.sdk.reported.clear()
@@ -281,7 +281,7 @@ class JourneyEdgeCasesTest {
         assertTrue(h.sdk.reported.isEmpty())
         assertEquals(JourneyStage.READY, m.stage, "a call with the coach changes nothing of the journey")
         h.sdk.callState.value = GraineCallInfo()
-        h.sdk.chats.getValue(coach).value = GraineChatStatus.ONLINE
+        h.sdk.chats.getValue(coach).value = GraineChatStatus.CONNECTED
         assertEquals("lesson_check_in", h.sdk.reported.single().first)
         m.close()
     }

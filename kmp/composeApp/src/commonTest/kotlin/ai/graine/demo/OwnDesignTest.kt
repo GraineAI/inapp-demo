@@ -32,8 +32,8 @@ class OwnDesignTest {
     @Test
     fun chatStatusSaysDisconnectedAndOffersRetryOnlyOnceTheChatGaveUp() {
         assertEquals("Disconnected · send a message to continue", OwnText.chatStatus(GraineChatStatus.DISCONNECTED))
-        assertEquals("Typing…", OwnText.chatStatus(GraineChatStatus.ONLINE, typing = true))
-        assertEquals("Online", OwnText.chatStatus(GraineChatStatus.ONLINE))
+        assertEquals("Typing…", OwnText.chatStatus(GraineChatStatus.CONNECTED, typing = true))
+        assertEquals("Online", OwnText.chatStatus(GraineChatStatus.CONNECTED))
         assertEquals("Reconnecting…", OwnText.chatStatus(GraineChatStatus.RECONNECTING))
         assertEquals("Couldn't reconnect · tap Retry", OwnText.chatStatus(GraineChatStatus.OFFLINE, failed = true))
         assertEquals("Offline · messages are sent when it reconnects", OwnText.chatStatus(GraineChatStatus.OFFLINE))

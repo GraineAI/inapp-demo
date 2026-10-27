@@ -27,15 +27,20 @@ import kotlinx.datetime.toLocalDateTime
 
 /** The words the app's own screens put on the SDK's states. */
 object OwnText {
-    /** The chat's connection, in one line under the agent's name; [failed]: it gave up reconnecting (`chat.failed`). */
+    /**
+     * The chat's connection, in one line under the agent's name. Since SDK 0.14.5 a chat that gave up says
+     * [GraineChatStatus.FAILED] and a live one [GraineChatStatus.CONNECTED]; [failed] (`chat.failed`, deprecated since)
+     * still reads as FAILED does.
+     */
     fun chatStatus(status: GraineChatStatus, typing: Boolean = false, failed: Boolean = false): String = if (failed) {
         "Couldn't reconnect · tap Retry"
     } else when (status) {
         GraineChatStatus.IDLE -> "Not connected"
         GraineChatStatus.CONNECTING -> "Connecting…"
-        GraineChatStatus.ONLINE -> if (typing) "Typing…" else "Online"
+        GraineChatStatus.CONNECTED -> if (typing) "Typing…" else "Online"
         GraineChatStatus.RECONNECTING -> "Reconnecting…"
         GraineChatStatus.OFFLINE -> "Offline · messages are sent when it reconnects"
+        GraineChatStatus.FAILED -> "Couldn't reconnect · tap Retry"
         GraineChatStatus.DISCONNECTED -> "Disconnected · send a message to continue"
     }
 
