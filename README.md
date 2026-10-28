@@ -198,7 +198,7 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 ### Where the SDKs come from
 
-Every app uses a published release: **0.14.4** for iOS, Android and Flutter, **0.14.6** for Kotlin Multiplatform; React Native 0.44.1,
+Every app uses a published release: **0.14.4** for iOS, Android and Flutter, **0.14.7** for Kotlin Multiplatform; React Native 0.44.1,
 calls 0.5.1. The sources of the iOS (and its
 WebRTC module), Android, Kotlin Multiplatform and Flutter SDKs are public repositories (MIT licence), tagged with each
 release.
@@ -207,7 +207,7 @@ release.
 |---|---|---|
 | iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.14.4 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
 | Android | `ai.graine:inapp-android:0.14.4` and `ai.graine:inapp-android-rtc:0.14.4` | Maven Central |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.6 (+ `inapp-android-rtc` 0.14.6); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.6 | Maven Central, Swift Package Manager |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.7 (+ `inapp-android-rtc` 0.14.7); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.7 | Maven Central, Swift Package Manager |
 | Flutter | `graine_inapp: ^0.14.4` | pub.dev |
 | React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — |
