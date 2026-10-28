@@ -31,20 +31,20 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.5), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.6), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**The published SDK, or its sources.** The app is pinned to SDK **0.14.5** for Kotlin Multiplatform and iOS:
-`ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.5 from Maven Central (on Android they build on the Android
-SDK 0.14.4, with `ai.graine:inapp-android-rtc` 0.14.4 for WebRTC calls), and GraineInApp and GraineInAppRTC 0.14.5 from
+**The published SDK, or its sources.** The app is pinned to SDK **0.14.6** for Kotlin Multiplatform and iOS:
+`ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.6 from Maven Central (on Android they build on the Android
+SDK 0.14.6, with `ai.graine:inapp-android-rtc` 0.14.6 for WebRTC calls), and GraineInApp and GraineInAppRTC 0.14.6 from
 Swift Package Manager (`iosApp/iosApp.xcodeproj`). They are published, so nothing is set: build and run as below.
 
 **Your own app.** The multiplatform library calls Graine's iOS SDK and does not carry it, so an iOS app built
 with it links GraineInApp itself, at the same version: add `https://github.com/GraineAI/inapp-ios` (and
 `https://github.com/GraineAI/inapp-ios-rtc` for WebRTC calls) with Swift Package Manager to the **app target**, or
-`pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.5'` to its Podfile, and
+`pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.6'` to its Podfile, and
 build the shared framework static (`isStatic = true`, as `composeApp/build.gradle.kts` does). A link error naming
 `_OBJC_CLASS_$_GraineObjC` means the app target does not link GraineInApp: add it to the target (General →
 Frameworks, Libraries, and Embedded Content), clean the build folder and build again.
@@ -64,8 +64,8 @@ The public repositories are the same sources, tagged with each release — for e
 catches up with a tag that is already on GitHub (iOS then takes the tag from Swift Package Manager as usual):
 
 ```sh
-git clone --branch 0.14.5 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.14.4 https://github.com/GraineAI/inapp-android ../graine-sdk/android   # the Android SDK KMP 0.14.5 builds on
+git clone --branch 0.14.6 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.14.6 https://github.com/GraineAI/inapp-android ../graine-sdk/android   # the Android SDK KMP 0.14.6 builds on
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -132,7 +132,7 @@ Home, Chat and the Items screen talk to the main agent; the **Help** tab talks t
 signs in once and both agents know who they are; **Calls** lists the calls booked with either agent.
 Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the pack's `bookLabel` on
 **Calls** opens the main agent's, the one on **Help** the help desk's, each with the pack's first reason
-filled in. Both platforms run both agents (`ai.graine:inapp-kmp` 0.14.5 on Android and iOS alike), and
+filled in. Both platforms run both agents (`ai.graine:inapp-kmp` 0.14.6 on Android and iOS alike), and
 **Call activity** names the agent of every ring and outcome.
 
 **Each agent is locked on its own.** The help desk's publishable key ships in the app as the main agent's does, so it
@@ -329,13 +329,15 @@ needs no server of yours:
 - **The claim must hold the id the app identifies the user with** — the value of the agent's **Who is the user?** field
   (`patient_id` here). If your sign-in's user id is something else, put the id in a claim of its own and name that claim.
 
-**Pass the token you already hold; if you must fetch it, fetch it before identify — a conversation started before the
-token is answered anonymously** while the agent requires verified users. The SDK holds no token across launches, and
-before a chat, the voice bar or a call it asks the refresher only for a token about to expire, never for a missing one:
-identified without a token, the first conversation goes out unproven. So `GraineSecurity.signIn` identifies **with** the
-token: the one you pass at once; otherwise it fetches the token first and waits for it, at most 2 seconds
-(`UserIdentity.TOKEN_WAIT_MS`), then identifies without it, keeps fetching and hands it over with
-`Graine.setIdentityToken` when it comes. Meanwhile nobody is identified — never the last user — calls and the voice bar
+**Pass the token you already hold; if you must fetch it, fetch it before identify, and set the refresher.** The SDK
+holds no token across launches. `GraineSecurity.signIn` identifies **with** the token: the one you pass at once;
+otherwise it fetches the token first and waits for it, at most 2 seconds (`UserIdentity.TOKEN_WAIT_MS`), so every
+request proves the user from the first one; then it identifies without it, keeps fetching and hands it over with
+`Graine.setIdentityToken` when it comes. A conversation the user starts in between is not answered anonymously: since
+SDK 0.14.6, before a chat, the voice bar, a call or a request for the user (memories, past sessions, booked calls), the
+SDK asks the refresher for a token it does not hold and waits for it, at most 10 seconds — the refresher joins the fetch
+already on its way — so the app needs no wait of its own for the token. (On 0.14.5 and older, a conversation started
+before the token arrived went out unproven: update.) Meanwhile nobody is identified — never the last user — calls and the voice bar
 wait for it (`GraineSecurity.awaitSignIn`, at once when nothing waits), every request does too, a call that rings
 identifies the user at once (it knows who it rings; the token follows), and an open chat is reconnected as the user by
 the SDK when the identity arrives. A token fetched for one user is never handed over for the next, and sign-out cancels
@@ -385,7 +387,7 @@ the **Help** screen says so when the help desk checks neither the app nor its us
 
 ### Roll it out: report-only, then on
 
-1. Ship the SDK (0.14.4 or later; this app is on 0.14.5) with App Attest, Play Integrity and `GraineSecurity`.
+1. Ship the SDK (0.14.4 or later; 0.14.6 for the wait below; this app is on 0.14.6) with App Attest, Play Integrity and `GraineSecurity`.
 2. For each agent: **Your apps**, then **Check app proofs (report only)**, **Prove who the user is** (report only) and
    **Server tokens → Report only**.
 3. Watch **What we've seen** for a few days, until *Not in your list*, *Not verified* and missing tokens are only traffic

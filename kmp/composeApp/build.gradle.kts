@@ -102,11 +102,11 @@ kotlin {
         commonMain {
             kotlin.srcDir(generatePacks)
             dependencies {
-                // The Graine in-app SDK, as published (0.14.5; since 0.14.0 every state the SDK's own screens read is public, so the
+                // The Graine in-app SDK, as published (0.14.6; since 0.14.0 every state the SDK's own screens read is public, so the
                 // app's "Your own design" screens draw chat, voice, calls, booking and components themselves). The
                 // local-SDK switch in settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
-                implementation("ai.graine:inapp-kmp:0.14.5")
-                implementation("ai.graine:inapp-kmp-compose:0.14.5")
+                implementation("ai.graine:inapp-kmp:0.14.6")
+                implementation("ai.graine:inapp-kmp-compose:0.14.6")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
@@ -119,7 +119,7 @@ kotlin {
         }
         androidMain.dependencies {
             // WebRTC calls on Android: the module beside the SDK (the same version as inapp-kmp).
-            implementation("ai.graine:inapp-android-rtc:0.14.4")
+            implementation("ai.graine:inapp-android-rtc:0.14.6")
             implementation("androidx.activity:activity-compose:1.9.3")
             // The Journey's reminders (notifications) and "Download my data" (FileProvider).
             implementation("androidx.core:core-ktx:1.13.1")

@@ -22,7 +22,7 @@ import kotlin.test.assertTrue
 /**
  * Step 4's rules (security/GraineSecurity.kt): identify WITH the identity token — the one in hand at once, else the one
  * fetched first, waited for at most two seconds; after that without it, the token following when it comes — and a
- * conversation the user starts waits for the token itself, at most ten seconds. Nobody else
+ * conversation started before then is the SDK's to hold (0.14.6 asks the refresher, which joins this fetch). Nobody else
  * is ever identified meanwhile, a token fetched for one user never reaches the next, and sign-out cancels everything.
  * The SDK side is recorded here.
  */
@@ -219,7 +219,7 @@ class UserIdentityTest {
     }
 
     @Test
-    fun aCallWaitsForTheTokenAtMostTenSeconds() = runTest {
+    fun aCallWaitsForTheIdentifyAtMostTwoSeconds() = runTest {
         val sdk = Sdk()
         val gate = CompletableDeferred<String?>()
         val id = identity(sdk) { gate.await() }
@@ -236,44 +236,37 @@ class UserIdentityTest {
         assertTrue(started, "and starts once the user is identified with it")
         assertEquals("jwt", sdk.identified.single().third)
 
-        // A token that never comes: the call waits for it ten seconds, no more, then starts (anonymously).
+        // A token that never comes: the call waits two seconds, no more.
         val never = CompletableDeferred<String?>()
         val other = identity(Sdk()) { never.await() }
         other.signIn("P-2", traitsOf("P-2"), memory = null, identityToken = null)
         val from = currentTime
         other.awaitReady()
-        assertEquals(UserIdentity.CONVERSATION_TOKEN_WAIT_MS, currentTime - from)
+        assertEquals(wait, currentTime - from)
         never.complete(null)
     }
 
     @Test
-    fun aCallWaitsForASlowTokenPastTheIdentifyWait() = runTest {
-        // Seen live on a phone: the first token after launch took about 6 s. Identify goes without it at 2 s (a ring
-        // still knows the user), but a call the user places waits for the token itself, so it is never anonymous.
+    fun aTokenSlowerThanIdentifyIsTheSdksToWaitFor() = runTest {
+        // Seen on a phone: the first token after launch took about 6 s. Identify goes without it at 2 s, and a call placed
+        // then starts at once: the SDK (0.14.6) asks the refresher before the conversation and waits for it, at most
+        // 10 s, and the refresher joins the fetch already on its way — one fetch, never a second.
         val sdk = Sdk()
         val gate = CompletableDeferred<String?>()
-        val id = identity(sdk) { gate.await() }
+        var fetched = 0
+        val id = identity(sdk) { fetched++; gate.await() }
         id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
-        var started = false
-        launch { id.awaitReady(); started = true }
         advanceTimeBy(wait + 1)
         assertEquals(null, sdk.identified.single().third, "identified without the token after the identify wait")
-        assertFalse(started, "but the call still waits for the token")
+        val from = currentTime
+        id.awaitReady()
+        assertEquals(from, currentTime, "the app holds no conversation back for the token: the SDK does")
+        val refreshed = async { id.fresh() }
         advanceTimeBy(4_000)
         gate.complete("jwt")
         runCurrent()
-        assertTrue(started, "and starts as soon as the token is handed over")
-        assertEquals(listOf("jwt"), sdk.tokens)
-    }
-
-    @Test
-    fun aTokenFetchThatFailsReleasesTheCallAtOnce() = runTest {
-        val sdk = Sdk()
-        val id = identity(sdk) { null }
-        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
-        val from = currentTime
-        id.awaitReady()
-        assertTrue(currentTime - from < UserIdentity.CONVERSATION_TOKEN_WAIT_MS, "no token is coming: nobody waits ten seconds for it")
+        assertEquals("jwt", refreshed.await(), "what the SDK's refresher gets: the token of the fetch on its way")
+        assertEquals(1, fetched)
     }
 
     @Test
