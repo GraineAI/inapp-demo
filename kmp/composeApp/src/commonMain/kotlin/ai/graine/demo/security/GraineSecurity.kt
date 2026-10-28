@@ -39,7 +39,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  *                              dependency (composeApp/build.gradle.kts). Here: start() proves the app at launch, and
  *                              debugToken is what a debug build sends instead (register it under Development).
  *   4 Prove who the user is .. Here: signIn() at sign-in AND at every launch — identify WITH the identity token: pass
- *                              the one you hold, or it is fetched before identify (2 s at most); awaitSignIn() before
+ *                              the one you hold, or it is fetched before identify (10 s at most); awaitSignIn() before
  *                              a call or the voice bar; the refresher start() sets, which the SDK (0.14.6) also asks
  *                              and waits for before a conversation while the token is still on its way; signOut().
  *   5 Turn it on ............. Nothing new in code: a refusal arrives as the SDK's GraineErrorCode. noteRefusal()
@@ -172,10 +172,9 @@ object GraineSecurity {
      *
      * IDENTIFY WITH THE TOKEN. Pass the [identityToken] you already hold (your sign-in hands you one; Firebase keeps it
      * cached), and the user is identified with it at once. If you must fetch it, it is fetched BEFORE identify, from
-     * [start]'s identityTokens: identify waits for it, at most 2 seconds, then goes without it and hands the token over
-     * when it comes. A conversation started before the token is answered anonymously while the agent requires verified
-     * users — the SDK asks the refresher before a conversation only for a token about to expire — so start calls after
-     * [awaitSignIn].
+     * [start]'s identityTokens: identify waits for it, at most 10 seconds (as long as the SDK itself waits for a missing
+     * token), then goes without it and hands the token over when it comes. So no request names the user without proving
+     * them, and the Security log shows them verified from the first request. Start calls after [awaitSignIn].
      */
     fun signIn(userId: String, traits: Map<String, Any?>, memory: Boolean? = null, identityToken: String? = null) =
         user.signIn(userId, traits, memory, identityToken)
@@ -431,11 +430,13 @@ internal class UserIdentity(
 
     companion object {
         /**
-         * How long identify waits for the token it fetches, in milliseconds: long enough for a sign-in's token on a phone
-         * network, short enough that a call placed at launch never waits noticeably. After it, the user is identified
-         * without the token, and the token follows.
+         * How long identify waits for the token it fetches, in milliseconds: as long as the SDK itself waits for a missing
+         * token (10 s). Until identify, requests name nobody, so the Security log has no user to report on; from identify
+         * on, they carry the token. Seen on a phone: the first token after launch took 3 to 6 s, and with a 2 s wait the
+         * SDK's background preparation of the next call went out in the gap, logged as an anonymous user. A ring at launch
+         * identifies at once ([identifyPendingNow]); a token that never comes leaves the user identified without it.
          */
-        const val TOKEN_WAIT_MS = 2_000L
+        const val TOKEN_WAIT_MS = 10_000L
 
         /** The most awaitReady adds to the wait, should it ever not end by itself. */
         private const val READY_MARGIN_MS = 500L

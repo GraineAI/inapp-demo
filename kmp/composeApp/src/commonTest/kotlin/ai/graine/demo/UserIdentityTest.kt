@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
 
 /**
  * Step 4's rules (security/GraineSecurity.kt): identify WITH the identity token — the one in hand at once, else the one
- * fetched first, waited for at most two seconds; after that without it, the token following when it comes — and a
+ * fetched first, waited for at most ten seconds; after that without it, the token following when it comes — and a
  * conversation started before then is the SDK's to hold (0.14.6 asks the refresher, which joins this fetch). Nobody else
  * is ever identified meanwhile, a token fetched for one user never reaches the next, and sign-out cancels everything.
  * The SDK side is recorded here.
@@ -74,7 +74,7 @@ class UserIdentityTest {
     }
 
     @Test
-    fun aSlowTokenIsWaitedForTwoSecondsThenFollows() = runTest {
+    fun aSlowTokenIsWaitedForThenFollows() = runTest {
         val sdk = Sdk()
         val gate = CompletableDeferred<String?>()
         val id = identity(sdk) { gate.await() }
@@ -82,7 +82,7 @@ class UserIdentityTest {
         advanceTimeBy(wait - 1)
         assertTrue(sdk.identified.isEmpty(), "still waiting for the token")
         advanceTimeBy(2)
-        assertEquals(Triple(traitsOf("P-1"), null, null), sdk.identified.single(), "after 2 s: without it — a call that rings knows the user")
+        assertEquals(Triple(traitsOf("P-1"), null, null), sdk.identified.single(), "after the wait: without it — a call that rings knows the user")
         gate.complete("jwt-P-1")
         runCurrent()
         assertEquals(listOf("jwt-P-1"), sdk.tokens, "the token follows when it comes")
@@ -96,7 +96,7 @@ class UserIdentityTest {
         val id = identity(sdk) { fetched++; throw IllegalStateException("offline") }
         id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
         runCurrent()
-        assertTrue(currentTime < wait, "no waiting out the two seconds for a fetch that already failed")
+        assertTrue(currentTime < wait, "no waiting out the wait for a fetch that already failed")
         assertEquals(Triple(traitsOf("P-1"), null, null), sdk.identified.single())
         advanceUntilIdle()
         assertTrue(sdk.tokens.isEmpty())
@@ -219,7 +219,7 @@ class UserIdentityTest {
     }
 
     @Test
-    fun aCallWaitsForTheIdentifyAtMostTwoSeconds() = runTest {
+    fun aCallWaitsForTheIdentifyAtMostTheTokenWait() = runTest {
         val sdk = Sdk()
         val gate = CompletableDeferred<String?>()
         val id = identity(sdk) { gate.await() }
@@ -236,7 +236,7 @@ class UserIdentityTest {
         assertTrue(started, "and starts once the user is identified with it")
         assertEquals("jwt", sdk.identified.single().third)
 
-        // A token that never comes: the call waits two seconds, no more.
+        // A token that never comes: the call waits for the identify wait, no more.
         val never = CompletableDeferred<String?>()
         val other = identity(Sdk()) { never.await() }
         other.signIn("P-2", traitsOf("P-2"), memory = null, identityToken = null)
@@ -248,7 +248,7 @@ class UserIdentityTest {
 
     @Test
     fun aTokenSlowerThanIdentifyIsTheSdksToWaitFor() = runTest {
-        // Seen on a phone: the first token after launch took about 6 s. Identify goes without it at 2 s, and a call placed
+        // Seen on a phone: the first token after launch took about 6 s. With a token slower than the identify wait, identify goes without it, and a call placed
         // then starts at once: the SDK (0.14.6) asks the refresher before the conversation and waits for it, at most
         // 10 s, and the refresher joins the fetch already on its way — one fetch, never a second.
         val sdk = Sdk()
@@ -267,6 +267,22 @@ class UserIdentityTest {
         runCurrent()
         assertEquals("jwt", refreshed.await(), "what the SDK's refresher gets: the token of the fetch on its way")
         assertEquals(1, fetched)
+    }
+
+    @Test
+    fun aTokenThatTakesSixSecondsStillGoesWithIdentify() = runTest {
+        // Seen on a phone: the first token after launch took 3 to 6 s. Identify waits for it, as long as the SDK would, so
+        // no request names the user without proving them (the SDK's background preparation of the next call included).
+        val sdk = Sdk()
+        val gate = CompletableDeferred<String?>()
+        val id = identity(sdk) { gate.await() }
+        id.signIn("P-1", traitsOf("P-1"), memory = null, identityToken = null)
+        advanceTimeBy(6_000)
+        assertTrue(sdk.identified.isEmpty(), "nobody identified yet: requests name nobody, so none is anonymous")
+        gate.complete("jwt")
+        runCurrent()
+        assertEquals("jwt", sdk.identified.single().third, "identified WITH the token")
+        assertTrue(sdk.tokens.isEmpty(), "no separate setIdentityToken: it went with identify")
     }
 
     @Test

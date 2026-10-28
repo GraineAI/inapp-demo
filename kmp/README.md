@@ -251,7 +251,7 @@ GraineSecurity.start(
 
 // At sign-in — and at every launch while someone is signed in. The id goes under the field your agents'
 // "Who is the user?" names (identityField: "patient_id" in this demo's care pack) and under user_id, the default.
-// Identify WITH the token: pass the one you already hold. Without it, it is fetched before identify (2 s at most).
+// Identify WITH the token: pass the one you already hold. Without it, it is fetched before identify (10 s at most).
 GraineSecurity.signIn(user.id, mapOf(identityField to user.id, "user_id" to user.id, "name" to user.firstName),
     identityToken = idTokenFromYourSignIn)
 
@@ -331,8 +331,8 @@ needs no server of yours:
 
 **Pass the token you already hold; if you must fetch it, fetch it before identify, and set the refresher.** The SDK
 holds no token across launches. `GraineSecurity.signIn` identifies **with** the token: the one you pass at once;
-otherwise it fetches the token first and waits for it, at most 2 seconds (`UserIdentity.TOKEN_WAIT_MS`), so every
-request proves the user from the first one; then it identifies without it, keeps fetching and hands it over with
+otherwise it fetches the token first and waits for it, at most 10 seconds (`UserIdentity.TOKEN_WAIT_MS`, as long as the
+SDK itself waits), so no request names the user without proving them; then it identifies without it, keeps fetching and hands it over with
 `Graine.setIdentityToken` when it comes. A conversation the user starts in between is not answered anonymously: since
 SDK 0.14.6, before a chat, the voice bar, a call or a request for the user (memories, past sessions, booked calls), the
 SDK asks the refresher for a token it does not hold and waits for it, at most 10 seconds — the refresher joins the fetch
@@ -493,7 +493,7 @@ agent), **support** is the help agent. Set them up from `../agent-setup/health-c
 
 ```kotlin
 // Who the user is, proven by their identity token — at sign-up and at every launch (security/GraineSecurity.kt):
-// Graine.identify(traits, identityToken = …), the token fetched BEFORE identify when none is in hand (2 s at most).
+// Graine.identify(traits, identityToken = …), the token fetched BEFORE identify when none is in hand (10 s at most).
 GraineSecurity.signIn(userId, mapOf("user_id" to userId, "name" to name))
 // Each agent keeps its own variables: the journey sets them on every agent it talks to.
 Graine.agents.values.forEach { agent ->

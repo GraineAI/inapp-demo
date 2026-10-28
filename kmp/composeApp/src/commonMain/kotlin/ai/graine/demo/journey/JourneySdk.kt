@@ -50,7 +50,7 @@ interface JourneySdk {
     fun signIn(userId: String, traits: Map<String, String>)
     /** Nobody: every agent lets the user go. */
     fun signOut()
-    /** Waits until the sign-in has identified the user with their token (at most 2 s); a call starts after it. A fake never waits. */
+    /** Waits until the sign-in has identified the user with their token (at most 10 s); a call starts after it. A fake never waits. */
     suspend fun awaitSignIn() {}
     fun setVariables(values: Map<String, String?>)
     suspend fun requestCallPermissions(): CallPermissionAnswer

@@ -601,7 +601,7 @@ class AppModel(
 
     /**
      * A call or the voice bar takes who the user is at its start, so it starts once the sign-in has identified them —
-     * with their identity token — at most 2 s after signIn (security/GraineSecurity.kt); at once when nothing waits.
+     * with their identity token — at most 10 s after signIn (security/GraineSecurity.kt); at once when nothing waits.
      */
     private fun afterSignIn(start: () -> Unit) {
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
