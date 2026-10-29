@@ -31,18 +31,20 @@ and voice bar as composables).
 4. Android: `./gradlew :composeApp:installDebug` (or run `composeApp` in Android Studio).
    iOS: open `iosApp/iosApp.xcodeproj` and run the `GraineDemoKMP` scheme. Its first build phase builds
    the shared code with Gradle (`embedAndSignAppleFrameworkForXcode`); Graine's iOS SDK comes from Swift
-   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.7), which the shared code calls.
+   Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.7, the version the multiplatform SDK
+   0.14.8 builds on), which the shared code calls.
 
 The packs are bundled from `../usecases/*.json` at build time (task `generatePacks`, into the shared code,
 so both platforms read the same files); edit them there.
 
-**The published SDK, or its sources.** The app is pinned to SDK **0.14.7** for Kotlin Multiplatform and iOS:
-`ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.7 from Maven Central (on Android they build on the Android
-SDK 0.14.7, with `ai.graine:inapp-android-rtc` 0.14.7 for WebRTC calls), and GraineInApp and GraineInAppRTC 0.14.7 from
-Swift Package Manager (`iosApp/iosApp.xcodeproj`). They are published, so nothing is set: build and run as below.
+**The published SDK, or its sources.** The app is pinned to Kotlin Multiplatform SDK **0.14.8**:
+`ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.8 from Maven Central (on Android they build on the Android
+SDK 0.14.7, with `ai.graine:inapp-android-rtc` 0.14.7 for WebRTC calls), and on iOS the SDK it builds on, GraineInApp and
+GraineInAppRTC 0.14.7, from Swift Package Manager (`iosApp/iosApp.xcodeproj`) — 0.14.8 changed only the multiplatform
+library. They are published, so nothing is set: build and run as below.
 
 **Your own app.** The multiplatform library calls Graine's iOS SDK and does not carry it, so an iOS app built
-with it links GraineInApp itself, at the same version: add `https://github.com/GraineAI/inapp-ios` (and
+with it links GraineInApp itself, at the version the library builds on (0.14.7 for 0.14.8): add `https://github.com/GraineAI/inapp-ios` (and
 `https://github.com/GraineAI/inapp-ios-rtc` for WebRTC calls) with Swift Package Manager to the **app target**, or
 `pod 'GraineInApp', :git => 'https://github.com/GraineAI/inapp-ios.git', :tag => '0.14.7'` to its Podfile, and
 build the shared framework static (`isStatic = true`, as `composeApp/build.gradle.kts` does). A link error naming
@@ -51,7 +53,8 @@ Frameworks, Libraries, and Embedded Content), clean the build folder and build a
 
 Before a version is published (or to try a fix that is not released), build against the SDK's sources — the
 multiplatform SDK with the Android SDK beside it (folders `kmp` and `android` side by side), and the iOS SDK with
-its WebRTC module beside it (`ios` and `ios-rtc`), all of the same version:
+its WebRTC module beside it (`ios` and `ios-rtc`), the Android and iOS SDKs at the version the multiplatform one
+builds on (0.14.7 for 0.14.8):
 
 ```sh
 # from the repository root — the Kotlin side, Android and iOS alike (or -Pgraine.kmpSdkDir=…, or GRAINE_KMP_SDK_DIR)
@@ -64,8 +67,8 @@ The public repositories are the same sources, tagged with each release — for e
 catches up with a tag that is already on GitHub (iOS then takes the tag from Swift Package Manager as usual):
 
 ```sh
-git clone --branch 0.14.7 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
-git clone --branch 0.14.7 https://github.com/GraineAI/inapp-android ../graine-sdk/android   # the Android SDK KMP 0.14.7 builds on
+git clone --branch 0.14.8 https://github.com/GraineAI/inapp-kmp ../graine-sdk/kmp
+git clone --branch 0.14.7 https://github.com/GraineAI/inapp-android ../graine-sdk/android   # the Android SDK KMP 0.14.8 builds on
 echo "graine.kmpSdkDir=../../graine-sdk/kmp" >> kmp/local.properties
 ```
 
@@ -132,7 +135,7 @@ Home, Chat and the Items screen talk to the main agent; the **Help** tab talks t
 signs in once and both agents know who they are; **Calls** lists the calls booked with either agent.
 Each agent books in the SDK's own booking sheet (`presentBooking(reason)`): the pack's `bookLabel` on
 **Calls** opens the main agent's, the one on **Help** the help desk's, each with the pack's first reason
-filled in. Both platforms run both agents (`ai.graine:inapp-kmp` 0.14.7 on Android and iOS alike), and
+filled in. Both platforms run both agents (`ai.graine:inapp-kmp` 0.14.8 on Android and iOS alike), and
 **Call activity** names the agent of every ring and outcome.
 
 **Each agent is locked on its own.** The help desk's publishable key ships in the app as the main agent's does, so it
@@ -178,7 +181,7 @@ agents, actions, memory and screen context. Each screen is one file in `composeA
 | Talk — `OwnTalkPanel.kt` | `voice.state`: `status` (and `error` when it failed), `captions`, `agentLevel` and `micLevel`, `transport` and its fallback reason | Opens ready; `start` only on its Start (the microphone with it), then `end`, `setMuted`, `setCaptionsOn` |
 | Call screen — `OwnCallScreen.kt` | `calls.state`: where the call is, `agent`, `reason`, the length from `startedAt`, `agentLevel`, the caption, `muted` and `speakerOn`; a **Connection** card — `state.connection` while the call goes, the outcome's `connection` once it is over | `answer`, `decline`, `end`, `setMuted`, `setSpeaker`, `callBack`, `dismissMissedCall` |
 | Booking — `OwnBookingScreen.kt` | the agent's `bookingState` (collected; its `reason` in plain words when it is off, and the times read again when it changes); `schedulingRules`; each day's `bookingSlots(day)`, by hour; the user's calls with that agent | `scheduleCall(at, reason)` — a refusal shows the SDK's sentence — and `cancelScheduledCall(id)` |
-| Components — `OwnComponentCard.kt` | `component` (`kind`, `data`, `fallbackText`) and `componentPending`, in the chat and in Talk: chips, rows (one, or several at once), time slots, forms, else the component's own sentence | `chat.answerWidget(id, data, summary)`, with the answers the SDK's own views send, and `chat.dismissWidget(id)` |
+| Components — `OwnComponentCard.kt` | `component` (`kind`, `data`, `fallbackText`, and `style` — the look the dashboard gave it: its accent and corners, density, item buttons, two columns, fact lines, one choice or several and how many), `componentPending` and `componentAwaitingReply`, in the chat and in Talk: chips, rows (one, or several at once), time slots, forms, else the component's own sentence; once answered, what the user chose with "Waiting for …" until the agent's reply starts | `chat.answerWidget(id, data, summary)`, with the answers the SDK's own views send, and `chat.dismissWidget(id)` |
 | Past sessions — `PastSessionsScreen.kt` (from the chat's menu) | `chat.pastSessions`: the signed-in user's closed sessions with the agent, newest first — date and time, chat or call, length, how it ended, messages, the first words, the session id with Copy — and its `loading`, `hasMore` and `error`; a tap opens `chat.sessionTranscript(id)`, read only | `refreshPastSessions()` on open, `loadMorePastSessions()` at the end of the list; refusals in plain words ("Sign in to see past sessions", "Not available on this device") |
 | Public state — `PublicStateScreen.kt` | Every value above, live, by surface — who, chat, voice, calls and the connection report, booking, components, events — for walking a team through what their own screens can read | Shows no message, caption or memory text and no variable values: roles, counts, lengths and names |
 
@@ -387,7 +390,7 @@ the **Help** screen says so when the help desk checks neither the app nor its us
 
 ### Roll it out: report-only, then on
 
-1. Ship the SDK (0.14.4 or later; 0.14.6 for the wait below, 0.14.7 for the call's warm-up too; this app is on 0.14.7) with App Attest, Play Integrity and `GraineSecurity`.
+1. Ship the SDK (0.14.4 or later; 0.14.6 for the wait below, 0.14.7 for the call's warm-up too; this app is on 0.14.8) with App Attest, Play Integrity and `GraineSecurity`.
 2. For each agent: **Your apps**, then **Check app proofs (report only)**, **Prove who the user is** (report only) and
    **Server tokens → Report only**.
 3. Watch **What we've seen** for a few days, until *Not in your list*, *Not verified* and missing tokens are only traffic
@@ -538,8 +541,9 @@ Graine.calls.state.value.missedCall       // a ring nobody answered, kept until 
 consultation.scheduledCalls()             // at launch: a booked call missed while the app was closed reads Missed
 Graine.calls.callBack()                   // Call me now (no missed ring: startCall again)
 consultation.chat.shown(true)             // Continue in chat: the same questions, saved the same way
-consultation.component.collect { c -> /* "Select all that apply": choices or quick actions with select = many */ }
+consultation.component.collect { c -> /* "Select all that apply": c.style.select == GraineComponentSelect.MANY, at most c.style.maxSelect */ }
 consultation.chat.answerWidget(c.id, data, summary = "Late dinners and Eating out")
+consultation.componentAwaitingReply.collect { waiting -> /* the choice, and "Waiting for …" until the agent replies */ }
 ```
 
 **4. The plan** — the app is the store; the agents read and change it through actions, each answered at once

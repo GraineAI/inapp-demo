@@ -1,20 +1,24 @@
 package ai.graine.demo.domain
 
 import ai.graine.inapp.kmp.GraineComponent
+import ai.graine.inapp.kmp.GraineComponentButton
+import ai.graine.inapp.kmp.GraineComponentDensity
+import ai.graine.inapp.kmp.GraineComponentSelect
+import ai.graine.inapp.kmp.GraineComponentStyle
 
 /**
  * A COMPONENT THE AGENT DREW, READ FOR THE APP'S OWN WIDGETS — from what the
- * SDK's renderer reads (`GraineComponent`: its kind, `data` and `fallbackText`)
- * to what to draw, and what each control answers. The answers have the same
- * shape the SDK's own views send (`Graine.chat.answerWidget(id, data, summary)`),
- * so the agent — and the webhooks behind its tools — hear the same thing
- * whichever screen drew it:
+ * SDK's renderer reads (`GraineComponent`: its kind, `data`, `fallbackText` and,
+ * from SDK 0.14.8, `style`, the look the dashboard gave it) to what to draw, and
+ * what each control answers. The answers have the same shape the SDK's own views
+ * send (`Graine.chat.answerWidget(id, data, summary)`), so the agent — and the
+ * webhooks behind its tools — hear the same thing whichever screen drew it:
  *
  *   chips      `choices` (data.options) and `quick_actions` (data.actions); several at once — "Select all
- *              that apply" — where its style says `select: many`, sent as one answer
+ *              that apply" — where its look says `select` MANY, sent as one answer
  *   rows       `product_list`, `plan_comparison` (data.plans), `info_card`, and any
- *              kind carrying data.items; one tap, or several where its style says
- *              `select: many`
+ *              kind carrying data.items; one tap, or several where its look says
+ *              `select` MANY
  *   calendar   `calendar_slots`: days and their times
  *   form       `lead_form`: data.fields, answered as the website's form answers
  *   fallback   anything else: the component's own sentence (fallbackText)
@@ -49,8 +53,9 @@ sealed class OwnWidget {
         override val prompt: String,
         val chips: List<Chip>,
         val quickActions: Boolean,
-        /** Several may be ticked and sent as one answer (the component's style: `select: many`). */
+        /** Several may be ticked and sent as one answer (`component.style.select` MANY, with more than one chip). */
         val many: Boolean = false,
+        /** The most that may be ticked: `component.style.maxSelect`, never more than there are. */
         val maxSelect: Int = chips.size,
         /** What the one button says, and leads the sentence ("Done" → "Cravings and Late dinners"). */
         val selectLabel: String = "",
@@ -62,8 +67,9 @@ sealed class OwnWidget {
         val rows: List<Row>,
         val selectLabel: String,
         val shape: Shape,
-        /** Several may be chosen and sent as one answer (the component's style: `select: many`). */
+        /** Several may be chosen and sent as one answer (`component.style.select` MANY; never an info card). */
         val many: Boolean,
+        /** The most that may be chosen: `component.style.maxSelect`, never more than there are. */
         val maxSelect: Int,
         /** An info card's action, what its one button says. */
         val actionLabel: String?,
@@ -78,6 +84,49 @@ sealed class OwnWidget {
 
 /** What a control sends: the structured answer (for the agent's webhook) and the sentence that is the user's turn. */
 data class OwnAnswer(val data: Map<String, Any?>, val summary: String)
+
+/**
+ * HOW THE APP'S OWN CARD FOLLOWS A COMPONENT'S LOOK — the dashboard's Look & feel (`component.style`, SDK 0.14.8)
+ * where it applies to a card in the thread, as numbers (dp) and choices the card draws with. The card stays a card
+ * whatever the look's surface, and the app draws no pictures, so the picture size has nothing to size here.
+ */
+data class OwnLook(
+    /** The accent, `#RRGGBB`; null: the app's own (its theme's primary colour). */
+    val accent: String?,
+    /** The card's corners: the component's radius, else the app's 14. */
+    val cardRadius: Int,
+    /** The controls' corners when the component sets a radius; null: the app's own shapes. */
+    val controlRadius: Int?,
+    /** The room inside the card, and between its parts (rows, chips, times): tighter when the look is COMPACT. */
+    val padding: Int,
+    val gap: Int,
+    /** An item's button: filled with the accent, an outline in it, or none — the whole row is tapped. */
+    val button: GraineComponentButton,
+    /** Rows two to a line: the look's two columns, where there are two rows or more to lay out. */
+    val grid: Boolean,
+    /** Each row's fact lines. */
+    val facts: Boolean,
+)
+
+/**
+ * THE USER'S ANSWER, KEPT ON SCREEN UNTIL THE AGENT ANSWERS IT. The card goes the moment the user answers
+ * (`chat.answerWidget`); `agent.componentAwaitingReply` (SDK 0.14.8) is true from then until the agent starts its
+ * reply — its first words, its voice, its next component — at most 12 seconds. Where the card was, the screen shows
+ * what the user chose and a loader for that long ([line]), then nothing. Each screen keeps its own.
+ */
+data class OwnAnswered(val chose: String? = null, val awaiting: Boolean = false) {
+    /** What the user chose, while the agent is answering it; null: no line. */
+    val line: String? get() = if (awaiting) chose else null
+
+    /** The user answered with [summary], the sentence that is their turn. A blank one starts no wait: nothing to keep. */
+    fun answered(summary: String): OwnAnswered = copy(chose = summary.trim().ifEmpty { null })
+
+    /** `componentAwaitingReply` is [now]. False ends it: the agent's reply started, or there is nothing to wait for. */
+    fun awaiting(now: Boolean): OwnAnswered = if (now) copy(awaiting = true) else OwnAnswered()
+
+    /** A component is on screen: what was chosen before is history. */
+    fun componentShown(): OwnAnswered = copy(chose = null)
+}
 
 object OwnComponents {
     private val ROW_KINDS = setOf("product_list", "products", "plan_comparison", "info_card")
@@ -102,10 +151,11 @@ object OwnComponents {
                 val label = str(first(m?.get("label"), m?.get("title")) ?: o)
                 OwnWidget.Chip(id = str(first(m?.get("id")) ?: label), label = label)
             }
-            val style = component.payload["style"] as? Map<*, *>
-            val many = (style?.get("select") as? String)?.trim()?.lowercase() == "many" && chips.size > 1
-            val max = (style?.get("maxSelect") as? Number)?.toInt()?.takeIf { it > 0 } ?: chips.size
-            return OwnWidget.Chips(title, prompt, chips, quickActions, many, max.coerceAtMost(chips.size), text(d["selectLabel"]).orEmpty())
+            // The look the SDK resolved (0.14.8): several where it says MANY and there is more than one to tick, at
+            // most its maxSelect (2–8; 3 when the dashboard chose none).
+            val look = component.style
+            val many = look.select == GraineComponentSelect.MANY && chips.size > 1
+            return OwnWidget.Chips(title, prompt, chips, quickActions, many, look.maxSelect.coerceAtMost(chips.size), text(d["selectLabel"]).orEmpty())
         }
 
         if (kind == "calendar_slots") {
@@ -165,10 +215,9 @@ object OwnComponents {
             )
         }
         if (rows.isNotEmpty() && (kind in ROW_KINDS || options.isEmpty())) {
-            val style = component.payload["style"] as? Map<*, *>
-            val many = style?.get("select") == "many" && shape != OwnWidget.Shape.CARD
-            val max = (style?.get("maxSelect") as? Number)?.toInt()?.takeIf { it > 0 } ?: rows.size
-            return OwnWidget.Rows(title, prompt, rows, selectLabel, shape, many, max.coerceAtMost(rows.size), actionLabel)
+            val look = component.style
+            val many = look.select == GraineComponentSelect.MANY && shape != OwnWidget.Shape.CARD
+            return OwnWidget.Rows(title, prompt, rows, selectLabel, shape, many, look.maxSelect.coerceAtMost(rows.size), actionLabel)
         }
 
         if (kind == "lead_form") {
@@ -187,6 +236,22 @@ object OwnComponents {
         }
 
         return OwnWidget.Fallback(title, prompt, component.fallbackText ?: "Reply in the chat to answer.")
+    }
+
+    /** How the app's card draws [widget] in its component's look, [style] (`component.style`). */
+    fun look(style: GraineComponentStyle, widget: OwnWidget): OwnLook {
+        val compact = style.density == GraineComponentDensity.COMPACT
+        return OwnLook(
+            accent = style.accent,
+            cardRadius = style.radius ?: 14,
+            controlRadius = style.radius,
+            padding = if (compact) 10 else 14,
+            gap = if (compact) 6 else 10,
+            button = style.button,
+            // Two columns only come with Gallery and Cards (the SDK resolves that); one row alone stays full width.
+            grid = style.columns == 2 && widget is OwnWidget.Rows && widget.rows.size > 1,
+            facts = style.facts,
+        )
     }
 
     /** A chip tapped: quick_actions answer `{id, label}`, choices `{chosen, label}`. */

@@ -5,11 +5,13 @@ import ai.graine.demo.domain.OwnText
 import ai.graine.demo.journey.JourneyAgent
 import ai.graine.demo.journey.JourneyModel
 import ai.graine.demo.journey.JourneyText
+import ai.graine.demo.ui.own.AnsweredLine
 import ai.graine.demo.ui.own.Bubble
 import ai.graine.demo.ui.own.Composer
 import ai.graine.demo.ui.own.OwnComponentCard
 import ai.graine.demo.ui.own.Separator
 import ai.graine.demo.ui.own.TypingBubble
+import ai.graine.demo.ui.own.rememberAnswered
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.GraineChatRow
 import ai.graine.inapp.kmp.GraineChatRows
@@ -40,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -50,7 +53,8 @@ import androidx.compose.ui.unit.dp
  * A CHAT OF THE JOURNEY, drawn by the app from the agent's `chat` state: the coach's (the main screen, with the call
  * button and the plan card), the first call's chat version, and support's. It says when it is on screen
  * (`chat.shown(true/false)`), lays the turns out with `GraineChatRows`, draws the agent's component — "Select all that
- * apply" among them — and answers it with `chat.answerWidget(id, data, summary)`.
+ * apply" among them — in its look (`component.style`), answers it with `chat.answerWidget(id, data, summary)`, and keeps
+ * the answer on show while the agent answers it (`componentAwaitingReply`).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -87,6 +91,9 @@ fun JourneyChat(
     val newConversationBefore by chat.newConversationBefore.collectAsState()
     val component by sdk.component.collectAsState()
     val pending by sdk.componentPending.collectAsState()
+    // The user's answer, kept where the card was while the agent answers it (componentAwaitingReply, SDK 0.14.8).
+    var answered by rememberAnswered(sdk, component)
+    val chose = answered.line
 
     // On screen and gone, in pairs, as the SDK's own chat window says it.
     DisposableEffect(chat) {
@@ -97,7 +104,8 @@ fun JourneyChat(
     val rows = remember(turns, newConversationBefore) { GraineChatRows.build(turns, newConversationBefore) }
     val list = rememberLazyListState()
     val offered = starters.takeIf { GraineChatRows.offersStarters(turns) }.orEmpty()
-    val count = (if (above != null) 1 else 0) + rows.size + listOf(typing, component != null || pending, quickReplies.isNotEmpty(), offered.isNotEmpty()).count { it }
+    val count = (if (above != null) 1 else 0) + rows.size +
+        listOf(typing, component != null || pending || chose != null, quickReplies.isNotEmpty(), offered.isNotEmpty()).count { it }
     LaunchedEffect(count, turns.lastOrNull()?.text?.length) {
         if (count > 0) list.animateScrollToItem(count - 1)
     }
@@ -141,7 +149,13 @@ fun JourneyChat(
                 }
             }
             if (typing) item(key = "typing") { TypingBubble(title) }
-            if (component != null || pending) item(key = "component-${component?.id ?: "pending"}") { OwnComponentCard(sdk, component, pending) }
+            if (component != null || pending) {
+                item(key = "component-${component?.id ?: "pending"}") {
+                    OwnComponentCard(sdk, component, pending, onAnswered = { answered = answered.answered(it.summary) })
+                }
+            } else if (chose != null) {
+                item(key = "answered") { AnsweredLine(chose, title) }
+            }
             if (quickReplies.isNotEmpty()) {
                 item(key = "replies") {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

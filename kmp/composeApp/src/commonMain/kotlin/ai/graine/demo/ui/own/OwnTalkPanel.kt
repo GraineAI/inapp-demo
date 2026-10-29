@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -57,6 +58,8 @@ fun OwnTalkPanel(model: AppModel, agent: DemoAgent, modifier: Modifier = Modifie
     val info by sdk.voice.state.collectAsState()
     val component by sdk.component.collectAsState()
     val componentPending by sdk.componentPending.collectAsState()
+    // The user's answer, kept where the card was while the agent answers it (componentAwaitingReply, SDK 0.14.8).
+    var answered by rememberAnswered(sdk, component)
     val live = OwnText.voiceLive(info)
     val word = OwnText.voiceWord(info)
 
@@ -83,7 +86,11 @@ fun OwnTalkPanel(model: AppModel, agent: DemoAgent, modifier: Modifier = Modifie
 
             Captions(info)
 
-            if (component != null || componentPending) OwnComponentCard(sdk, component, componentPending)
+            if (component != null || componentPending) {
+                OwnComponentCard(sdk, component, componentPending, onAnswered = { answered = answered.answered(it.summary) })
+            } else {
+                answered.line?.let { AnsweredLine(it, model.nameOf(agent)) }
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (live) {

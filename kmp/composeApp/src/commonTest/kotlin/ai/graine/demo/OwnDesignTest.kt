@@ -1,9 +1,16 @@
 package ai.graine.demo
 
+import ai.graine.demo.domain.OwnAnswered
 import ai.graine.demo.domain.OwnComponents
+import ai.graine.demo.domain.OwnLook
 import ai.graine.demo.domain.OwnText
 import ai.graine.demo.domain.OwnWidget
+import ai.graine.demo.ui.own.onAccentFor
+import ai.graine.demo.ui.parseHex
 import ai.graine.inapp.kmp.GraineCallConnection
+import ai.graine.inapp.kmp.GraineComponentButton
+import ai.graine.inapp.kmp.GraineComponentStyle
+import androidx.compose.ui.graphics.Color
 import ai.graine.inapp.kmp.GraineCallInfo
 import ai.graine.inapp.kmp.GraineCallState
 import ai.graine.inapp.kmp.GraineCallTransport
@@ -239,6 +246,69 @@ class OwnDesignTest {
         val w = OwnComponents.read(component("map_view", mapOf("lat" to 1.0), fallback = "Here is what I found."))
         assertIs<OwnWidget.Fallback>(w)
         assertEquals("Here is what I found.", w.text)
+    }
+
+    // ── the component's look (component.style), and the wait for the agent's reply ──
+
+    @Test
+    fun theCardFollowsTheComponentsLook() {
+        val items = mapOf("items" to listOf(mapOf("id" to "a", "title" to "One"), mapOf("id" to "b", "title" to "Two"), mapOf("id" to "c", "title" to "Three")))
+        fun look(kind: String, data: Map<String, Any?>, style: Map<String, Any?>?): OwnLook {
+            val c = component(kind, data, style)
+            return OwnComponents.look(c.style, OwnComponents.read(c))
+        }
+        // No look of its own: Cards — filled buttons, the app's accent and corners, room as before, one column, facts.
+        assertEquals(
+            OwnLook(accent = null, cardRadius = 14, controlRadius = null, padding = 14, gap = 10, button = GraineComponentButton.FILLED, grid = false, facts = true),
+            look("product_list", items, null),
+        )
+        // All a card in the thread follows, as the dashboard sets it.
+        assertEquals(
+            OwnLook(accent = "#0F766E", cardRadius = 6, controlRadius = 6, padding = 10, gap = 6, button = GraineComponentButton.OUTLINE, grid = true, facts = false),
+            look("product_list", items, mapOf("preset" to "gallery", "accent" to "#0f766e", "radius" to 6, "density" to "compact", "button" to "outline", "columns" to 2, "facts" to false)),
+        )
+        // Each preset's own button: List taps the whole row, Compact outlines it.
+        assertEquals(GraineComponentButton.ROW, look("product_list", items, mapOf("preset" to "list")).button)
+        assertEquals(GraineComponentButton.OUTLINE, look("product_list", items, mapOf("preset" to "compact")).button)
+        // Two columns come with Gallery and Cards only, and only where there are two rows or more.
+        assertTrue(look("plan_comparison", mapOf("plans" to listOf(mapOf("id" to "a", "name" to "A"), mapOf("id" to "b", "name" to "B"))), mapOf("columns" to 2)).grid)
+        assertFalse(look("product_list", items, mapOf("preset" to "list", "columns" to 2)).grid)
+        assertFalse(look("info_card", mapOf("title" to "About", "summary" to "One line."), mapOf("columns" to 2)).grid)
+        assertFalse(look("choices", mapOf("options" to listOf("Yes", "No")), mapOf("columns" to 2)).grid)
+        // A colour or corner the SDK cannot read is left out: the app's own.
+        val unread = look("choices", mapOf("options" to listOf("Yes", "No")), mapOf("accent" to "teal", "radius" to "8"))
+        assertNull(unread.accent)
+        assertEquals(14 to null, unread.cardRadius to unread.controlRadius)
+    }
+
+    @Test
+    fun wordsOnTheComponentsAccentAreBlackOrWhiteWhicheverReads() {
+        assertEquals(Color.White, onAccentFor(parseHex("#0F766E")!!), "on a deep teal")
+        assertEquals(Color.White, onAccentFor(parseHex("#4F46E5")!!), "on an indigo")
+        assertEquals(Color.Black, onAccentFor(parseHex("#FFD600")!!), "on a bright yellow")
+        assertEquals(Color.Black, onAccentFor(parseHex("#F59E0B")!!), "on an amber")
+    }
+
+    @Test
+    fun theAnswerStaysOnScreenUntilTheAgentAnswers() {
+        val chose = OwnAnswered().answered(" I'll go with Better. ")
+        assertNull(chose.line, "nothing before the SDK waits")
+        val waiting = chose.awaiting(true)
+        assertEquals("I'll go with Better.", waiting.line, "what the user chose, while the agent answers it")
+        assertEquals(OwnAnswered(), waiting.awaiting(false), "the reply started, or 12 s passed: the line goes, and nothing is kept")
+        assertNull(waiting.awaiting(false).awaiting(true).line, "a later wait never brings an old answer back")
+        assertNull(OwnAnswered().awaiting(true).line, "a wait this screen did not start has nothing to show")
+        assertNull(OwnAnswered().answered("   ").awaiting(true).line, "a blank answer starts no wait")
+        assertNull(chose.componentShown().awaiting(true).line, "the next component makes the old answer history")
+        assertEquals("Waiting for Asha…", OwnText.waitingFor("Asha"))
+        assertEquals("Waiting for the agent…", OwnText.waitingFor(" "))
+    }
+
+    @Test
+    fun publicStateReadsTheLookInOneLine() {
+        assertEquals("cards · card · filled · one", OwnText.componentLook(GraineComponentStyle()))
+        val c = component("product_list", mapOf("items" to listOf(mapOf("id" to "a"))), style = mapOf("preset" to "list", "select" to "many", "maxSelect" to 4, "accent" to "#112233", "radius" to 8))
+        assertEquals("list · screen · row · many, up to 4 · #112233 · radius 8", OwnText.componentLook(c.style))
     }
 
     // ── sessions, the end of a call, and Talk's word ─────────────────────

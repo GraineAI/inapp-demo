@@ -4,6 +4,8 @@ import ai.graine.inapp.kmp.GraineCallConnection
 import ai.graine.inapp.kmp.GraineCallInfo
 import ai.graine.inapp.kmp.GraineCallState
 import ai.graine.inapp.kmp.GraineChatStatus
+import ai.graine.inapp.kmp.GraineComponentSelect
+import ai.graine.inapp.kmp.GraineComponentStyle
 import ai.graine.inapp.kmp.GraineScheduledCall
 import ai.graine.inapp.kmp.GraineSchedulingRules
 import ai.graine.inapp.kmp.GraineVoiceInfo
@@ -254,6 +256,22 @@ object OwnText {
         val hundredths = kotlin.math.round(value.coerceIn(0f, 1f) * 100).toInt()
         return "0.${hundredths.toString().padStart(2, '0')}".let { if (hundredths >= 100) "1.00" else it }
     }
+
+    /** Under the user's answer while the agent answers it (`componentAwaitingReply`): "Waiting for Asha…". */
+    fun waitingFor(agentName: String): String = agentName.trim().let { if (it.isEmpty()) "Waiting for the agent…" else "Waiting for $it…" }
+
+    /**
+     * A component's look (`component.style`) in one line, as the Public state readout shows it: the preset, where it
+     * goes, the item's button, one choice or several (and how many), then the accent and the corners when it sets them.
+     */
+    fun componentLook(s: GraineComponentStyle): String = listOfNotNull(
+        s.preset.wire,
+        s.surface.wire,
+        s.button.wire,
+        if (s.select == GraineComponentSelect.MANY) "many, up to ${s.maxSelect}" else "one",
+        s.accent,
+        s.radius?.let { "radius $it" },
+    ).joinToString(" · ")
 
     private val WEEKDAYS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")

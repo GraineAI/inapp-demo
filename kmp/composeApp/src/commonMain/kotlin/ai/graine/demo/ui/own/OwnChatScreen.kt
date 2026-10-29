@@ -109,6 +109,9 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
     var menu by remember { mutableStateOf(false) }
     val component by sdk.component.collectAsState()
     val componentPending by sdk.componentPending.collectAsState()
+    // The user's answer, kept where the card was while the agent answers it (componentAwaitingReply, SDK 0.14.8).
+    var answered by rememberAnswered(sdk, component)
+    val chose = answered.line
 
     // On screen, and gone: in pairs, as the SDK's own chat window says it.
     DisposableEffect(chat) {
@@ -125,7 +128,7 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
     val lastIndex = listOf(
         pinned != null, upcoming.isNotEmpty(), rows.isEmpty() && !typing,
     ).count { it } + rows.size + listOf(
-        typing, component != null || componentPending, quickReplies.isNotEmpty(), ended, starters.isNotEmpty(),
+        typing, component != null || componentPending || chose != null, quickReplies.isNotEmpty(), ended, starters.isNotEmpty(),
     ).count { it } - 1
     LaunchedEffect(lastIndex, turns.lastOrNull()?.text?.length) {
         if (lastIndex >= 0) list.animateScrollToItem(lastIndex)
@@ -205,7 +208,11 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
             }
             if (typing) item(key = "typing") { TypingBubble(name) }
             if (component != null || componentPending) {
-                item(key = "component-${component?.id ?: "pending"}") { OwnComponentCard(sdk, component, componentPending) }
+                item(key = "component-${component?.id ?: "pending"}") {
+                    OwnComponentCard(sdk, component, componentPending, onAnswered = { answered = answered.answered(it.summary) })
+                }
+            } else if (chose != null) {
+                item(key = "answered") { AnsweredLine(chose, name) }
             }
             if (quickReplies.isNotEmpty()) {
                 item(key = "replies") {

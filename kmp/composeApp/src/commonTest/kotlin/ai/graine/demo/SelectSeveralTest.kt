@@ -10,9 +10,14 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** "Select all that apply": a choices or quick-actions component whose style says `select: many`, answered once. */
+/**
+ * "Select all that apply": a component whose look (`component.style`, as the SDK resolves it) says `select` MANY,
+ * answered once, with at most its `maxSelect`.
+ */
 class SelectSeveralTest {
-    private fun component(kind: String, style: Map<String, Any?>?, key: String = "options") = GraineComponent(
+    private val three = listOf(mapOf("id" to "cravings", "label" to "Cravings"), mapOf("id" to "time", "label" to "No time"), mapOf("id" to "late", "label" to "Late dinners"))
+
+    private fun component(kind: String, style: Map<String, Any?>?, key: String = "options", options: List<Map<String, String>> = three) = GraineComponent(
         id = "w7",
         kind = kind,
         title = null,
@@ -20,11 +25,23 @@ class SelectSeveralTest {
             put("data", mapOf(
                 "title" to "What gets in the way?",
                 "prompt" to "Select all that apply",
-                key to listOf(mapOf("id" to "cravings", "label" to "Cravings"), mapOf("id" to "time", "label" to "No time"), mapOf("id" to "late", "label" to "Late dinners")),
+                key to options,
             ))
             if (style != null) put("style", style)
         },
     )
+
+    private fun items(style: Map<String, Any?>?, count: Int = 5, kind: String = "product_list") = GraineComponent(
+        id = "w8",
+        kind = kind,
+        title = null,
+        payload = buildMap {
+            put("data", mapOf("selectLabel" to "Compare", "items" to (1..count).map { mapOf("id" to "p$it", "title" to "Plan $it") }))
+            if (style != null) put("style", style)
+        },
+    )
+
+    private val five = (1..5).map { mapOf("id" to "o$it", "label" to "Option $it") }
 
     @Test
     fun choicesSetToSeveralAreTickedAndSentAsOneAnswer() {
@@ -61,5 +78,40 @@ class SelectSeveralTest {
         assertFalse(w.many)
         assertEquals("I'll go with No time.", OwnComponents.chip(w, w.chips[1]).summary)
         assertFalse(assertIs<OwnWidget.Chips>(OwnComponents.read(component("choices", null))).many)
+    }
+
+    @Test
+    fun withoutAMaximumAtMostThreeTheSdksDefault() {
+        // The contract's default when the dashboard chose none — not every option, as the app used to read it.
+        assertEquals(3, assertIs<OwnWidget.Chips>(OwnComponents.read(component("choices", mapOf("select" to "many"), options = five))).maxSelect)
+        assertEquals(3, assertIs<OwnWidget.Rows>(OwnComponents.read(items(mapOf("select" to "many")))).maxSelect)
+        assertEquals(2, assertIs<OwnWidget.Rows>(OwnComponents.read(items(mapOf("select" to "many"), count = 2))).maxSelect, "never more than there are")
+    }
+
+    @Test
+    fun aMaximumKeepsToTheContractsRange() {
+        fun max(style: Map<String, Any?>) = assertIs<OwnWidget.Chips>(OwnComponents.read(component("choices", style, options = five))).maxSelect
+        assertEquals(2, max(mapOf("select" to "many", "maxSelect" to 1)), "two at the least")
+        assertEquals(2, max(mapOf("select" to "many", "maxSelect" to 0)))
+        assertEquals(4, max(mapOf("select" to "many", "maxSelect" to 3.6)), "rounded")
+        assertEquals(5, max(mapOf("select" to "many", "maxSelect" to 20)), "eight at the most, and never more than there are")
+        assertEquals(3, max(mapOf("select" to "many", "maxSelect" to "4")), "a number the SDK cannot read is its default")
+    }
+
+    @Test
+    fun rowsReadTheLookAsTheSdkDoes() {
+        // Rows used to need exactly "many"; the SDK's reading takes its case and spaces off, as the chips' did.
+        assertTrue(assertIs<OwnWidget.Rows>(OwnComponents.read(items(mapOf("select" to "MANY")))).many)
+        assertTrue(assertIs<OwnWidget.Rows>(OwnComponents.read(items(mapOf("select" to " many ")))).many)
+        assertFalse(assertIs<OwnWidget.Rows>(OwnComponents.read(items(mapOf("select" to "several")))).many, "a word it does not know is one")
+        assertFalse(assertIs<OwnWidget.Rows>(OwnComponents.read(items(null))).many)
+        val card = GraineComponent("w9", "info_card", null, mapOf("data" to mapOf("title" to "About", "summary" to "One line."), "style" to mapOf("select" to "many")))
+        assertFalse(assertIs<OwnWidget.Rows>(OwnComponents.read(card)).many, "an info card is never several")
+    }
+
+    @Test
+    fun oneChipIsNeverSeveral() {
+        val w = assertIs<OwnWidget.Chips>(OwnComponents.read(component("choices", mapOf("select" to "many"), options = three.take(1))))
+        assertFalse(w.many, "with nothing else to tick, the one chip answers at once")
     }
 }

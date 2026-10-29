@@ -307,6 +307,7 @@ private fun BookingState(model: AppModel, agent: DemoAgent, sdk: GraineAgent, ti
 private fun ComponentState(model: AppModel, agent: DemoAgent, sdk: GraineAgent) {
     val component by sdk.component.collectAsState()
     val pending by sdk.componentPending.collectAsState()
+    val awaiting by sdk.componentAwaitingReply.collectAsState()
     val c = component
     Readout(
         "Components · ${model.nameOf(agent)}",
@@ -316,7 +317,9 @@ private fun ComponentState(model: AppModel, agent: DemoAgent, sdk: GraineAgent) 
             "kind" to (c?.kind ?: "—"),
             "data (keys)" to (c?.data?.keys?.joinToString(", ")?.ifEmpty { "none" } ?: "—"),
             "fallbackText" to if (c == null) "—" else if (c.fallbackText != null) "yes (${c.fallbackText?.length} chars)" else "none",
+            "style" to (c?.let { OwnText.componentLook(it.style) } ?: "—"),
             "componentPending" to pending.toString(),
+            "componentAwaitingReply" to awaiting.toString(),
         ),
     )
 }
