@@ -12,6 +12,7 @@ import ai.graine.inapp.kmp.GraineCallConnection
 import ai.graine.inapp.kmp.GraineCallSource
 import ai.graine.inapp.kmp.GraineCallTransport
 import ai.graine.inapp.kmp.GraineCallStatus
+import ai.graine.inapp.kmp.GraineComponentTapCall
 import ai.graine.inapp.kmp.GraineErrorCode
 import ai.graine.inapp.kmp.GraineException
 import ai.graine.inapp.kmp.GraineMemory
@@ -117,6 +118,25 @@ class AppModelTest {
         assertEquals(DemoActionResult.refused("This version of the app cannot do \"Teleport\"."), fake.run("teleport"))
         val items = fake.lastScreen!!
         assertEquals("medicines", items.screen)
+    }
+
+    @Test
+    fun aComponentsTapRunsThePacksOwnActionsFirstAndARefusalIsANotice() = runTest {
+        val (m, _) = model()
+        m.signIn(TestPack.pack.users[0], memory = true)
+        m.notice = null
+        // Open a screen: the SDK's open_screen, with the screen as its path.
+        m.runTap(GraineComponentTapCall("open_screen", mapOf("path" to "/Medicines"), null))
+        assertEquals(DemoTab.ITEMS, m.tab)
+        // Run an action: the pack's own, its arguments filled from what was tapped.
+        m.runTap(GraineComponentTapCall("open_item", mapOf("item" to "9 days"), null))
+        assertEquals("atorvastatin", m.expandedRowId)
+        assertNull(m.notice, "nothing to say when it ran")
+        // What the app cannot do is said on screen; the card answers the agent anyway.
+        m.runTap(GraineComponentTapCall("open_screen", mapOf("path" to "billing"), null))
+        assertTrue(m.notice!!.startsWith("There is no screen called \"billing\""))
+        m.runTap(GraineComponentTapCall("open_cart", emptyMap(), null))
+        assertEquals("This app has no action called open_cart.", m.notice)
     }
 
     @Test

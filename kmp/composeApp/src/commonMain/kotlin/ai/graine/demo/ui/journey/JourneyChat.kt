@@ -151,7 +151,11 @@ fun JourneyChat(
             if (typing) item(key = "typing") { TypingBubble(title) }
             if (component != null || pending) {
                 item(key = "component-${component?.id ?: "pending"}") {
-                    OwnComponentCard(sdk, component, pending, onAnswered = { answered = answered.answered(it.summary) })
+                    OwnComponentCard(
+                        sdk, component, pending,
+                        onAnswered = { answered = answered.answered(it.summary) },
+                        onTap = { journey.runTap(it) },
+                    )
                 }
             } else if (chose != null) {
                 item(key = "answered") { AnsweredLine(chose, title) }

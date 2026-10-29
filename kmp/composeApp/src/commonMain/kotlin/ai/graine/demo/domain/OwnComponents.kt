@@ -1,10 +1,13 @@
 package ai.graine.demo.domain
 
 import ai.graine.inapp.kmp.GraineComponent
+import ai.graine.inapp.kmp.GraineComponentBlock
 import ai.graine.inapp.kmp.GraineComponentButton
 import ai.graine.inapp.kmp.GraineComponentDensity
+import ai.graine.inapp.kmp.GraineComponentImageSize
 import ai.graine.inapp.kmp.GraineComponentSelect
 import ai.graine.inapp.kmp.GraineComponentStyle
+import ai.graine.inapp.kmp.GraineComponentTapCall
 
 /**
  * A COMPONENT THE AGENT DREW, READ FOR THE APP'S OWN WIDGETS — from what the
@@ -21,7 +24,10 @@ import ai.graine.inapp.kmp.GraineComponentStyle
  *              `select` MANY
  *   calendar   `calendar_slots`: days and their times
  *   form       `lead_form`: data.fields, answered as the website's form answers
+ *   blocks     `blank`, built with "Start blank": its headings, text, pictures, lines and buttons (`component.blocks`)
  *   fallback   anything else: the component's own sentence (fallbackText)
+ *
+ * Whatever answers it, the dashboard's "When they tap" (`component.onSelect`) runs in the app first ([tap]).
  */
 sealed class OwnWidget {
     abstract val title: String
@@ -79,6 +85,9 @@ sealed class OwnWidget {
 
     data class Form(override val title: String, override val prompt: String, val fields: List<Field>, val submitLabel: String) : OwnWidget()
 
+    /** A component built from blocks, as the SDK reads them: only what can be drawn, in order, each with a unique id. */
+    data class Blocks(override val title: String, override val prompt: String, val blocks: List<GraineComponentBlock>) : OwnWidget()
+
     data class Fallback(override val title: String, override val prompt: String, val text: String) : OwnWidget()
 }
 
@@ -86,9 +95,15 @@ sealed class OwnWidget {
 data class OwnAnswer(val data: Map<String, Any?>, val summary: String)
 
 /**
+ * A TAP'S WORK, DECIDED ([OwnComponents.tap]): the app's own job first — [call], when the dashboard's "When they tap"
+ * set one (open a screen, run an action) — then [summary], the sentence the agent hears: the tap's `say`, else the app's.
+ */
+data class OwnTap(val call: GraineComponentTapCall?, val summary: String)
+
+/**
  * HOW THE APP'S OWN CARD FOLLOWS A COMPONENT'S LOOK — the dashboard's Look & feel (`component.style`, SDK 0.14.8)
  * where it applies to a card in the thread, as numbers (dp) and choices the card draws with. The card stays a card
- * whatever the look's surface, and the app draws no pictures, so the picture size has nothing to size here.
+ * whatever the look's surface; its pictures (a component built from blocks) are as tall as the look's picture size.
  */
 data class OwnLook(
     /** The accent, `#RRGGBB`; null: the app's own (its theme's primary colour). */
@@ -106,6 +121,8 @@ data class OwnLook(
     val grid: Boolean,
     /** Each row's fact lines. */
     val facts: Boolean,
+    /** A picture's height, as wide as the card: the look's picture size — small 100, medium 140, large 180. */
+    val imageHeight: Int,
 )
 
 /**
@@ -137,6 +154,9 @@ object OwnComponents {
         val kind = component.kind?.trim().orEmpty()
         val title = text(d["title"]) ?: component.title?.trim().orEmpty()
         val prompt = text(d["prompt"]).orEmpty()
+
+        // Built from blocks ("Start blank"): the SDK keeps only what can be drawn; with none, its own sentence below.
+        if (component.blocks.isNotEmpty()) return OwnWidget.Blocks(title, prompt, component.blocks)
 
         // Chips: the agent's own options, or quick_actions' actions.
         val options: List<Any?> = when {
@@ -251,8 +271,34 @@ object OwnComponents {
             // Two columns only come with Gallery and Cards (the SDK resolves that); one row alone stays full width.
             grid = style.columns == 2 && widget is OwnWidget.Rows && widget.rows.size > 1,
             facts = style.facts,
+            imageHeight = when (style.imageSize) {
+                GraineComponentImageSize.SMALL -> 100
+                GraineComponentImageSize.MEDIUM -> 140
+                GraineComponentImageSize.LARGE -> 180
+            },
         )
     }
+
+    /**
+     * What [answer] does ("When they tap", SDK 0.14.8): the component's tap for what was picked — its answer's data
+     * is the item, as the SDK's views pass it, and its sentence fills `{summary}` — and the sentence the agent hears.
+     */
+    fun tap(component: GraineComponent, answer: OwnAnswer): OwnTap {
+        val call = component.tapFor(answer.data, answer.summary)
+        return OwnTap(call, call?.say ?: answer.summary)
+    }
+
+    /** A block's button, answered as the dashboard's preview answers it: its words, as the action and as the sentence. */
+    fun block(block: GraineComponentBlock): OwnAnswer {
+        val words = block.content.orEmpty()
+        return OwnAnswer(linkedMapOf("action" to words), words)
+    }
+
+    /** A picture's address, when the app may fetch it — https only; null: the card shows a neutral box instead. */
+    fun pictureUrl(url: String?): String? =
+        url?.trim()?.takeIf { it.length > HTTPS.length && it.startsWith(HTTPS, ignoreCase = true) }
+
+    private const val HTTPS = "https://"
 
     /** A chip tapped: quick_actions answer `{id, label}`, choices `{chosen, label}`. */
     fun chip(widget: OwnWidget.Chips, chip: OwnWidget.Chip): OwnAnswer = OwnAnswer(

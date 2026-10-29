@@ -209,7 +209,11 @@ fun OwnChatScreen(model: AppModel, agent: DemoAgent) {
             if (typing) item(key = "typing") { TypingBubble(name) }
             if (component != null || componentPending) {
                 item(key = "component-${component?.id ?: "pending"}") {
-                    OwnComponentCard(sdk, component, componentPending, onAnswered = { answered = answered.answered(it.summary) })
+                    OwnComponentCard(
+                        sdk, component, componentPending,
+                        onAnswered = { answered = answered.answered(it.summary) },
+                        onTap = { model.runTap(it) },
+                    )
                 }
             } else if (chose != null) {
                 item(key = "answered") { AnsweredLine(chose, name) }

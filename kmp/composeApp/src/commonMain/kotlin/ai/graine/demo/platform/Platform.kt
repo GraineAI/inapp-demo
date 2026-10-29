@@ -5,6 +5,7 @@ import ai.graine.demo.journey.JourneyShare
 import ai.graine.demo.journey.ReminderScheduler
 import ai.graine.demo.journey.TextStore
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.ImageBitmap
 
 /** Where the app keeps its few on-device choices (the pack, the call log): SharedPreferences on Android, UserDefaults on iOS. */
 interface KeyValueStore {
@@ -28,6 +29,8 @@ expect object Platform {
     suspend fun httpGet(url: String): String?
     /** A JSON POST's answer body, or null on any failure — the demo sign-in server and the demo token endpoint. */
     suspend fun httpPost(url: String, json: String): String?
+    /** The picture at [url] (https; the caller checks), fetched and decoded off the main thread with no image library; null on any failure. */
+    suspend fun picture(url: String): ImageBitmap?
 
     /**
      * Where "Your own design" draws the call screen: in place, over the app (iOS — the SDK opens no screen of its

@@ -87,7 +87,11 @@ fun OwnTalkPanel(model: AppModel, agent: DemoAgent, modifier: Modifier = Modifie
             Captions(info)
 
             if (component != null || componentPending) {
-                OwnComponentCard(sdk, component, componentPending, onAnswered = { answered = answered.answered(it.summary) })
+                OwnComponentCard(
+                    sdk, component, componentPending,
+                    onAnswered = { answered = answered.answered(it.summary) },
+                    onTap = { model.runTap(it) },
+                )
             } else {
                 answered.line?.let { AnsweredLine(it, model.nameOf(agent)) }
             }

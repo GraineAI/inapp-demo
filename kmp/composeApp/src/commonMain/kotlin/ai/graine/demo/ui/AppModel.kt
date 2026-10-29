@@ -31,6 +31,7 @@ import ai.graine.demo.platform.KeyValueStore
 import ai.graine.demo.security.SecurityRefusal
 import ai.graine.inapp.kmp.GraineBookingState
 import ai.graine.inapp.kmp.GraineCallStatus
+import ai.graine.inapp.kmp.GraineComponentTapCall
 import ai.graine.inapp.kmp.GraineException
 import ai.graine.inapp.kmp.GraineMemory
 import androidx.compose.runtime.getValue
@@ -841,6 +842,15 @@ class AppModel(
                 graine.registerAction(name, agent) { args -> perform(name, args) }
             }
         }
+    }
+
+    /**
+     * A component's tap ("When they tap", SDK 0.14.8), run here before the card answers the agent: its action through
+     * the pack's own handlers — `open_screen` takes its `path`. A refusal shows as a notice; the agent is answered anyway.
+     */
+    fun runTap(call: GraineComponentTapCall) {
+        val result = perform(call.action, call.args)
+        if (result.status != DemoActionResult.Status.OK) notice = result.message
     }
 
     /** Run one of the pack's actions by its effect, answering in the pack's words (usecases/README.md). */

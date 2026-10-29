@@ -8,7 +8,13 @@ import ai.graine.demo.journey.JourneyShare
 import ai.graine.demo.journey.ReminderScheduler
 import ai.graine.demo.journey.TextStore
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import kotlin.experimental.ExperimentalNativeApi
+import kotlinx.cinterop.ByteVar
+import kotlinx.cinterop.readBytes
+import kotlinx.cinterop.reinterpret
+import org.jetbrains.skia.Image
 import platform.Foundation.HTTPBody
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSBundle
@@ -84,6 +90,24 @@ actual object Platform {
                 NSString.create(data = data, encoding = NSUTF8StringEncoding)?.toString()
             } else null
             cont.resumeWith(Result.success(body))
+        }
+        cont.invokeOnCancellation { task.cancel() }
+        task.resume()
+    }
+
+    @OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+    actual suspend fun picture(url: String): ImageBitmap? = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        val nsUrl = NSURL.URLWithString(url)
+        if (nsUrl == null) {
+            cont.resumeWith(Result.success(null))
+            return@suspendCancellableCoroutine
+        }
+        // NSURLSession answers on its own queue, off the main thread: the picture is decoded there too.
+        val task = NSURLSession.sharedSession.dataTaskWithURL(nsUrl) { data, response, error ->
+            val status = (response as? NSHTTPURLResponse)?.statusCode?.toInt() ?: 0
+            val bytes = if (error == null && status in 200..299 && data != null) data.bytes?.reinterpret<ByteVar>()?.readBytes(data.length.toInt()) else null
+            val image = bytes?.let { runCatching { Image.makeFromEncoded(it).toComposeImageBitmap() }.getOrNull() }
+            cont.resumeWith(Result.success(image))
         }
         cont.invokeOnCancellation { task.cancel() }
         task.resume()

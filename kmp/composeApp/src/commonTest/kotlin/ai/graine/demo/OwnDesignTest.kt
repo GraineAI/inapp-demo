@@ -3,13 +3,16 @@ package ai.graine.demo
 import ai.graine.demo.domain.OwnAnswered
 import ai.graine.demo.domain.OwnComponents
 import ai.graine.demo.domain.OwnLook
+import ai.graine.demo.domain.OwnTap
 import ai.graine.demo.domain.OwnText
 import ai.graine.demo.domain.OwnWidget
 import ai.graine.demo.ui.own.onAccentFor
 import ai.graine.demo.ui.parseHex
 import ai.graine.inapp.kmp.GraineCallConnection
+import ai.graine.inapp.kmp.GraineComponentBlockType
 import ai.graine.inapp.kmp.GraineComponentButton
 import ai.graine.inapp.kmp.GraineComponentStyle
+import ai.graine.inapp.kmp.GraineComponentTapCall
 import androidx.compose.ui.graphics.Color
 import ai.graine.inapp.kmp.GraineCallInfo
 import ai.graine.inapp.kmp.GraineCallState
@@ -259,17 +262,18 @@ class OwnDesignTest {
         }
         // No look of its own: Cards — filled buttons, the app's accent and corners, room as before, one column, facts.
         assertEquals(
-            OwnLook(accent = null, cardRadius = 14, controlRadius = null, padding = 14, gap = 10, button = GraineComponentButton.FILLED, grid = false, facts = true),
+            OwnLook(accent = null, cardRadius = 14, controlRadius = null, padding = 14, gap = 10, button = GraineComponentButton.FILLED, grid = false, facts = true, imageHeight = 140),
             look("product_list", items, null),
         )
         // All a card in the thread follows, as the dashboard sets it.
         assertEquals(
-            OwnLook(accent = "#0F766E", cardRadius = 6, controlRadius = 6, padding = 10, gap = 6, button = GraineComponentButton.OUTLINE, grid = true, facts = false),
+            OwnLook(accent = "#0F766E", cardRadius = 6, controlRadius = 6, padding = 10, gap = 6, button = GraineComponentButton.OUTLINE, grid = true, facts = false, imageHeight = 180),
             look("product_list", items, mapOf("preset" to "gallery", "accent" to "#0f766e", "radius" to 6, "density" to "compact", "button" to "outline", "columns" to 2, "facts" to false)),
         )
-        // Each preset's own button: List taps the whole row, Compact outlines it.
-        assertEquals(GraineComponentButton.ROW, look("product_list", items, mapOf("preset" to "list")).button)
+        // Each preset's own button and picture size: List taps the whole row with small pictures, Compact outlines it.
+        assertEquals(GraineComponentButton.ROW to 100, look("product_list", items, mapOf("preset" to "list")).let { it.button to it.imageHeight })
         assertEquals(GraineComponentButton.OUTLINE, look("product_list", items, mapOf("preset" to "compact")).button)
+        assertEquals(180, look("blank", mapOf("blocks" to listOf(mapOf("type" to "divider"))), mapOf("imageSize" to "large")).imageHeight, "a size chosen on top of the preset")
         // Two columns come with Gallery and Cards only, and only where there are two rows or more.
         assertTrue(look("plan_comparison", mapOf("plans" to listOf(mapOf("id" to "a", "name" to "A"), mapOf("id" to "b", "name" to "B"))), mapOf("columns" to 2)).grid)
         assertFalse(look("product_list", items, mapOf("preset" to "list", "columns" to 2)).grid)
@@ -302,6 +306,71 @@ class OwnDesignTest {
         assertNull(chose.componentShown().awaiting(true).line, "the next component makes the old answer history")
         assertEquals("Waiting for Asha…", OwnText.waitingFor("Asha"))
         assertEquals("Waiting for the agent…", OwnText.waitingFor(" "))
+    }
+
+    @Test
+    fun aComponentBuiltFromBlocksIsDrawnInOrderAndItsButtonAnswersAsThePreviewDoes() {
+        val c = component("blank", mapOf("title" to "Your first week", "blocks" to listOf(
+            mapOf("id" to "h", "type" to "heading", "content" to "Week one"),
+            mapOf("type" to "text", "content" to "Three short sessions."),
+            mapOf("type" to "image", "imageUrl" to "https://example.com/week.png"),
+            mapOf("type" to "divider"),
+            mapOf("type" to "video", "content" to "a kind of block this version does not know"),
+            mapOf("type" to "text", "content" to "  "),
+            mapOf("type" to "button", "content" to "Start now"),
+        )))
+        val w = assertIs<OwnWidget.Blocks>(OwnComponents.read(c))
+        assertEquals("Your first week", w.title)
+        assertEquals(
+            listOf(GraineComponentBlockType.HEADING, GraineComponentBlockType.TEXT, GraineComponentBlockType.IMAGE, GraineComponentBlockType.DIVIDER, GraineComponentBlockType.BUTTON),
+            w.blocks.map { it.type },
+            "in order, and only what can be drawn",
+        )
+        val start = OwnComponents.block(w.blocks.last())
+        assertEquals(mapOf("action" to "Start now"), start.data)
+        assertEquals("Start now", start.summary)
+        // Nothing that can be drawn: the component's own sentence.
+        val empty = component("blank", mapOf("blocks" to listOf(mapOf("type" to "video"))), fallback = "Open the app to see this.")
+        assertEquals("Open the app to see this.", assertIs<OwnWidget.Fallback>(OwnComponents.read(empty)).text)
+    }
+
+    @Test
+    fun picturesAreFetchedOnlyOverHttps() {
+        assertEquals("https://example.com/week.png", OwnComponents.pictureUrl(" https://example.com/week.png "))
+        assertEquals("HTTPS://example.com/a.png", OwnComponents.pictureUrl("HTTPS://example.com/a.png"))
+        assertNull(OwnComponents.pictureUrl("http://example.com/week.png"), "never in the clear")
+        assertNull(OwnComponents.pictureUrl("/samples/car.png"), "a path the SDK could not put on an origin")
+        assertNull(OwnComponents.pictureUrl("data:image/png;base64,AAAA"))
+        assertNull(OwnComponents.pictureUrl("https://"))
+        assertNull(OwnComponents.pictureUrl(null))
+    }
+
+    @Test
+    fun aTapRunsTheAppsJobFirstAndTheAgentHearsItsSentence() {
+        val items = mapOf("items" to listOf(mapOf("id" to "a", "title" to "Option one", "price" to 499L)))
+        fun withTap(onSelect: Map<String, Any?>?) = GraineComponent("w1", "product_list", null, buildMap {
+            put("data", items)
+            onSelect?.let { put("on_select", it) }
+        })
+        fun tapOf(c: GraineComponent) = OwnComponents.read(c).let { w -> OwnComponents.tap(c, OwnComponents.row(assertIs<OwnWidget.Rows>(w), w.rows[0])) }
+
+        // Open a screen: the path filled from the item, through open_screen; the agent hears the tap's own sentence.
+        val open = tapOf(withTap(mapOf("path" to "/items/{id}", "say" to "Opened {title} for {price}")))
+        assertEquals(GraineComponentTapCall("open_screen", mapOf("path" to "/items/a"), "Opened Option one for 499"), open.call)
+        assertEquals("Opened Option one for 499", open.summary)
+        // Run an action, its arguments filled; no sentence of its own: the app's.
+        val run = tapOf(withTap(mapOf("action" to "open_item", "args" to mapOf("item" to "{id}", "note" to "{summary}"))))
+        assertEquals(GraineComponentTapCall("open_item", mapOf("item" to "a", "note" to "I'll take a look at Option one at 499."), null), run.call)
+        assertEquals("I'll take a look at Option one at 499.", run.summary)
+        // No "When they tap": only the agent's turn.
+        assertEquals(OwnTap(null, "I'll take a look at Option one at 499."), tapOf(withTap(null)))
+        // A block's button goes through the same tap.
+        val blank = GraineComponent("w2", "blank", null, mapOf(
+            "data" to mapOf("blocks" to listOf(mapOf("type" to "button", "content" to "See plans"))),
+            "on_select" to mapOf("path" to "plans"),
+        ))
+        val button = assertIs<OwnWidget.Blocks>(OwnComponents.read(blank)).blocks.single()
+        assertEquals(OwnTap(GraineComponentTapCall("open_screen", mapOf("path" to "plans"), null), "See plans"), OwnComponents.tap(blank, OwnComponents.block(button)))
     }
 
     @Test

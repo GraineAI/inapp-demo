@@ -8,6 +8,7 @@ import ai.graine.inapp.kmp.GraineCallOutcome
 import ai.graine.inapp.kmp.GraineCallState
 import ai.graine.inapp.kmp.GraineCallStatus
 import ai.graine.inapp.kmp.GraineChatStatus
+import ai.graine.inapp.kmp.GraineComponentTapCall
 import ai.graine.inapp.kmp.GraineErrorCode
 import ai.graine.inapp.kmp.GraineException
 import ai.graine.inapp.kmp.GraineField
@@ -1044,16 +1045,39 @@ class JourneyModel(
 
     // ── the actions the agents call (the app is the store) ─────────────────
 
+    /** One of the journey's actions: the agent it is registered with, the pack's name for it, and what it does. */
+    private class JourneyAction(val agent: JourneyAgent, val name: String, val run: (Map<String, Any?>) -> JourneyAnswer)
+
     /** The journey's actions, by the pack's names: what the first call learned on its agent, the plan's on the coach. */
-    private fun registerActions() {
+    private fun journeyActions(): List<JourneyAction> {
         val a = journey.actions
+        return listOf(
+            JourneyAction(JourneyAgent.FIRST_CALL, a.saveIntake) { saveIntake(it) },
+            JourneyAction(JourneyAgent.COACH, a.getIntake) { getIntake() },
+            JourneyAction(JourneyAgent.COACH, a.savePlan) { savePlan(it) },
+            JourneyAction(JourneyAgent.COACH, a.getPlan) { getPlan(it) },
+            JourneyAction(JourneyAgent.COACH, a.swapItem) { swapItem(it) },
+            JourneyAction(JourneyAgent.COACH, a.logCheckIn) { logCheckIn(it) },
+        )
+    }
+
+    private fun registerActions() {
         sdk.unregisterActions()
-        sdk.registerAction(JourneyAgent.FIRST_CALL, a.saveIntake) { saveIntake(it) }
-        sdk.registerAction(JourneyAgent.COACH, a.getIntake) { getIntake() }
-        sdk.registerAction(JourneyAgent.COACH, a.savePlan) { savePlan(it) }
-        sdk.registerAction(JourneyAgent.COACH, a.getPlan) { getPlan(it) }
-        sdk.registerAction(JourneyAgent.COACH, a.swapItem) { swapItem(it) }
-        sdk.registerAction(JourneyAgent.COACH, a.logCheckIn) { logCheckIn(it) }
+        journeyActions().forEach { sdk.registerAction(it.agent, it.name, it.run) }
+    }
+
+    /**
+     * A component's tap in one of the journey's chats ("When they tap", SDK 0.14.8), run here before the card answers
+     * the agent: one of the journey's screens, or one of its own actions ([JourneyTaps]). Anything else, or an action
+     * that refuses, shows a notice; the agent is answered anyway.
+     */
+    fun runTap(call: GraineComponentTapCall) {
+        val actions = journeyActions()
+        when (val tap = JourneyTaps.decide(call, actions.map { it.name })) {
+            is JourneyTap.Open -> go(tap.route)
+            is JourneyTap.Run -> actions.first { it.name == tap.action }.run(tap.args).let { if (it.status != JourneyAnswer.Status.OK) notice = it.message }
+            is JourneyTap.Unknown -> notice = tap.notice
+        }
     }
 
     private fun signedIn(): JourneyAnswer? =

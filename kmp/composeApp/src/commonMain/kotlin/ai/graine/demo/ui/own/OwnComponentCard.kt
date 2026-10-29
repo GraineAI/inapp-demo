@@ -9,7 +9,10 @@ import ai.graine.demo.domain.OwnWidget
 import ai.graine.demo.ui.parseHex
 import ai.graine.inapp.kmp.GraineAgent
 import ai.graine.inapp.kmp.GraineComponent
+import ai.graine.inapp.kmp.GraineComponentBlock
+import ai.graine.inapp.kmp.GraineComponentBlockType
 import ai.graine.inapp.kmp.GraineComponentButton
+import ai.graine.inapp.kmp.GraineComponentTapCall
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -81,9 +84,15 @@ import androidx.compose.ui.unit.sp
  * It follows the look the dashboard gave the component (`component.style`, SDK
  * 0.14.8) where a card in the thread can ([OwnComponents.look]): its accent and
  * corners (else the app's theme), its density, its item buttons (filled,
- * outlined, or the whole row), two columns, its fact lines, and one choice or
- * several. [onAnswered] hears each answer first, so the screen can keep it on
- * show ([AnsweredLine]) while the agent answers it.
+ * outlined, or the whole row), two columns, its fact lines, its pictures' size,
+ * and one choice or several. A component built from blocks ("Start blank")
+ * draws its headings, text, pictures, lines and buttons.
+ *
+ * Every answer does what the SDK's own views do: the dashboard's "When they
+ * tap" first, through the app's own handler ([onTap], given
+ * `component.tapFor(…)`'s call: open a screen, run an action), then the turn,
+ * with the tap's `say` when it has one. [onAnswered] hears each answer, so the
+ * screen can keep it on show ([AnsweredLine]) while the agent answers it.
  */
 @Composable
 fun OwnComponentCard(
@@ -92,6 +101,7 @@ fun OwnComponentCard(
     pending: Boolean,
     modifier: Modifier = Modifier,
     onAnswered: (OwnAnswer) -> Unit = {},
+    onTap: (GraineComponentTapCall) -> Unit = {},
 ) {
     if (component == null) {
         if (pending) PendingCard(modifier)
@@ -100,9 +110,12 @@ fun OwnComponentCard(
     val widget = remember(component) { OwnComponents.read(component) }
     val skin = skinFor(remember(component, widget) { OwnComponents.look(component.style, widget) })
     val answer: (OwnAnswer) -> Unit = { a ->
+        // "When they tap": the app's own job first (it never holds the answer up), then the agent's turn.
+        val tap = OwnComponents.tap(component, a)
+        tap.call?.let(onTap)
         // The screen hears it before the SDK starts waiting for the agent's reply.
-        onAnswered(a)
-        agent.chat.answerWidget(component.id, a.data, a.summary)
+        onAnswered(OwnAnswer(a.data, a.summary.ifBlank { tap.summary }))
+        agent.chat.answerWidget(component.id, a.data, tap.summary)
     }
     Card(
         modifier.fillMaxWidth().testTag("own_component"),
@@ -130,6 +143,7 @@ fun OwnComponentCard(
                 is OwnWidget.Rows -> Rows(widget, skin, answer)
                 is OwnWidget.Calendar -> Calendar(widget, skin, answer)
                 is OwnWidget.Form -> Form(widget, skin, answer)
+                is OwnWidget.Blocks -> Blocks(widget, skin, answer)
                 is OwnWidget.Fallback -> Text(widget.text, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -387,6 +401,37 @@ private fun Calendar(widget: OwnWidget.Calendar, skin: Skin, answer: (OwnAnswer)
                 AccentOutlinedButton(skin, onClick = { answer(OwnComponents.slot(day, slot)) }, modifier = Modifier.testTag("own_slot")) { Text(slot) }
             }
         }
+    }
+}
+
+/** A component built from blocks ("Start blank"): its headings, text, pictures, lines and buttons, in order, in its look. */
+@Composable
+private fun Blocks(widget: OwnWidget.Blocks, skin: Skin, answer: (OwnAnswer) -> Unit) {
+    widget.blocks.forEach { block ->
+        when (block.type) {
+            GraineComponentBlockType.HEADING -> Text(block.content.orEmpty(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            GraineComponentBlockType.TEXT -> Text(block.content.orEmpty(), style = MaterialTheme.typography.bodyMedium)
+            GraineComponentBlockType.IMAGE -> OwnPicture(block.imageUrl, skin.look.imageHeight, skin.look.controlRadius ?: 10)
+            GraineComponentBlockType.DIVIDER -> HorizontalDivider()
+            GraineComponentBlockType.BUTTON -> BlockButton(block, skin) { answer(OwnComponents.block(block)) }
+        }
+    }
+}
+
+/** A block's button, as wide as the card, in the look's kind: filled with the accent, an outline in it, or a row. */
+@Composable
+private fun BlockButton(block: GraineComponentBlock, skin: Skin, onClick: () -> Unit) {
+    val words = block.content.orEmpty()
+    val wide = Modifier.fillMaxWidth().testTag("own_block_button")
+    when (skin.look.button) {
+        GraineComponentButton.FILLED -> AccentButton(skin, onClick = onClick, modifier = wide) { Text(words) }
+        GraineComponentButton.OUTLINE -> AccentOutlinedButton(skin, onClick = onClick, modifier = wide) { Text(words) }
+        GraineComponentButton.ROW -> Text(
+            "$words ›",
+            style = MaterialTheme.typography.labelLarge,
+            color = skin.accent,
+            modifier = wide.heightIn(min = 44.dp).clickable(onClick = onClick).padding(vertical = 12.dp),
+        )
     }
 }
 

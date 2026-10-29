@@ -19,6 +19,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -28,6 +29,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,6 +91,26 @@ actual object Platform {
             conn.readTimeout = 10_000
             try {
                 if (conn.responseCode !in 200..299) null else conn.inputStream.bufferedReader().use { it.readText() }
+            } finally {
+                conn.disconnect()
+            }
+        }.getOrNull()
+    }
+
+    actual suspend fun picture(url: String): ImageBitmap? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 10_000
+            try {
+                if (conn.responseCode !in 200..299) return@runCatching null
+                val bytes = conn.inputStream.use { it.readBytes() }
+                // A large original is decoded at a half, a quarter…: about a phone screen's width is all a card needs.
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                var sample = 1
+                while (bounds.outWidth / (sample * 2) >= 1080) sample *= 2
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
             } finally {
                 conn.disconnect()
             }
