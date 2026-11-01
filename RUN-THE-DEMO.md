@@ -81,9 +81,9 @@ below is only for building against SDK sources on your machine:
 
 | Registry | Live | Used by |
 |---|:-:|---|
-| Swift Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.4; 0.14.7 for Kotlin Multiplatform 0.14.8) | yes | iOS; the Kotlin Multiplatform app's iOS side |
+| Swift Package Manager (`https://github.com/GraineAI/inapp-ios`, from 0.14.4; 0.14.8 for Kotlin Multiplatform 0.14.9) | yes | iOS; the Kotlin Multiplatform app's iOS side |
 | npm (`@graineai/inapp-react-native` 0.44.1, `@graineai/inapp-react-native-calls` 0.5.1) | yes | React Native |
-| Maven Central (`ai.graine:inapp-android` 0.14.4 and 0.14.7, `ai.graine:inapp-kmp` 0.14.8) | yes | Android, Kotlin Multiplatform |
+| Maven Central (`ai.graine:inapp-android` 0.14.4 and 0.14.8, `ai.graine:inapp-kmp` 0.14.9) | yes | Android, Kotlin Multiplatform |
 | pub.dev (`graine_inapp` 0.14.4) | yes | Flutter |
 | CocoaPods trunk (`GraineInApp` 0.14.5) | yes | not used by these apps |
 
@@ -193,9 +193,9 @@ The website has no phone-style calls; a call booked there rings the person's pho
 
 ## 4. Kotlin Multiplatform, on Android and the iOS simulator
 
-One Compose Multiplatform app in `kmp/`, on `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` **0.14.8**
+One Compose Multiplatform app in `kmp/`, on `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` **0.14.9**
 (every state the SDK's own screens read is public: Home's **Your own design** draws them all in the app), with
-GraineInApp 0.14.7 on iOS — the iOS SDK the multiplatform SDK 0.14.8 builds on (on Android, the Android SDK 0.14.7).
+GraineInApp 0.14.8 on iOS — the iOS SDK the multiplatform SDK 0.14.9 builds on (on Android, the Android SDK 0.14.8).
 
 **You need** a Mac with Xcode 16 or newer and an iOS simulator, JDK 17 (`/usr/libexec/java_home -v 17` finds it),
 the Android SDK with platform 36 (Android Studio puts it in `~/Library/Android/sdk`), and an emulator (Android
