@@ -105,8 +105,9 @@ kotlin {
                 // The Graine in-app SDK, as published (0.14.12; since 0.14.0 every state the SDK's own screens read is public, so the
                 // app's "Your own design" screens draw chat, voice, calls, booking and components themselves — from 0.14.8 in each
                 // component's look, waiting visibly for the agent's reply; from 0.14.9 the SDK's own screens draw a component built
-                // with "Start blank" too; from 0.14.11 the calls setup check names the app whose push credentials are missing;
-                // from 0.14.12 it also says when Xcode links an older iOS SDK).
+                // with "Start blank" too; from 0.14.10 the calls setup check names the app whose push credentials are missing;
+                // from 0.14.11 it also says when Xcode links an older iOS SDK; from 0.14.12 a call whose audio unit would not
+                // start recovers, with iOS 0.14.11).
                 // The local-SDK switch in settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
                 implementation("ai.graine:inapp-kmp:0.14.12")
                 implementation("ai.graine:inapp-kmp-compose:0.14.12")
