@@ -102,15 +102,15 @@ kotlin {
         commonMain {
             kotlin.srcDir(generatePacks)
             dependencies {
-                // The Graine in-app SDK, as published (0.14.12; since 0.14.0 every state the SDK's own screens read is public, so the
+                // The Graine in-app SDK, as published (0.14.13; since 0.14.0 every state the SDK's own screens read is public, so the
                 // app's "Your own design" screens draw chat, voice, calls, booking and components themselves — from 0.14.8 in each
                 // component's look, waiting visibly for the agent's reply; from 0.14.9 the SDK's own screens draw a component built
                 // with "Start blank" too; from 0.14.10 the calls setup check names the app whose push credentials are missing;
                 // from 0.14.11 it also says when Xcode links an older iOS SDK; from 0.14.12 a call whose audio unit would not
-                // start recovers, with iOS 0.14.11).
+                // start recovers, with iOS 0.14.11; from 0.14.13 a tapped call reaches the agent's voice sooner, with iOS 0.14.12).
                 // The local-SDK switch in settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
-                implementation("ai.graine:inapp-kmp:0.14.12")
-                implementation("ai.graine:inapp-kmp-compose:0.14.12")
+                implementation("ai.graine:inapp-kmp:0.14.13")
+                implementation("ai.graine:inapp-kmp-compose:0.14.13")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
@@ -122,8 +122,8 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         }
         androidMain.dependencies {
-            // WebRTC calls on Android: the module beside the Android SDK, at the version inapp-kmp builds on (0.14.11 for KMP 0.14.12).
-            implementation("ai.graine:inapp-android-rtc:0.14.11")
+            // WebRTC calls on Android: the module beside the Android SDK, at the version inapp-kmp builds on (0.14.12 for KMP 0.14.13).
+            implementation("ai.graine:inapp-android-rtc:0.14.12")
             implementation("androidx.activity:activity-compose:1.9.3")
             // The Journey's reminders (notifications) and "Download my data" (FileProvider).
             implementation("androidx.core:core-ktx:1.13.1")
