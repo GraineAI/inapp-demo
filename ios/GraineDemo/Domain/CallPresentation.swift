@@ -89,7 +89,9 @@ enum CallText {
         case .notFound: return "That call no longer exists. Pull to refresh."
         case .network: return "No connection. Check your network and try again."
         case .invalidKey, .originRefused: return "This app is not set up for the assistant yet. Check the publishable key and the agent's allowed domains."
-        case .schedulingOff, .tooSoon, .tooFar, .outsideWindow, .tooManyPending, .invalidRequest, .unavailable, .unknown:
+        default:
+            // Every other code — and any the SDK adds later (0.14.4 added the app-identity and server-token codes) — reads the
+            // SDK's own sentence, which is the server's when there was one.
             if let s = fallback?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty { return s }
             return "Something went wrong. Try again."
         }
