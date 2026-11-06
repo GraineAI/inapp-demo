@@ -367,6 +367,9 @@ export function homeView(ctx) {
     h("section", { class: "card card-agent" },
       h("h2", { class: "card-title" }, `${pack.agentName}, your ${pack.agentRole}`),
       h("p", { class: "muted" }, "Voice and chat open in the panel at the bottom right of the page."),
+      // The agent's face (Avatar): the website widget draws it in the voice panel by itself — nothing to set up here.
+      h("p", { class: "muted", id: "face-note" },
+        `When ${pack.agentName} has a face (Avatar, in the dashboard), a voice call shows it in the panel, speaking with ${pack.agentName}'s voice.`),
       h("div", { class: "actions-row" },
         button(`Talk to ${pack.agentName}`, { variant: "primary", iconName: "voice", id: "talk", onClick: ctx.on.talk }),
         button("Chat", { iconName: "chat", onClick: () => ctx.on.go("chat") }))),
