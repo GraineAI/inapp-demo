@@ -1,5 +1,6 @@
 package ai.graine.demo.ui
 
+import ai.graine.inapp.GraineAvatarState
 import ai.graine.demo.domain.AgentCall
 import ai.graine.demo.domain.AgentProfile
 import ai.graine.demo.domain.AppConfig
@@ -45,6 +46,9 @@ interface KeyValueStore {
  * [graine] (a [GraineClient]), so this whole class runs in JVM unit tests
  * against a fake. Main thread.
  */
+/** Where "Show the agent's face" is remembered. */
+private const val FACE_KEY = "demo.showsAgentFace"
+
 class AppModel(
     val graine: GraineClient,
     val config: AppConfig,
@@ -55,6 +59,27 @@ class AppModel(
 ) {
     /** Row statuses for the app session, per pack and user: signing out and back in keeps them; a restart does not. */
     private val sessionStatuses = mutableMapOf<String, ItemsState>()
+
+    /** "Show the agent's face", remembered on this device; and the face as the SDK reports it. */
+    var faceOn by mutableStateOf(store.getString(FACE_KEY) == "1")
+        private set
+    var avatar by mutableStateOf(GraineAvatarState.OFF)
+        private set
+
+    init {
+        graine.setFaceShown(faceOn)
+        graine.watchAvatar { avatar = it }
+    }
+
+    /** Show (or stop showing) the agent's face: over the voice bar while a call in it has one, and on the call screen. */
+    fun setFace(on: Boolean) {
+        faceOn = on
+        store.putString(FACE_KEY, if (on) "1" else null)
+        graine.setFaceShown(on)
+    }
+
+    /** The face is drawn over the voice bar: switched on, a call in the bar, and a face to show. */
+    val faceOverBar: Boolean get() = faceOn && voiceAgent != null && !chatOpen && avatar.showsFace
 
     // Which pack, and who
     var pack by mutableStateOf(UseCasePacks.chosen(packs, store.getString(UseCasePacks.CHOICE_KEY)))

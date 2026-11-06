@@ -42,7 +42,10 @@ if (!sdkDir.isNullOrBlank()) {
     includeBuild(dir) {
         dependencySubstitution {
             substitute(module("ai.graine:inapp-android")).using(project(":graine-inapp"))
-            substitute(module("ai.graine:inapp-android-rtc")).using(project(":graine-inapp-rtc"))
+            // The WebRTC module from the same checkout, when it has one: the two are always one version.
+            if (dir.resolve("graine-inapp-rtc").isDirectory) {
+                substitute(module("ai.graine:inapp-android-rtc")).using(project(":graine-inapp-rtc"))
+            }
         }
     }
 }

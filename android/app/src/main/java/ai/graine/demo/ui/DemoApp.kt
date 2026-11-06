@@ -1,5 +1,11 @@
 package ai.graine.demo.ui
 
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.layout.size
+import android.view.ViewOutlineProvider
+import android.view.View
+import android.graphics.Outline
+import ai.graine.inapp.GraineAvatarView
 import ai.graine.demo.graine.GraineService
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -61,6 +67,23 @@ fun DemoApp(model: AppModel) {
                             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(bottom = 80.dp),
                         )
                     }
+                }
+
+                if (model.faceOverBar) {
+                    // The agent's face, above the voice bar, while a call in the bar has one: the SDK's avatar view.
+                    AndroidView(
+                        factory = { ctx ->
+                            GraineAvatarView(ctx).apply {
+                                clipToOutline = true
+                                outlineProvider = object : ViewOutlineProvider() {
+                                    override fun getOutline(view: View, outline: Outline) =
+                                        outline.setRoundRect(0, 0, view.width, view.height, 24 * view.resources.displayMetrics.density)
+                                }
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 230.dp)
+                            .size(200.dp, 250.dp).testTag("agent_face"),
+                    )
                 }
 
                 // Past sessions, over the chat it was opened from; Back closes the transcript first.

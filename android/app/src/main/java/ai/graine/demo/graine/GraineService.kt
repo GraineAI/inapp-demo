@@ -1,5 +1,7 @@
 package ai.graine.demo.graine
 
+import ai.graine.inapp.GraineAvatarState
+import ai.graine.inapp.GraineAvatar
 import ai.graine.demo.R
 import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
@@ -103,6 +105,12 @@ interface GraineClient {
     fun loadMorePastSessions(agent: DemoAgent)
     /** [done] hears one session's lines, oldest first (chat.sessionTranscript), or why not: `not_found` for one that is not this user's. */
     fun sessionTranscript(id: String, agent: DemoAgent, done: (SessionTranscript?, GraineError?) -> Unit)
+
+    // The agent's face (Avatar)
+    /** "Show the agent's face": the SDK's call screen draws it too (the voice bar's face is the app's GraineAvatarView). */
+    fun setFaceShown(on: Boolean) {}
+    /** The face's state as the SDK reports it, now and on every change, on the main thread; the returned function stops it. */
+    fun watchAvatar(onChange: (GraineAvatarState) -> Unit): () -> Unit = {}
 
     // What the SDK reports
     var onSessionReady: (() -> Unit)?
@@ -271,6 +279,12 @@ class GraineService private constructor(private val main: GraineInApp, private v
     override fun endVoice() {
         agents.forEach { sdk(it)?.voice?.end() }
     }
+
+    override fun setFaceShown(on: Boolean) {
+        main.calls.showsAvatar = on
+    }
+
+    override fun watchAvatar(onChange: (GraineAvatarState) -> Unit): () -> Unit = GraineAvatar.addListener { onChange(it) }
 
     override fun sendChatMessage(text: String, agent: DemoAgent) {
         sdk(agent)?.chat?.send(text)

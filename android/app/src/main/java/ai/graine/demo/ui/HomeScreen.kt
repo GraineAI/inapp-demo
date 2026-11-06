@@ -1,5 +1,7 @@
 package ai.graine.demo.ui
 
+import androidx.compose.material3.Switch
+import ai.graine.demo.domain.FaceText
 import ai.graine.demo.domain.CallText
 import ai.graine.demo.domain.DemoAgent
 import ai.graine.demo.domain.DemoFormat
@@ -73,6 +75,7 @@ fun HomeScreen(model: AppModel) {
                 FilledTonalButton(onClick = { model.open(DemoScreen.CHAT) }, modifier = Modifier.weight(1f).testTag("chat")) { Text("Chat") }
                 FilledTonalButton(onClick = { model.callAgent() }, modifier = Modifier.weight(1f).testTag("call")) { Text("Call") }
             }
+            FaceSwitch(model)
         }
 
         DemoCard("Next scheduled call") {
@@ -132,3 +135,20 @@ fun CallReadiness() {
         }
     }
 }
+
+/** "Show the agent's face": over the voice bar while a call in it has one, and on the SDK's call screen. */
+@Composable
+private fun FaceSwitch(model: AppModel) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text("Show the agent's face", fontWeight = FontWeight.SemiBold)
+            Text(
+                FaceText.caption(model.faceOn, model.avatar),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = model.faceOn, onCheckedChange = { model.setFace(it) }, modifier = Modifier.testTag("face_switch"))
+    }
+}
+

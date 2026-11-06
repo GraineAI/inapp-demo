@@ -1,5 +1,7 @@
 package ai.graine.demo
 
+import ai.graine.inapp.GraineAvatarState
+import ai.graine.demo.domain.FaceText
 import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
@@ -56,6 +58,23 @@ class AppModelTest {
     }
 
     // ── packs ──
+
+    @Test fun theFaceSwitchIsRememberedAndTheFaceShowsOnlyOverACallInTheBar() {
+        assertFalse(model.faceOn)
+        model.setFace(true)
+        assertTrue(make().faceOn)
+        assertFalse("no call in the bar, no face", model.faceOverBar)
+        model.setFace(false)
+        assertFalse(make().faceOn)
+    }
+
+    @Test fun theFaceSwitchSaysWhatTheCustomerSees() {
+        assertEquals("Calls are voice only.", FaceText.caption(false, GraineAvatarState(GraineAvatarState.Phase.LIVE)))
+        assertEquals("The face is speaking.", FaceText.caption(true, GraineAvatarState(GraineAvatarState.Phase.LIVE)))
+        assertEquals("Connecting the face…", FaceText.caption(true, GraineAvatarState(GraineAvatarState.Phase.AVAILABLE)))
+        assertTrue(FaceText.caption(true, GraineAvatarState(GraineAvatarState.Phase.OFF, "unsupported")).contains("continues with voice"))
+        assertEquals("Shown on your next call with the agent.", FaceText.caption(true, GraineAvatarState.OFF))
+    }
 
     @Test fun registersEveryActionOfThePackAndReportsSignIn() {
         assertEquals(setOf("open_screen", "open_item", "mark_done", "pause_reminders", "teleport"), fake.actions[DemoAgent.MAIN]?.keys)
