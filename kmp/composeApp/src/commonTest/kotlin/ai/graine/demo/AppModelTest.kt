@@ -43,6 +43,18 @@ class AppModelTest {
         ) to fake
 
     @Test
+    fun theFaceSwitchIsRememberedOnTheDevice() = runTest {
+        val store = MemoryStore()
+        val (m, _) = model(store = store)
+        assertFalse(m.faceOn, "off until the person turns it on")
+        m.setFace(true)
+        assertTrue(m.faceOn)
+        assertTrue(model(store = store).first.faceOn, "remembered")
+        m.setFace(false)
+        assertFalse(model(store = store).first.faceOn)
+    }
+
+    @Test
     fun anyVariableCanBeAddedAndRemovedAndProfileShowsWhatTheAgentReceives() = runTest {
         val (m, fake) = model()
         m.signIn(TestPack.pack.users[0], memory = true)

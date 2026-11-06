@@ -44,6 +44,8 @@ object OwnText {
         GraineChatStatus.OFFLINE -> "Offline · messages are sent when it reconnects"
         GraineChatStatus.FAILED -> "Couldn't reconnect · tap Retry"
         GraineChatStatus.DISCONNECTED -> "Disconnected · send a message to continue"
+        // A state from a newer SDK (FAILED: it gave up reconnecting, which `failed` above says first).
+        else -> "Couldn't reconnect · tap Retry"
     }
 
     /** The chat offers Retry once it gave up (`chat.failed`): while it is merely offline it comes back by itself. */

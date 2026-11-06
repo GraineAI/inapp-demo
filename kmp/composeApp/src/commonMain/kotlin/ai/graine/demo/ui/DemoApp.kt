@@ -12,6 +12,7 @@ import ai.graine.demo.ui.journey.JourneyApp
 import ai.graine.demo.ui.journey.JourneyCallHost
 import ai.graine.inapp.kmp.Graine
 import ai.graine.inapp.kmp.compose.GraineAgentBar
+import ai.graine.inapp.kmp.compose.GraineAvatarFace
 import ai.graine.inapp.kmp.compose.GraineCallScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -96,6 +101,15 @@ fun DemoApp(model: AppModel) {
                             )
                         }
                     }
+                }
+
+                // The agent's face, above the voice bar, while a call in the bar has one and the switch is on.
+                val face by Graine.avatar.state.collectAsState()
+                if (model.faceOn && voice != null && !model.chatOpen && face.showsFace) {
+                    GraineAvatarFace(
+                        Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 296.dp)
+                            .size(200.dp, 250.dp).clip(RoundedCornerShape(24.dp)).testTag("agent_face"),
+                    )
                 }
 
                 model.pastSessionsAgent?.let { agent ->

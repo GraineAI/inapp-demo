@@ -144,6 +144,9 @@ interface GraineClient {
     /** The call's id, or null when another call is live. */
     fun startNativeCall(reason: String, variables: Map<String, String>, agent: DemoAgent): String?
 
+    /** "Show the agent's face": the SDK's call screen draws it too (the voice bar's face is the app's GraineAvatarFace). */
+    fun setFaceShown(on: Boolean) {}
+
     /**
      * "Your own design": the app draws the call screen itself. iOS draws it in place; on Android the SDK opens a
      * call screen for every call, so the app names its own (GraineCallsConfig.androidCallActivity).
@@ -350,6 +353,10 @@ class GraineService private constructor() : GraineClient {
 
     override fun endVoice() {
         agents.forEach { sdk(it)?.voice?.end() }
+    }
+
+    override fun setFaceShown(on: Boolean) {
+        Graine.calls.showsAvatar = on
     }
 
     override fun sendChatMessage(text: String, agent: DemoAgent) {

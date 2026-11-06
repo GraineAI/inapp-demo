@@ -58,6 +58,9 @@ enum class DemoTab { HOME, ITEMS, CALLS, HELP, MEMORY }
  * [graine] (a [GraineClient]), so this whole class runs in unit tests against
  * a fake. Main thread.
  */
+/** Where "Show the agent's face" is remembered. */
+private const val FACE_KEY = "demo.showsAgentFace"
+
 class AppModel(
     val graine: GraineClient,
     val config: AppConfig,
@@ -87,6 +90,21 @@ class AppModel(
     /** The user's consent: their conversations are remembered. */
     var memoryOn by mutableStateOf(true)
         private set
+
+    /** "Show the agent's face", remembered on this device. */
+    var faceOn by mutableStateOf(store.getString(FACE_KEY) == "1")
+        private set
+
+    init {
+        graine.setFaceShown(faceOn)
+    }
+
+    /** Show (or stop showing) the agent's face: over the voice bar while a call in it has one, and on the call screen. */
+    fun setFace(on: Boolean) {
+        faceOn = on
+        store.putString(FACE_KEY, if (on) "1" else null)
+        graine.setFaceShown(on)
+    }
 
     // Where
     var tab by mutableStateOf(DemoTab.HOME)
