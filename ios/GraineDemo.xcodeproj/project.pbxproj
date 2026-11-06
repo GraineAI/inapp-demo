@@ -26,9 +26,11 @@
 		5F9A21272F7D3D3386063DE6 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1A42B0FF88E02B3844E059 /* MemoryView.swift */; };
 		64AA863EB3670D529FF50760 /* GraineDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5AB17C17913986D645C91E /* GraineDemoApp.swift */; };
 		66F78752B6A60934E59FAC5E /* ItemsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */; };
+		7CC158B76923ADF32930D580 /* DemoAvatarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20F121ACF3280E2FDD70E75 /* DemoAvatarTests.swift */; };
 		9A705855C9520B1D038F259B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 059A14E0E851E5703D4E08EE /* RootView.swift */; };
 		9EA37EE97184A0F9FE23A27F /* UseCasePack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A7D79F712BEA6CF57CDE44 /* UseCasePack.swift */; };
 		A388A7B82AAD75537EBEADC2 /* TestPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14AD8F42B3B833E36F79726 /* TestPack.swift */; };
+		A4C7BBAC0A5F5B07572C951B /* DemoAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21981548871E1EBF6908DBC /* DemoAvatar.swift */; };
 		A98B76D2A1515036A643C190 /* GraineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546214C3AAC6F0018E63EC4D /* GraineClient.swift */; };
 		AABD076AC27D815DEBAC3D0F /* TestClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B9A81DFBDD56BA44595F25 /* TestClock.swift */; };
 		C85A97BA6800EFAC80A47AC0 /* PastSessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E48F3343C57A514B83397A /* PastSessionsView.swift */; };
@@ -84,11 +86,13 @@
 		950AAFE1489AFA6CAAE2D52F /* CallLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallLog.swift; sourceTree = "<group>"; };
 		AC3F6103F2EECDF926D16106 /* DemoAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAgent.swift; sourceTree = "<group>"; };
 		AF5AB17C17913986D645C91E /* GraineDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraineDemoApp.swift; sourceTree = "<group>"; };
+		B21981548871E1EBF6908DBC /* DemoAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAvatar.swift; sourceTree = "<group>"; };
 		B251A6A0B63DE79CFF254408 /* GraineDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GraineDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD2D9A4F6685D1F711E4F611 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C1042DF058A94B73588D9ABE /* PastSessionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastSessionsTests.swift; sourceTree = "<group>"; };
 		C14AD8F42B3B833E36F79726 /* TestPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestPack.swift; sourceTree = "<group>"; };
 		C158AC161E2122E127110250 /* usecases */ = {isa = PBXFileReference; lastKnownFileType = folder; name = usecases; path = ../usecases; sourceTree = SOURCE_ROOT; };
+		C20F121ACF3280E2FDD70E75 /* DemoAvatarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAvatarTests.swift; sourceTree = "<group>"; };
 		C7B9A81DFBDD56BA44595F25 /* TestClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestClock.swift; sourceTree = "<group>"; };
 		D7056895217B2BA10FB24769 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		DE597B4E99CACACF746AAE06 /* CallTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallTextTests.swift; sourceTree = "<group>"; };
@@ -215,6 +219,7 @@
 				950AAFE1489AFA6CAAE2D52F /* CallLog.swift */,
 				2C4BECBB0340824ADB0364BE /* CallPresentation.swift */,
 				AC3F6103F2EECDF926D16106 /* DemoAgent.swift */,
+				B21981548871E1EBF6908DBC /* DemoAvatar.swift */,
 				DEDDDBB271B18BD6A5D69A24 /* DemoScreens.swift */,
 				546214C3AAC6F0018E63EC4D /* GraineClient.swift */,
 				F7F0D646D0F51A16B1A52EA4 /* ItemsState.swift */,
@@ -229,6 +234,7 @@
 			children = (
 				D7056895217B2BA10FB24769 /* AppModelTests.swift */,
 				DE597B4E99CACACF746AAE06 /* CallTextTests.swift */,
+				C20F121ACF3280E2FDD70E75 /* DemoAvatarTests.swift */,
 				1602680C4FCDCB53CC940920 /* FakeGraineClient.swift */,
 				77DB23F28558FF91DBBE0239 /* PackTests.swift */,
 				C1042DF058A94B73588D9ABE /* PastSessionsTests.swift */,
@@ -347,6 +353,7 @@
 			files = (
 				54D4F5375A57ECCEAA5EDDDF /* AppModelTests.swift in Sources */,
 				CBBF52FA4DA3D9C0A772CC75 /* CallTextTests.swift in Sources */,
+				7CC158B76923ADF32930D580 /* DemoAvatarTests.swift in Sources */,
 				CF4A8C372679E58427B04ED0 /* FakeGraineClient.swift in Sources */,
 				0D8927356E6284518D6EE7FB /* PackTests.swift in Sources */,
 				10E0BD404ADAA9AD5FD7F80C /* PastSessionsTests.swift in Sources */,
@@ -366,6 +373,7 @@
 				E6CF79A84A63AD1881504538 /* CallPresentation.swift in Sources */,
 				016D838DF8D89716EB525CB2 /* ChatScreen.swift in Sources */,
 				48BD4B23B7D998BD87180B2E /* DemoAgent.swift in Sources */,
+				A4C7BBAC0A5F5B07572C951B /* DemoAvatar.swift in Sources */,
 				51B80A0A54FF7061FA37D42B /* DemoScreens.swift in Sources */,
 				A98B76D2A1515036A643C190 /* GraineClient.swift in Sources */,
 				64AA863EB3670D529FF50760 /* GraineDemoApp.swift in Sources */,

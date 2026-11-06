@@ -265,6 +265,26 @@ final class GraineService: GraineClient {
         AnyView(GraineCallView(calls: main.calls))
     }
 
+    // MARK: - The agent's face
+
+    private var avatarWatch: AnyCancellable?
+
+    func setFaceShown(_ on: Bool) {
+        // The SDK's own call screen draws the face too; the voice bar's face is the app's avatar view (RootView).
+        main.calls.showsAvatar = on
+    }
+
+    func watchAvatar(_ onChange: @escaping @MainActor (DemoAvatar) -> Void) {
+        avatarWatch = GraineAvatar.shared.$state.removeDuplicates().sink { state in
+            let face = DemoAvatar(phase: DemoAvatar.Phase(rawValue: state.phase.rawValue) ?? .off, reason: state.reason)
+            Task { @MainActor in onChange(face) }
+        }
+    }
+
+    func avatarView() -> AnyView {
+        AnyView(GraineAvatarFace())
+    }
+
     // MARK: - Mapping
 
     private static func screen(_ c: DemoScreenContext) -> GraineScreen {

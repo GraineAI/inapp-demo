@@ -95,6 +95,21 @@ protocol GraineClient: AnyObject {
     func chatView(agent: DemoAgent, onClose: @escaping () -> Void) -> AnyView
     func voiceBar(agent: DemoAgent, name: String, bottomInset: CGFloat, onClose: @escaping () -> Void) -> AnyView
     func callScreen() -> AnyView
+
+    // The agent's face (Avatar)
+    /// Whether the app shows the agent's face: its own avatar view over the voice bar, and the SDK's call screen.
+    func setFaceShown(_ on: Bool)
+    /// The face's state as the SDK reports it, now and on every change.
+    func watchAvatar(_ onChange: @escaping @MainActor (DemoAvatar) -> Void)
+    /// Where the face is drawn: the SDK's avatar view.
+    func avatarView() -> AnyView
+}
+
+/// A client without the face (the offline demo, the tests' fake): calls stay voice only.
+extension GraineClient {
+    func setFaceShown(_ on: Bool) {}
+    func watchAvatar(_ onChange: @escaping @MainActor (DemoAvatar) -> Void) {}
+    func avatarView() -> AnyView { AnyView(EmptyView()) }
 }
 
 extension GraineMemory {

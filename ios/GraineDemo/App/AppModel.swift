@@ -74,6 +74,9 @@ final class AppModel: ObservableObject {
     @Published private(set) var callLog: CallLog
     /// A short message for the user: what just happened, or why it did not.
     @Published var notice: String?
+    /// "Show the agent's face", remembered on this device; and the face as the SDK reports it.
+    @Published private(set) var faceOn = false
+    @Published private(set) var avatar = DemoAvatar.off
 
     // Past sessions
     /// The Past sessions screen is open, for this agent's sessions (from the chat).
@@ -111,6 +114,9 @@ final class AppModel: ObservableObject {
             guard let self = self, agent == self.pastSessionsAgent else { return }
             self.pastSessions = state
         }
+        faceOn = defaults.bool(forKey: AppModel.faceKey)
+        graine.setFaceShown(faceOn)
+        graine.watchAvatar { [weak self] face in self?.avatar = face }
         registerActions()
         refreshBookable()
         agentMemoryEnabled = graine.agentMemoryEnabled
@@ -292,6 +298,18 @@ final class AppModel: ObservableObject {
         graine.sendChatMessage(text, agent: agent)
         openChat(agent)
     }
+
+    static let faceKey = "demo.showsAgentFace"
+
+    /// "Show the agent's face": the face over the voice bar and on the call screen, when the agent has one.
+    func setFace(_ on: Bool) {
+        faceOn = on
+        defaults.set(on, forKey: AppModel.faceKey)
+        graine.setFaceShown(on)
+    }
+
+    /// The face is drawn over the voice bar: switched on, a call in the bar, and a face to show.
+    var faceOverBar: Bool { faceOn && voiceAgent != nil && !chatOpen && avatar.showsFace }
 
     /// "Talk": that agent's voice bar, and the call in it.
     func talk(_ agent: DemoAgent = .main) {

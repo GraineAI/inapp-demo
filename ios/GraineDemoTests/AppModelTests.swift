@@ -495,4 +495,17 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(fake.lastScreen?.screen, "help")
         XCTAssertEqual(fake.lastScreen?.title, "Help")
     }
+
+    // MARK: - The agent's face
+
+    func testTheFaceSwitchIsRememberedAndTheFaceShowsOnlyOverACallInTheBar() {
+        XCTAssertFalse(model.faceOn, "off until the person turns it on")
+        model.setFace(true)
+        XCTAssertTrue(model.faceOn)
+        XCTAssertTrue(makeModel().faceOn, "remembered on this device")
+        XCTAssertFalse(model.faceOverBar, "no call in the bar, no face")
+        model.setFace(false)
+        XCTAssertFalse(makeModel().faceOn)
+    }
 }
+

@@ -66,6 +66,16 @@ struct HomeView: View {
                 ActionTile(title: "Chat", systemImage: "bubble.left.and.bubble.right") { model.open(.chat) }
                 ActionTile(title: "Call", systemImage: "phone") { model.callAgent() }
             }
+            Divider()
+            Toggle(isOn: Binding(get: { model.faceOn }, set: { model.setFace($0) })) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Show the agent's face").font(.subheadline.weight(.semibold))
+                    Text(model.avatar.caption(switchedOn: model.faceOn))
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .accessibilityIdentifier("face_switch")
         }
     }
 

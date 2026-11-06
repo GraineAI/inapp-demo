@@ -44,6 +44,22 @@ struct RootView: View {
                 .zIndex(2)
             }
 
+            if model.faceOverBar {
+                // The agent's face, above the voice bar, while a call in the bar has one.
+                VStack {
+                    Spacer()
+                    model.graine.avatarView()
+                        .frame(width: 200, height: 250)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .shadow(radius: 8)
+                        .padding(.bottom, 150)
+                        .accessibilityIdentifier("agent_face")
+                }
+                .transition(.opacity)
+                .zIndex(2.5)
+            }
+
             if let notice = model.notice {
                 VStack {
                     Spacer()
@@ -70,6 +86,7 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.25), value: model.pastSessionsAgent)
         .animation(.easeInOut(duration: 0.25), value: model.callScreenVisible)
         .animation(.easeInOut(duration: 0.2), value: model.notice)
+        .animation(.easeInOut(duration: 0.25), value: model.faceOverBar)
         .onAppear {
             model.graine.attachVoiceEngine()
             OfflineDemo.run(model)
