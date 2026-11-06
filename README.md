@@ -54,6 +54,7 @@ All people, cards and orders are fictional.
 | Screen context on every screen | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | App actions the assistant runs: open a screen, open an item, change an item's status | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Call the assistant (a phone-style call) | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| The agent's face (Avatar): **Show the agent's face** — over the voice bar and on the call screen; the website's panel draws it by itself | — | — | ✓ ⁷ | ✓ ⁷ | ✓ | ✓ ⁷ |
 | Book a call — the SDK's booking sheet (day, time, the time zone, an optional note) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Scheduled calls with status chips (scheduled, ringing, answered, completed, declined, missed, expired, no device) and Cancel | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Hosted ringing — Graine rings the booked call | ✓ ³ | ✓ ³ | ✓ ³ | ✓ ³ | rings the user's phone app | ✓ ³ |
@@ -85,6 +86,11 @@ All people, cards and orders are fictional.
    key, a first-call flow agent on a key of its own, support on the help key:
    [RUN-THE-DEMO.md → The Journey](RUN-THE-DEMO.md#7-the-journey-an-apps-whole-in-app-journey-kotlin-multiplatform)
    and [`agent-setup/health-coach/journey/`](agent-setup/health-coach/journey/README.md). The other packs have none.
+10. The agent's face needs the SDK release that draws it (after 0.14.12; Kotlin Multiplatform after 0.14.13) and
+    Avatar turned on for the agent ([`agent-setup/SETUP.md`](agent-setup/SETUP.md)); until the release, build with
+    the local-SDK switches ([RUN-THE-DEMO.md](RUN-THE-DEMO.md#3-run-each-app)). Native calls show it with the WebRTC
+    module, which every app here includes. React Native and Flutter: the SDKs have it (`GraineAvatarFace`); these
+    two apps do not show it yet.
 
 ## What the SDK does, and what your app does
 

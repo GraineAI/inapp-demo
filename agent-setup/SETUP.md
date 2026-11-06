@@ -81,6 +81,24 @@ Each app talks to two agents: the main one on Home and Chat, and a help desk on 
 for both), the same `actions.json`, its own name on incoming calls. Copy its publishable key into the apps'
 **help** key. Without one, the Help screen says how to add it and everything else works.
 
+## 6b. The agent's face (Avatar) — 2 minutes (optional)
+A live talking face for the main agent on voice calls in the apps and on the website. **Agent → Embed &
+Widgets → Appearance → Avatar**:
+- **Show a live face on calls**: on.
+- **Portrait**: one person, facing the camera, head and shoulders in the frame, even light, nothing
+  covering the face; PNG, JPG or WEBP up to 2 MB. A PNG with its background removed lets your own
+  **Background** show behind the face. Use only a photo of someone who has agreed to be the face of the
+  agent, or an image you own — the demo's fictional agents need a fictional or licensed portrait.
+- **Quality**: **Standard** for the demo (smooth on any connection, quickest to appear); **High** for a
+  sharper face on a good connection.
+- **Save**. It applies from the next call. Avatar minutes are charged on top of the call, only while the
+  face is on screen.
+
+In the apps, turn on **Show the agent's face** on Home (iOS, Android, Kotlin Multiplatform), then **Talk** —
+the face appears above the voice bar — or **Call**, where the call screen draws it. The website shows it in
+the voice panel by itself. Native calls show the face only with the WebRTC module (every demo app includes
+it) and a call on WebRTC.
+
 ## 7. Run an app — 1 minute
 Put the publishable key into the app's configuration and start it (root `README.md`, *Run*). Sign in as
 one of the fictional people, then run the QA checklist in the root README.

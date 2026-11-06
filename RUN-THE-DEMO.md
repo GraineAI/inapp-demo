@@ -49,6 +49,11 @@ same **Who is the user?** field (`patient_id`: one sign-in identifies the person
 You now have two keys per pack. One main key for all three packs works for a quick look; give each pack its own
 agents to demo all three.
 
+**The agent's face (optional).** For the face on calls, turn on **Avatar** for the main agent: **Embed &
+Widgets → Appearance → Avatar** — a portrait, **Standard** quality — step by step in
+[`agent-setup/SETUP.md`](agent-setup/SETUP.md#6b-the-agents-face-avatar--2-minutes-optional). Avatar minutes
+are charged on top of the call, only while the face is on screen.
+
 ## 2. Ringing: push credentials
 
 Chat, voice and calls the person places work without this. For **Graine to ring** a booked call — and for
@@ -96,6 +101,13 @@ What works where: chat, components, memory, screen context, actions, the voice b
 simulator or emulator. Phone-style calls and rings need a **real phone**: the iOS simulator has no CallKit or
 VoIP push, and hosted ringing needs a device registered with push credentials. In the emulator, voice needs the
 host microphone turned on (Extended controls → Microphone).
+
+**The agent's face (Avatar) needs the SDK release that draws it** — the next native release after 0.14.12
+(Kotlin Multiplatform after 0.14.13). Until it is tagged, build the iOS, Android and Kotlin Multiplatform apps
+against the SDK's sources with the local-SDK switches below (`ios/use-local-sdk.sh`, `graine.sdkDir` — which
+also takes the WebRTC module from the same checkout — and `graine.kmpSdkDir`); at the release, the apps' pins
+move to that version (`ios/project.yml`, `android/app/build.gradle.kts`, `kmp/composeApp/build.gradle.kts`,
+`kmp/iosApp`). The website needs nothing: its widget draws the face already.
 
 ### iOS
 
@@ -293,6 +305,7 @@ scheduling**, **Memory → People** and **Call History**.
 | 2:30 | A component | In the chat: *"Let's do my daily check-in."* | The daily check-in card; a tap answers it |
 | 3:30 | An action | *"Open my medicines"*, then *"I have taken my metformin"* | The app moves to Medicines; Metformin 500 mg turns **Taken today** |
 | 4:30 | Call the agent | Home → **Call Asha** | A phone-style call; Asha knows who is calling and where they were |
+| 5:00 | The agent's face | Home → **Show the agent's face** on → **Talk** (then **Call**) | Asha's live face above the voice bar, speaking with her voice, lips in sync; on the call screen too. The line under the switch says *The face is speaking.* Turn it off: voice only, at once |
 | 5:30 | Booking | **Calls** → **Schedule a consultation call** → a day and a time in the booking sheet → **Book call** → **Done** | The SDK's own booking sheet in Asha's design: the day, the time in 5-minute steps inside Asha's hours, the time zone, "What's it about?" already filled; the call **Scheduled**, with Cancel |
 | 6:30 | Ring now | Dashboard → Asha → **Calls & scheduling** → **Ring a user now** → `MRN-000981` → **Ring now**. Lock the phone | It rings like a phone call, named *Asha · Graine Care*; answer — Asha says she is calling as booked |
 | 7:30 | The second agent | Open **Help** (Billing & appointments help) → *"Why was I charged twice?"* | Another agent, its own chat — and it already knows it is Riya |
@@ -301,6 +314,13 @@ scheduling**, **Memory → People** and **Call History**.
 | 9:40 | Past sessions | In the chat, **Past sessions** (the website: the **Chat** section's Past sessions; Kotlin Multiplatform: in **Your own design**, the chat's menu) → open the newest | Riya's earlier chats, voice conversations and calls with Asha, newest first — when, how long, how it ended, the first words — and the tapped one's transcript, read only: the same sessions as the dashboard's **Call History** |
 
 ## 6. Troubleshooting
+
+0. **The face does not appear** — the line under **Show the agent's face** says why: *This agent has no face
+   yet* (turn on Avatar for the agent), *Every face is in use right now* (the call goes on with voice; try again
+   in a minute), *This call can't show a face* (a native call on the WebSocket: the WebRTC module is missing, or
+   the agent's In-app call audio is set to WebSocket), *The face isn't available right now* (the network would
+   not carry it — the call goes on with voice). An app built from published SDK versions before the face has no
+   switch at all: see *Where the SDKs come from* in section 3.
 
 1. **"The app's publishable key was refused"**, or the assistant never starts — Allowed domains lacks
    `app://` (apps) or `localhost` (website), or the key belongs to another agent (the main and help keys
