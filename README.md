@@ -86,11 +86,10 @@ All people, cards and orders are fictional.
    key, a first-call flow agent on a key of its own, support on the help key:
    [RUN-THE-DEMO.md → The Journey](RUN-THE-DEMO.md#7-the-journey-an-apps-whole-in-app-journey-kotlin-multiplatform)
    and [`agent-setup/health-coach/journey/`](agent-setup/health-coach/journey/README.md). The other packs have none.
-10. The agent's face needs the SDK release that draws it (after 0.14.12; Kotlin Multiplatform after 0.14.13) and
-    Avatar turned on for the agent ([`agent-setup/SETUP.md`](agent-setup/SETUP.md)); until the release, build with
-    the local-SDK switches ([RUN-THE-DEMO.md](RUN-THE-DEMO.md#3-run-each-app)). Native calls show it with the WebRTC
-    module, which every app here includes. React Native and Flutter: the SDKs have it (`GraineAvatarFace`); these
-    two apps do not show it yet.
+10. The agent's face needs SDK 0.15.0 (iOS, Android and Kotlin Multiplatform) and Avatar turned on for the agent
+    ([`agent-setup/SETUP.md`](agent-setup/SETUP.md)). Native calls show it with the WebRTC module, which every app
+    here includes. React Native and Flutter: their SDK releases with the face are still to come; these two apps do
+    not show it yet.
 
 ## What the SDK does, and what your app does
 
@@ -204,16 +203,16 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 ### Where the SDKs come from
 
-Every app uses a published release: **0.14.4** for iOS, Android and Flutter, **0.14.13** for Kotlin Multiplatform; React Native 0.44.1,
+Every app uses a published release: **0.15.0** for iOS, Android and Kotlin Multiplatform, **0.14.4** for Flutter; React Native 0.44.1,
 calls 0.5.1. The sources of the iOS (and its
 WebRTC module), Android, Kotlin Multiplatform and Flutter SDKs are public repositories (MIT licence), tagged with each
 release.
 
 | App | Dependency | Registry |
 |---|---|---|
-| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.14.4 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
-| Android | `ai.graine:inapp-android:0.14.4` and `ai.graine:inapp-android-rtc:0.14.4` | Maven Central |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.14.13 (+ `inapp-android-rtc` 0.14.12, the Android SDK it builds on); iOS: `GraineInApp` and `GraineInAppRTC` 0.14.12, the iOS SDK it builds on | Maven Central, Swift Package Manager |
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.15.0 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
+| Android | `ai.graine:inapp-android:0.15.0` and `ai.graine:inapp-android-rtc:0.15.0` | Maven Central |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.15.0 (+ `inapp-android-rtc` 0.15.0, the Android SDK it builds on); iOS: `GraineInApp` and `GraineInAppRTC` 0.15.0, the iOS SDK it builds on | Maven Central, Swift Package Manager |
 | Flutter | `graine_inapp: ^0.14.4` | pub.dev |
 | React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — |

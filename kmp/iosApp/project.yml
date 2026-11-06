@@ -17,14 +17,14 @@ settings:
 packages:
   GraineInApp:
     url: https://github.com/GraineAI/inapp-ios
-    # The version ai.graine:inapp-kmp builds on (0.14.12 for KMP 0.14.13): the shared code calls this SDK through its
+    # The version ai.graine:inapp-kmp builds on (0.15.0 for KMP 0.15.0): the shared code calls this SDK through its
     # Objective-C facade (from 0.14.0: chat.shown, booking slots and reasons, the calls' connection report, for the
     # app's own screens).
-    from: 0.14.12
+    from: 0.15.0
   # WebRTC calls: the module beside the SDK, always the same version.
   GraineInAppRTC:
     url: https://github.com/GraineAI/inapp-ios-rtc
-    from: 0.14.12
+    from: 0.15.0
 targets:
   GraineDemoKMP:
     type: application

@@ -638,7 +638,7 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.14.4;
+				minimumVersion = 0.15.0;
 			};
 		};
 		E1B91B323086EABF5E06D834 /* XCRemoteSwiftPackageReference "inapp-ios-rtc" */ = {
@@ -646,7 +646,7 @@
 			repositoryURL = "https://github.com/GraineAI/inapp-ios-rtc";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.14.4;
+				minimumVersion = 0.15.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
