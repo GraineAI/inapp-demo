@@ -53,6 +53,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 /**
  * The layers, bottom to top: the app (sign-in or the tabs), the chat, the
@@ -125,30 +133,17 @@ fun DemoApp(model: AppModel) {
                     )
                 }
                 if (faceStage && voice != null) {
+                    // As in the email: the face fills the room above the bar (a small margin each side, at most 1.6x as
+                    // tall as wide so the square picture is never cropped past the shoulders), the agent's name and role
+                    // over its top-left, LIVE and the call's time over its top-right; the bar's captions stay below.
                     BoxWithConstraints(
                         Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(top = 8.dp, bottom = 296.dp),
                     ) {
-                        // 4:5, as wide as the screen allows (a margin each side), never taller than the room above the bar.
-                        val width = (maxWidth - 32.dp).coerceAtMost(440.dp)
-                        val height = (width * 1.25f).coerceAtMost(maxHeight - 44.dp)
-                        Column(Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(
-                                Modifier.width(width).padding(bottom = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(model.nameOf(voice), color = Color.White, style = MaterialTheme.typography.titleMedium)
-                                val live = face.phase == GraineAvatarState.Phase.LIVE
-                                Surface(shape = RoundedCornerShape(50), color = if (live) Color(0xFFDC2626) else Color(0x33FFFFFF)) {
-                                    Text(
-                                        if (live) "LIVE" else "Connecting…",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).testTag("face_state"),
-                                    )
-                                }
-                            }
-                            GraineAvatarFace(Modifier.size(width, height).clip(RoundedCornerShape(28.dp)).testTag("agent_face"))
+                        val width = (maxWidth - 24.dp).coerceAtMost(480.dp)
+                        val height = maxHeight.coerceAtMost(width * 1.6f)
+                        Box(Modifier.align(Alignment.BottomCenter).size(width, height).clip(RoundedCornerShape(28.dp))) {
+                            GraineAvatarFace(Modifier.fillMaxSize().testTag("agent_face"))
+                            FaceTitle(model.nameOf(voice), face.phase == GraineAvatarState.Phase.LIVE)
                         }
                     }
                 }
@@ -241,5 +236,47 @@ private fun NoPacks() {
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
+    }
+}
+
+
+/** The face's title, as in the email: name and role at the top-left, LIVE and the call's time at the top-right. */
+@Composable
+private fun BoxScope.FaceTitle(name: String, live: Boolean) {
+    var since by remember { mutableStateOf<TimeMark?>(null) }
+    var seconds by remember { mutableStateOf(0L) }
+    LaunchedEffect(live) {
+        if (live && since == null) since = TimeSource.Monotonic.markNow()
+        while (live) {
+            seconds = since?.elapsedNow()?.inWholeSeconds ?: 0L
+            delay(1000)
+        }
+    }
+    Row(
+        Modifier.align(Alignment.TopCenter).fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(Color(0x99000000), Color.Transparent)))
+            .padding(start = 18.dp, end = 16.dp, top = 16.dp, bottom = 40.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column {
+            Text(name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            Text("AI assistant", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = RoundedCornerShape(50), color = if (live) Color(0xFFDC2626) else Color(0x33FFFFFF)) {
+                Text(
+                    if (live) "LIVE" else "Connecting…",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).testTag("face_state"),
+                )
+            }
+            if (live) {
+                val clock = "${(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}"
+                Text(clock, color = Color.White, style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(start = 8.dp).testTag("face_clock"))
+            }
+        }
     }
 }
