@@ -15,6 +15,13 @@ import ai.graine.inapp.kmp.compose.GraineAgentBar
 import ai.graine.inapp.kmp.compose.GraineAvatarFace
 import ai.graine.inapp.kmp.compose.GraineCallScreen
 import androidx.compose.foundation.layout.Arrangement
+import ai.graine.inapp.kmp.GraineAvatarState
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
@@ -81,6 +88,13 @@ fun DemoApp(model: AppModel) {
                 }
 
                 val voice = model.voiceAgent
+                // THE FACE STAGE: while a call in the bar has a face (and the switch is on), the screen dims behind it and
+                // the agent's face is shown large, as on a video call — the voice bar and its captions stay below it.
+                val face by Graine.avatar.state.collectAsState()
+                val faceStage = model.faceOn && voice != null && !model.chatOpen && !model.ownDesign && face.showsFace
+                if (faceStage) {
+                    Box(Modifier.fillMaxSize().background(Color(0xE6101014)).testTag("face_stage"))
+                }
                 if (voice != null && !model.chatOpen) {
                     key(voice, model.ownDesign) {
                         if (model.ownDesign) {
@@ -103,13 +117,40 @@ fun DemoApp(model: AppModel) {
                     }
                 }
 
-                // The agent's face, above the voice bar, while a call in the bar has one and the switch is on.
-                val face by Graine.avatar.state.collectAsState()
-                if (model.faceOn && voice != null && !model.chatOpen && face.showsFace) {
+                if (model.ownDesign && model.faceOn && voice != null && !model.chatOpen && face.showsFace) {
+                    // Your own design: the face where it always was, above the app's own voice panel.
                     GraineAvatarFace(
                         Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 296.dp)
                             .size(200.dp, 250.dp).clip(RoundedCornerShape(24.dp)).testTag("agent_face"),
                     )
+                }
+                if (faceStage && voice != null) {
+                    BoxWithConstraints(
+                        Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(top = 8.dp, bottom = 296.dp),
+                    ) {
+                        // 4:5, as wide as the screen allows (a margin each side), never taller than the room above the bar.
+                        val width = (maxWidth - 32.dp).coerceAtMost(440.dp)
+                        val height = (width * 1.25f).coerceAtMost(maxHeight - 44.dp)
+                        Column(Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(
+                                Modifier.width(width).padding(bottom = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(model.nameOf(voice), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                                val live = face.phase == GraineAvatarState.Phase.LIVE
+                                Surface(shape = RoundedCornerShape(50), color = if (live) Color(0xFFDC2626) else Color(0x33FFFFFF)) {
+                                    Text(
+                                        if (live) "LIVE" else "Connecting…",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).testTag("face_state"),
+                                    )
+                                }
+                            }
+                            GraineAvatarFace(Modifier.size(width, height).clip(RoundedCornerShape(28.dp)).testTag("agent_face"))
+                        }
+                    }
                 }
 
                 model.pastSessionsAgent?.let { agent ->
