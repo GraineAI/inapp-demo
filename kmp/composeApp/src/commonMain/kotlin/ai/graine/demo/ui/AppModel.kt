@@ -61,6 +61,9 @@ enum class DemoTab { HOME, ITEMS, CALLS, HELP, MEMORY }
 /** Where "Show the agent's face" is remembered. */
 private const val FACE_KEY = "demo.showsAgentFace"
 
+/** Who is signed in, kept on this device as an app keeps its users signed in: the pack, the user's id, their memory consent. */
+private const val SIGNED_IN_KEY = "demo.signedInUser"
+
 class AppModel(
     val graine: GraineClient,
     val config: AppConfig,
@@ -402,6 +405,7 @@ class AppModel(
         graine.signIn(user.id, pack.traitsFor(user), memory)
         graine.setVariables(pack.variablesFor(user))
         refreshVariables()
+        store.putString(SIGNED_IN_KEY, listOf(pack.id, user.id, if (memory) "1" else "0").joinToString("\n"))
         // The microphone (and notifications on Android 13+) now, so a call or a ring never waits on a prompt.
         scope.launch { runCatching { graine.requestCallPermissions() } }
         this.user = user
@@ -430,6 +434,7 @@ class AppModel(
         addedVariables = emptyMap()
         sentVariables = emptyMap()
         graine.signOut()
+        store.putString(SIGNED_IN_KEY, null)
         user = null
         items = null
         expandedRowId = null
@@ -999,6 +1004,33 @@ class AppModel(
         throw e
     } catch (e: Throwable) {
         Result.failure(e)
+    }
+
+    // ── who was signed in when the app last ran ─────────────────────────────
+
+    /**
+     * Signed in again at launch, as an app that keeps its users signed in does: a booked call ringing an app the push
+     * has just started finds the patient who booked it — their identity, memory and variables — not the sign-in
+     * screen. Last in the class on purpose: [signIn] sets state declared all through it, which an earlier init would
+     * find not yet made. A saved user the pack no longer has is forgotten.
+     */
+    init {
+        restoreSignIn()
+    }
+
+    private fun restoreSignIn() {
+        val saved = store.getString(SIGNED_IN_KEY)?.split('\n') ?: return
+        val current = pack
+        val who = if (saved.size == 3 && current != null && saved[0] == current.id) {
+            current.users.firstOrNull { it.id == saved[1] }
+        } else {
+            null
+        }
+        if (who == null) {
+            store.putString(SIGNED_IN_KEY, null)
+            return
+        }
+        signIn(who, memory = saved[2] == "1")
     }
 }
 
