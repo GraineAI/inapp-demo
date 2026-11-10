@@ -110,8 +110,8 @@ kotlin {
                 // start recovers, with iOS 0.14.11; from 0.14.13 a tapped call reaches the agent's voice sooner, with iOS 0.14.12;
                 // from 0.15.0 the agent's face — Show the agent's face — with iOS 0.15.0).
                 // The local-SDK switch in settings.gradle.kts replaces it with the SDK's sources until Maven Central has this version.
-                implementation("ai.graine:inapp-kmp:0.15.3")
-                implementation("ai.graine:inapp-kmp-compose:0.15.3")
+                implementation("ai.graine:inapp-kmp:0.15.4")
+                implementation("ai.graine:inapp-kmp-compose:0.15.4")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
@@ -123,8 +123,8 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         }
         androidMain.dependencies {
-            // WebRTC calls on Android: the module beside the Android SDK, at the version inapp-kmp builds on (0.15.3 for KMP 0.15.3).
-            implementation("ai.graine:inapp-android-rtc:0.15.3")
+            // WebRTC calls on Android: the module beside the Android SDK, at the version inapp-kmp builds on (0.15.4 for KMP 0.15.4).
+            implementation("ai.graine:inapp-android-rtc:0.15.4")
             implementation("androidx.activity:activity-compose:1.9.3")
             // The Journey's reminders (notifications) and "Download my data" (FileProvider).
             implementation("androidx.core:core-ktx:1.13.1")
