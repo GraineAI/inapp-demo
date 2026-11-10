@@ -203,16 +203,16 @@ The Flutter app's `ios/Podfile` already enables the microphone and notification 
 
 ### Where the SDKs come from
 
-Every app uses a published release: **0.15.0** for iOS, Android and Kotlin Multiplatform, **0.14.4** for Flutter; React Native 0.44.1,
+Every app uses a published release: **0.15.3** for iOS, Android and Kotlin Multiplatform, **0.14.4** for Flutter; React Native 0.44.1,
 calls 0.5.1. The sources of the iOS (and its
 WebRTC module), Android, Kotlin Multiplatform and Flutter SDKs are public repositories (MIT licence), tagged with each
 release.
 
 | App | Dependency | Registry |
 |---|---|---|
-| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.15.0 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
-| Android | `ai.graine:inapp-android:0.15.0` and `ai.graine:inapp-android-rtc:0.15.0` | Maven Central |
-| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.15.0 (+ `inapp-android-rtc` 0.15.0, the Android SDK it builds on); iOS: `GraineInApp` and `GraineInAppRTC` 0.15.0, the iOS SDK it builds on | Maven Central, Swift Package Manager |
+| iOS | `GraineInApp` from `https://github.com/GraineAI/inapp-ios` and `GraineInAppRTC` from `https://github.com/GraineAI/inapp-ios-rtc`, both from 0.15.3 | Swift Package Manager (the SDK is on CocoaPods too, as `GraineInApp`) |
+| Android | `ai.graine:inapp-android:0.15.3` and `ai.graine:inapp-android-rtc:0.15.3` | Maven Central |
+| Kotlin Multiplatform | `ai.graine:inapp-kmp` and `ai.graine:inapp-kmp-compose` 0.15.3 (+ `inapp-android-rtc` 0.15.3, the Android SDK it builds on); iOS: `GraineInApp` and `GraineInAppRTC` 0.15.3, the iOS SDK it builds on | Maven Central, Swift Package Manager |
 | Flutter | `graine_inapp: ^0.14.4` | pub.dev |
 | React Native | `@graineai/inapp-react-native` ^0.44.1, `@graineai/inapp-react-native-calls` ^0.5.1 | npm |
 | Website | the loader, `https://www.graine.ai/embed/v1.js` | — |
