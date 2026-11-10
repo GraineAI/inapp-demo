@@ -11,11 +11,12 @@ import ai.graine.demo.ui.own.PublicStateScreen
 import ai.graine.demo.ui.journey.JourneyApp
 import ai.graine.demo.ui.journey.JourneyCallHost
 import ai.graine.inapp.kmp.Graine
+import ai.graine.demo.domain.DemoAgent
 import ai.graine.inapp.kmp.compose.GraineAgentBar
 import ai.graine.inapp.kmp.compose.GraineAvatarFace
+import ai.graine.inapp.kmp.compose.GraineAvatarStage
 import ai.graine.inapp.kmp.compose.GraineCallScreen
 import androidx.compose.foundation.layout.Arrangement
-import ai.graine.inapp.kmp.GraineAvatarState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.width
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
@@ -59,8 +61,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
-import kotlin.time.TimeMark
-import kotlin.time.TimeSource
 
 /**
  * The layers, bottom to top: the app (sign-in or the tabs), the chat, the
@@ -96,14 +96,30 @@ fun DemoApp(model: AppModel) {
                 }
 
                 val voice = model.voiceAgent
-                // THE FACE STAGE: while a call in the bar has a face (and the switch is on), the screen dims behind it and
-                // the agent's face is shown large, as on a video call — the voice bar and its captions stay below it.
+                // THE FACE STAGE (SDK 0.15.4): with the face switch on, Talk with the main agent is the SDK's
+                // GraineAvatarStage — the agent's face edge to edge with the call drawn over it: name, role, LIVE and the
+                // call's time; the line being said; the agent's component (its loading card while it is on its way);
+                // Call, Mute, Chat, End (Cancel while connecting) and Speaker. The face draws inside the stage, so all of
+                // it sits on the video. Before the face's first frame the brand's picture stands in. Close ends the Talk.
                 val face by Graine.avatar.state.collectAsState()
-                val faceStage = model.faceOn && voice != null && !model.chatOpen && !model.ownDesign && face.showsFace
-                if (faceStage) {
-                    Box(Modifier.fillMaxSize().background(Color(0xE6101014)).testTag("face_stage"))
+                val faceStage = model.faceOn && voice == DemoAgent.MAIN && !model.chatOpen && !model.ownDesign
+                if (faceStage && voice != null) {
+                    Box(
+                        Modifier.fillMaxSize().background(Color(0xFF111111)).testTag("face_stage")
+                            // the screen behind the stage takes no taps while the stage covers it
+                            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } },
+                    ) {
+                        PlatformBackHandler { model.closeTalk() }
+                        GraineAvatarStage(
+                            Modifier.fillMaxSize().testTag("agent_stage"),
+                            name = model.nameOf(voice),
+                            role = "AI assistant",
+                            onChat = { model.openChat(voice) },
+                            onClose = { model.closeTalk() },
+                        )
+                    }
                 }
-                if (voice != null && !model.chatOpen) {
+                if (voice != null && !model.chatOpen && !faceStage) {
                     key(voice, model.ownDesign) {
                         if (model.ownDesign) {
                             // The app's own voice panel, over the screen it talks about, above the tab bar.
@@ -132,22 +148,6 @@ fun DemoApp(model: AppModel) {
                             .size(200.dp, 250.dp).clip(RoundedCornerShape(24.dp)).testTag("agent_face"),
                     )
                 }
-                if (faceStage && voice != null) {
-                    // As in the email: the face fills the room above the bar (a small margin each side, at most 1.6x as
-                    // tall as wide so the square picture is never cropped past the shoulders), the agent's name and role
-                    // over its top-left, LIVE and the call's time over its top-right; the bar's captions stay below.
-                    BoxWithConstraints(
-                        Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(top = 8.dp, bottom = 296.dp),
-                    ) {
-                        val width = (maxWidth - 24.dp).coerceAtMost(480.dp)
-                        val height = maxHeight.coerceAtMost(width * 1.6f)
-                        Box(Modifier.align(Alignment.BottomCenter).size(width, height).clip(RoundedCornerShape(28.dp))) {
-                            GraineAvatarFace(Modifier.fillMaxSize().testTag("agent_face"))
-                            FaceTitle(model.nameOf(voice), face.phase == GraineAvatarState.Phase.LIVE)
-                        }
-                    }
-                }
-
                 model.pastSessionsAgent?.let { agent ->
                     PlatformBackHandler { if (model.transcript != null) model.closeTranscript() else model.closePastSessions() }
                     PastSessionsScreen(model, agent)
@@ -236,47 +236,5 @@ private fun NoPacks() {
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
-    }
-}
-
-
-/** The face's title, as in the email: name and role at the top-left, LIVE and the call's time at the top-right. */
-@Composable
-private fun BoxScope.FaceTitle(name: String, live: Boolean) {
-    var since by remember { mutableStateOf<TimeMark?>(null) }
-    var seconds by remember { mutableStateOf(0L) }
-    LaunchedEffect(live) {
-        if (live && since == null) since = TimeSource.Monotonic.markNow()
-        while (live) {
-            seconds = since?.elapsedNow()?.inWholeSeconds ?: 0L
-            delay(1000)
-        }
-    }
-    Row(
-        Modifier.align(Alignment.TopCenter).fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color(0x99000000), Color.Transparent)))
-            .padding(start = 18.dp, end = 16.dp, top = 16.dp, bottom = 40.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
-    ) {
-        Column {
-            Text(name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            Text("AI assistant", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(50), color = if (live) Color(0xFFDC2626) else Color(0x33FFFFFF)) {
-                Text(
-                    if (live) "LIVE" else "Connecting…",
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).testTag("face_state"),
-                )
-            }
-            if (live) {
-                val clock = "${(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}"
-                Text(clock, color = Color.White, style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(start = 8.dp).testTag("face_clock"))
-            }
-        }
     }
 }
