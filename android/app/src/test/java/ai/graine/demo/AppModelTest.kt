@@ -115,6 +115,34 @@ class AppModelTest {
         assertEquals("sign_in", fake.lastScreen?.screen)
     }
 
+    @Test fun theSignedInUserIsSignedInAgainAtLaunchSoABookedCallThatStartsTheAppFindsThem() {
+        model.signIn(riya, true)
+        fake.identified.clear()
+        // The app is closed and a booked call's push starts it again: the same device store, a new model.
+        model = make()
+        assertEquals(riya.id, model.user?.id)
+        assertEquals(mapOf("plan" to "Diabetes care", "name" to "Riya Sharma", "patient_id" to "P-1", "user_id" to "P-1") to true, fake.identified.last())
+        assertEquals("Memory: on" to true, model.memoryStatus)
+    }
+
+    @Test fun signingOutOrSwitchingUseCaseForgetsTheSavedUser() {
+        model.signIn(riya, false)
+        model.signOut()
+        assertNull(make().user)
+
+        model = make()
+        model.signIn(arjun, true)
+        model.choosePack(TestPack.other.id)
+        assertNull(make().user)
+    }
+
+    @Test fun aSavedUserThePackNoLongerHasIsForgotten() {
+        store.putString("demo.signedInUser", listOf(TestPack.pack.id, "nobody", "1").joinToString("\n"))
+        model = make()
+        assertNull(model.user)
+        assertNull(store.getString("demo.signedInUser"))
+    }
+
     @Test fun signingInSetsTheAgentsVariablesThroughTheSdkAndSigningOutClearsThem() {
         model.signIn(riya, true)
         assertEquals("as an API call sends them", listOf(mapOf<String, String?>("callee_name" to "Riya Sharma")), fake.variables)

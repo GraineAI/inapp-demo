@@ -49,6 +49,9 @@ interface KeyValueStore {
 /** Where "Show the agent's face" is remembered. */
 private const val FACE_KEY = "demo.showsAgentFace"
 
+/** Who is signed in, kept on this device as an app keeps its users signed in: the pack, the user's id, their memory consent. */
+private const val SIGNED_IN_KEY = "demo.signedInUser"
+
 class AppModel(
     val graine: GraineClient,
     val config: AppConfig,
@@ -198,6 +201,7 @@ class AppModel(
         val pack = pack ?: return
         graine.identify(pack.traitsFor(user), memory)
         graine.setVariables(pack.variablesFor(user))
+        store.putString(SIGNED_IN_KEY, listOf(pack.id, user.id, if (memory) "1" else "0").joinToString("\n"))
         this.user = user
         memoryOn = memory
         items = sessionStatuses[sessionKey(pack, user)] ?: ItemsState(pack.rowsFor(user))
@@ -221,6 +225,7 @@ class AppModel(
         val leavingPack = pack
         if (leaving != null && leavingPack != null) graine.setVariables(leavingPack.variables.keys.associateWith { null })
         graine.identify(null, null)
+        store.putString(SIGNED_IN_KEY, null)
         user = null
         items = null
         expandedRowId = null
@@ -654,4 +659,31 @@ class AppModel(
     private fun sessionKey(pack: UseCasePack, user: UseCasePack.User) = "${pack.id}/${user.id}"
 
     private fun words(error: GraineError?): String = CallText.message(error)
+
+    // ── who was signed in when the app last ran ─────────────────────────────
+
+    /**
+     * Signed in again at launch (DemoApplication.onCreate, before any screen), as an app that keeps its users signed
+     * in does: a booked call ringing an app the push has just started finds the user who booked it — their identity,
+     * memory and variables — not the sign-in screen. Last in the class on purpose: [signIn] sets state declared all
+     * through it, which an earlier init would find not yet made. A saved user the pack no longer has is forgotten.
+     */
+    init {
+        restoreSignIn()
+    }
+
+    private fun restoreSignIn() {
+        val saved = store.getString(SIGNED_IN_KEY)?.split('\n') ?: return
+        val current = pack
+        val who = if (saved.size == 3 && current != null && saved[0] == current.id) {
+            current.users.firstOrNull { it.id == saved[1] }
+        } else {
+            null
+        }
+        if (who == null) {
+            store.putString(SIGNED_IN_KEY, null)
+            return
+        }
+        signIn(who, memory = saved[2] == "1")
+    }
 }
