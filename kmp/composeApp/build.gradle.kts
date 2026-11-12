@@ -68,6 +68,8 @@ android {
         buildConfigField("String", "GRAINE_HELP_PUBLISHABLE_KEY", "\"${setting("graine.helpPublishableKey", "GRAINE_HELP_PUBLISHABLE_KEY", "")}\"")
         // Optional: the Journey's first-call agent, configured as "consultation" (agent-setup/<pack>/journey).
         buildConfigField("String", "GRAINE_CONSULTATION_PUBLISHABLE_KEY", "\"${setting("graine.consultationPublishableKey", "GRAINE_CONSULTATION_PUBLISHABLE_KEY", "")}\"")
+        // Optional: the packs this build offers (pack ids, comma-separated; the first opens by default). Empty: every pack.
+        buildConfigField("String", "GRAINE_PACKS", "\"${setting("graine.packs", "GRAINE_PACKS", "")}\"")
         buildConfigField("String", "GRAINE_BASE_URL", "\"${setting("graine.baseUrl", "GRAINE_BASE_URL", "https://www.graine.ai")}\"")
     }
     buildFeatures { buildConfig = true }

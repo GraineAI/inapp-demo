@@ -1,5 +1,6 @@
 package ai.graine.demo
 
+import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.CallLog
 import ai.graine.demo.domain.CallLogEntry
 import ai.graine.demo.domain.CallText
@@ -33,6 +34,26 @@ class PackTest {
         }
         assertEquals("health-coach", UseCasePacks.chosen(packs, null)?.id)
         assertEquals("retail-shopping", UseCasePacks.chosen(packs, "retail-shopping")?.id)
+    }
+
+    @Test
+    fun aBuildOffersOnlyThePacksItsSettingNames() {
+        val all = UseCasePacks.load()
+        assertEquals(emptyList<String>(), AppConfig.of(null, null).packIds)
+        assertEquals(all, UseCasePacks.offered(all, emptyList()), "a build that names none offers every pack")
+        assertEquals(all, UseCasePacks.offered(all, listOf("no-such-pack")), "and so does one that names none that exist")
+
+        val store = UseCasePacks.offered(all, AppConfig.of(null, null, packs = "retail-shopping").packIds)
+        assertEquals(listOf("retail-shopping"), store.map { it.id })
+        assertEquals("retail-shopping", UseCasePacks.chosen(store, null)?.id, "it opens on the pack it offers")
+        assertEquals("retail-shopping", UseCasePacks.chosen(store, "health-coach")?.id, "a choice it does not offer is passed over")
+
+        val ids = AppConfig.of(null, null, packs = " banking-support , retail-shopping,banking-support,, ").packIds
+        assertEquals(listOf("banking-support", "retail-shopping"), ids, "trimmed, blanks dropped, each once")
+        val two = UseCasePacks.offered(all, ids + "no-such-pack")
+        assertEquals(listOf("banking-support", "retail-shopping"), two.map { it.id }, "in the order named; an unknown id skipped")
+        assertEquals("banking-support", UseCasePacks.chosen(two, null)?.id, "the first named opens")
+        assertEquals("retail-shopping", UseCasePacks.chosen(two, "retail-shopping")?.id, "the device's own choice still wins")
     }
 
     @Test

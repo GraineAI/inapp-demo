@@ -28,6 +28,8 @@
 	<string>$(GRAINE_CONSULTATION_PUBLISHABLE_KEY)</string>
 	<key>GraineHelpPublishableKey</key>
 	<string>$(GRAINE_HELP_PUBLISHABLE_KEY)</string>
+	<key>GrainePacks</key>
+	<string>$(GRAINE_PACKS)</string>
 	<key>GrainePublishableKey</key>
 	<string>$(GRAINE_PUBLISHABLE_KEY)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

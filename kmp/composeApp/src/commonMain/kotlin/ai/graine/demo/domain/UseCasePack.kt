@@ -353,15 +353,22 @@ data class UseCasePack(
 
 /** The packs this app ships: demo/usecases/<id>.json, bundled at build time. A new pack is added to composeApp's generatePacks too. */
 object UseCasePacks {
+    /** In the order a build that names none offers them: the first (the health coach) opens on a device that never chose. */
     val bundled = listOf("health-coach", "banking-support", "retail-shopping")
-    const val DEFAULT_ID = "health-coach"
     const val CHOICE_KEY = "demo.pack"
 
     /** [read] returns a pack file's text by id, or null. */
     fun load(read: (String) -> String? = { bundledPackTexts[it] }): List<UseCasePack> =
         bundled.mapNotNull { id -> read(id)?.let { runCatching { UseCasePack.parse(it) }.getOrNull() } }
 
-    /** The pack the device chose last, else the default, else the first. */
+    /**
+     * The packs a build offers: the ones its settings name ([ids], AppConfig.packIds), in that order, an id no pack
+     * has skipped; every one of [packs] when it names none that exist, so a build that sets nothing is unchanged.
+     */
+    fun offered(packs: List<UseCasePack>, ids: List<String>): List<UseCasePack> =
+        ids.mapNotNull { id -> packs.firstOrNull { it.id == id } }.distinctBy { it.id }.ifEmpty { packs }
+
+    /** The pack the device chose last, when the build offers it; else the first the build offers. */
     fun chosen(packs: List<UseCasePack>, savedId: String?): UseCasePack? =
-        packs.firstOrNull { it.id == savedId } ?: packs.firstOrNull { it.id == DEFAULT_ID } ?: packs.firstOrNull()
+        packs.firstOrNull { it.id == savedId } ?: packs.firstOrNull()
 }

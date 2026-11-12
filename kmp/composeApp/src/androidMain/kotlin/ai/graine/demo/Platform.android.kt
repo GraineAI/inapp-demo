@@ -53,6 +53,7 @@ actual object Platform {
         BuildConfig.GRAINE_PUBLISHABLE_KEY,
         BuildConfig.GRAINE_HELP_PUBLISHABLE_KEY,
         BuildConfig.GRAINE_CONSULTATION_PUBLISHABLE_KEY,
+        BuildConfig.GRAINE_PACKS,
     )
 
     actual fun store(): KeyValueStore {

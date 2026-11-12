@@ -43,6 +43,7 @@ actual object Platform {
         info("GrainePublishableKey"),
         info("GraineHelpPublishableKey"),
         info("GraineConsultationPublishableKey"),
+        info("GrainePacks"),
     )
 
     actual fun store(): KeyValueStore = object : KeyValueStore {

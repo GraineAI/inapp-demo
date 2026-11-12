@@ -16,6 +16,10 @@ GRAINE_HELP_PUBLISHABLE_KEY =
 // Optional: the Journey's first-call agent (a flow agent), configured as "consultation" (../../agent-setup/<pack>/journey).
 GRAINE_CONSULTATION_PUBLISHABLE_KEY =
 
+// Optional: the packs this build offers (ids from ../../usecases, comma-separated; the first opens by default).
+// Empty: every pack. The keys above serve every pack offered: name one when they are that pack's agents, e.g. retail-shopping.
+GRAINE_PACKS =
+
 // Keep the $() — "//" starts a comment in an xcconfig file. A Debug build may also use plain http to this Mac from
 // the simulator (http:/$()/127.0.0.1:<port>); a Release build is https only.
 GRAINE_BASE_URL = https:/$()/www.graine.ai

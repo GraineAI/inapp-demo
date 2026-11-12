@@ -24,6 +24,8 @@ and voice bar as composables).
    agent's **Allowed domains**) — and, optionally, `graine.helpPublishableKey` (a second agent for the
    **Help** tab), `graine.consultationPublishableKey` (the Journey's first-call agent:
    [The Journey, step by step](#the-journey-step-by-step)), `graine.applicationId` and `graine.baseUrl`.
+   The keys serve every pack the app offers; `graine.packs` (pack ids, comma-separated) limits a build to the
+   packs its agents are set up for, e.g. `retail-shopping` for a build with the store's agents.
 2. iOS: copy `iosApp/Config.example.xcconfig` to `iosApp/Config.xcconfig` (git-ignored) and set your team,
    bundle id and the same keys.
 3. Recreate the agent from `../agent-setup/<pack>/` so its identity field, memory, actions and call

@@ -25,7 +25,7 @@ object DemoBootstrap {
         model?.let { return it }
         val config = Platform.config()
         val store = Platform.store()
-        val packs = UseCasePacks.load()
+        val packs = UseCasePacks.offered(UseCasePacks.load(), config.packIds)
         val pack = UseCasePacks.chosen(packs, store.getString(UseCasePacks.CHOICE_KEY))
         val graine = GraineService.start(
             config = config,

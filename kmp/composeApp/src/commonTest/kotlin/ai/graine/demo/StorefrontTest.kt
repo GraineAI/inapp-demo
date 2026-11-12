@@ -157,6 +157,21 @@ class StorefrontTest {
         ) to fake
 
     @Test
+    fun aStoreBuildOpensOnTheStoreWhateverTheDeviceChoseBefore() = runTest {
+        // A build whose keys are the store's agents names only the store (graine.packs / GRAINE_PACKS).
+        val config = AppConfig.of("https://www.graine.ai", "pk_test_demo", packs = "retail-shopping")
+        val saved = MemoryStore().apply { putString(UseCasePacks.CHOICE_KEY, "health-coach") }
+        val m = AppModel(
+            FakeGraineClient(), config, UseCasePacks.offered(UseCasePacks.load(), config.packIds), saved,
+            scope = this as CoroutineScope, now = { TestClock.at(12) }, zone = TestClock.zone, collectors = backgroundScope,
+        )
+        assertEquals(listOf("retail-shopping"), m.packs.map { it.id }, "one pack, so the sign-in screen shows no picker")
+        assertEquals("retail-shopping", m.pack?.id, "a pack the build does not offer is never opened")
+        m.choosePack("health-coach")
+        assertEquals("retail-shopping", m.pack?.id, "nor chosen")
+    }
+
+    @Test
     fun aStorefrontTapAndTheAgentChangeTheSameStatus() = runTest {
         val (m, fake) = storeModel()
         m.signIn(user("SHP-20031"), memory = true)
