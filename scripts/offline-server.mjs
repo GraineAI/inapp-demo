@@ -66,7 +66,7 @@ const helpCalls = [];
 const REMEMBERED = {
   "health-coach": ["Wants to walk 30 minutes every evening, after dinner", "Prefers check-in calls after 7 pm", "Finds early mornings hard for exercise"],
   "banking-support": ["Travels to Singapore every March for work", "Wants calls only after 6 pm on weekdays", "Uses the card mostly for travel bookings"],
-  "retail-shopping": ["Wears size 7 in running shoes", "Wants parcels left with the building security desk", "Prefers delivery updates by call"],
+  "retail-shopping": ["Wants the milk left in the bag on the door handle, without ringing the bell", "Takes toned milk on weekends", "Prefers calls after 7 pm"],
 };
 let memories = (REMEMBERED[PACK] || []).map((text, i) => {
   const at = iso(atHour(-(i + 1), 18 - i * 2, 10 + i * 7));
@@ -306,9 +306,47 @@ const component = (toolName) => {
   return { widget_id: `w_${randomUUID().slice(0, 8)}`, kind: c.kind, name: c.name, data, style: c.style, fallbackText: c.fallbackText };
 };
 
+// A storefront pack's (pack.store) rows for whoever is signed in, found by the first name the call carries.
+function storeRowsOf(firstName) {
+  const user = pack.users.find((u) => u.name.split(" ")[0] === firstName) || pack.users[0];
+  return { user, rows: pack.items.rows.filter((r) => !r.userIds || r.userIds.includes(user.id)) };
+}
+
+// A storefront's replies: tomorrow's basket, the wallet, and the components for adding, pausing and a problem.
+function storeReply(t, firstName) {
+  if (!pack.store) return null;
+  const byTool = (name) => components.find((c) => c.toolName === name);
+  const { user, rows } = storeRowsOf(firstName);
+  const addStatus = pack.actions.find((a) => a.name === pack.store.roles.add)?.status;
+  const stopped = new Set([pack.store.roles.pause, pack.store.roles.skip].map((n) => pack.actions.find((a) => a.name === n)?.status));
+  if (/sour|spoil|leak|problem|wrong|didn.?t come|did not come|missed|refund/.test(t) && byTool("show_issue_reasons")) {
+    return { words: "I'm sorry about that. What went wrong?", widget: "show_issue_reasons" };
+  }
+  if (/pause|away|trip|holiday|vacation|travel/.test(t) && byTool("show_pause_options")) {
+    return { words: "Of course. How long should I pause it?", widget: "show_pause_options" };
+  }
+  if (/\badd\b|something|paneer|bread|coconut|banana|extra/.test(t) && byTool("show_add_ons")) {
+    return { words: "Here's what I can add to tomorrow's delivery. It comes with your milk.", widget: "show_add_ons" };
+  }
+  if (/wallet|balance|top.?up|recharge/.test(t)) {
+    const wallet = rows.find((r) => r.kind === "wallet");
+    const covers = wallet?.fields.find((f) => f.name === "covers")?.value;
+    return { words: `Your balance is ${wallet?.price ?? user.traits.wallet_balance ?? "in your wallet"}${covers ? `, which covers ${covers.charAt(0).toLowerCase()}${covers.slice(1)}` : ""}.` };
+  }
+  if (/tomorrow|coming|basket|deliver/.test(t)) {
+    const coming = rows.filter((r) => (r.kind === "subscription" && !stopped.has(r.status)) || (r.kind === "addon" && r.status === addStatus));
+    const names = coming.map((r) => r.title.split(",")[0].toLowerCase());
+    const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+    return { words: list ? `Tomorrow before 7 am: ${list}. Want to add anything?` : "Nothing is coming tomorrow. Shall I resume something?" };
+  }
+  return null;
+}
+
 // The chat, played from the pack: what the customer asks decides the reply and the component that comes with it.
 function chatReply(text, firstName) {
   const t = text.toLowerCase();
+  const store = storeReply(t, firstName);
+  if (store) return store;
   const byKind = (kind) => components.find((c) => c.kind === kind);
   if (/book|call|schedule|callback|call me/.test(t) && byKind("calendar_slots")) {
     return { words: "Of course. Pick a time that suits you, and I'll ring you then.", widget: byKind("calendar_slots").toolName };

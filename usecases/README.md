@@ -1,7 +1,7 @@
 # Use-case packs
 
 Graine is general purpose. The demo apps contain no domain code: every word that makes an app a care
-coach, a banking assistant or a shopping assistant comes from a **use-case pack** in this folder. Every
+coach, a banking assistant or a store assistant comes from a **use-case pack** in this folder. Every
 platform (React Native, Flutter, iOS, Android, website) bundles these files as they are and draws the same
 screens from them.
 
@@ -9,7 +9,7 @@ screens from them.
 |---|---|---|---|---|
 | `health-coach.json` (**default**) | Asha, care coach | patients (`patient_id`) | Medicines | Check-in calls |
 | `banking-support.json` | Kabir, account assistant | customers (`customer_id`) | Cards | Callbacks |
-| `retail-shopping.json` | Tara, shopping assistant | shoppers (`shopper_id`) | Orders | Delivery calls |
+| `retail-shopping.json` | Tara, store assistant | customers (`shopper_id`) | Deliveries | Calls from Tara |
 
 `usecase.schema.json` is the schema (JSON Schema 2020-12). Check every pack with:
 
@@ -83,7 +83,7 @@ argument names:
 
 Finding the row named by `item` (only the signed-in user's rows; case-insensitive, trimmed):
 1. a row whose `id` equals it; else 2. a row whose `title` equals it; else 3. the ONE row whose `title` or any
-field `value` contains it (so `"7730"` and `"GD-55120"` work). Two or more → refused `Which one? <titles>.`;
+field `value` contains it (so `"7730"` and `"paneer"` work). Two or more → refused `Which one? <titles>.`;
 none → refused `No <itemNoun> called "<x>". <items.title>: <titles>.`
 
 ## Booking a call

@@ -204,9 +204,15 @@ private fun MainTabs(model: AppModel) {
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
+            // A pack with a storefront draws Home and the list screen as a store's; every other pack, the generic ones.
+            val storefront = pack.store != null
             when (model.tab) {
-                DemoTab.HOME -> if (model.profileOpen) ProfileScreen(model) else HomeScreen(model)
-                DemoTab.ITEMS -> ItemsScreen(model)
+                DemoTab.HOME -> when {
+                    model.profileOpen -> ProfileScreen(model)
+                    storefront -> StoreHomeScreen(model)
+                    else -> HomeScreen(model)
+                }
+                DemoTab.ITEMS -> if (storefront) StoreDeliveriesScreen(model) else ItemsScreen(model)
                 DemoTab.CALLS -> if (model.callLogOpen) CallLogScreen(model) else ScheduledCallsScreen(model)
                 DemoTab.HELP -> HelpScreen(model)
                 DemoTab.MEMORY -> MemoryScreen(model)

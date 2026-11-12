@@ -76,8 +76,8 @@ describe("set_status", () => {
   it("refuses an action the row does not offer", () => {
     const p = pack("retail-shopping");
     const rows = rowsFor(p, "SHP-20031");
-    const r = runPackAction(p, action(p, "request_return"), { item: "GD-55120" }, rows, {});
-    expect(r.answer).toEqual({ status: "refused", message: "Return is not available for Running shoes, size 7." });
+    const r = runPackAction(p, action(p, "skip_tomorrow"), { item: "today's delivery" }, rows, {});
+    expect(r.answer).toEqual({ status: "refused", message: "Skip tomorrow is not available for Today's delivery." });
   });
 
   it("hides the button for the status a row already has", () => {

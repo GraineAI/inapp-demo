@@ -15,13 +15,13 @@ they are on and acts on it, chats with cards and lists, talks in a voice bar, ta
 and calls the user back at a time they book — ringing like a phone call even when the app is closed.
 
 The app code contains no business domain. Every word that makes it a care coach, a banking assistant or a
-shopping assistant comes from a **use-case pack** in [`usecases/`](usecases/README.md):
+store assistant comes from a **use-case pack** in [`usecases/`](usecases/README.md):
 
 | Pack | App | Main agent (Home, Chat) | Help agent (Help screen) | Users identified by | List screen | Booking button |
 |---|---|---|---|---|---|---|
 | `health-coach` (default) | Graine Care | Asha, care coach | Billing & appointments help | `patient_id` | Medicines | Schedule a consultation call |
 | `banking-support` | Graine Bank | Kabir, account assistant | Card security desk | `customer_id` | Cards | Request a callback |
-| `retail-shopping` | Graine Store | Tara, shopping assistant | Returns desk | `shopper_id` | Orders | Book a delivery-update call |
+| `retail-shopping` | Graine Store | Tara, store assistant | Freshness desk | `shopper_id` | Deliveries | Book a call with Tara |
 
 Every app talks to **two agents**: the main agent on Home and Chat, and a help desk on the **Help** screen —
 each its own agent with its own publishable key. The user signs in once; both agents know who they are, and
@@ -313,7 +313,7 @@ stays. Each pack has two facts to tell (`memoryExamples` in its file):
 |---|---|---|
 | Care coach | "My goal is to walk 30 minutes every evening, after dinner." · "Please call me for check-ins after 7 pm." | The walking goal, and check-ins after 7 pm |
 | Banking | "I travel to Singapore every March for work." · "Please call me only after 6 pm on weekdays." | Singapore every March, and calls after 6 pm on weekdays |
-| Shopping | "I wear size 7 in running shoes." · "Please leave my parcels with the building security desk." | Size 7, and parcels with the security desk |
+| Store | "Please leave the milk in the bag on my door handle, and don't ring the bell." · "On weekends we take toned milk instead of full cream." | The bag on the door handle without the bell, and toned milk on weekends |
 
 1. Sign in as the first person (memory on). In **Chat**, tell the assistant both sentences. End the
    conversation — close the app completely, or sign out and back in — and wait about a minute.

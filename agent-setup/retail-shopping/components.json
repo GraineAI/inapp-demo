@@ -1,45 +1,53 @@
 [
   {
-    "name": "Recommended for you",
-    "slug": "recommendations",
-    "toolName": "show_recommendations",
+    "name": "Add to tomorrow",
+    "slug": "add_ons",
+    "toolName": "show_add_ons",
     "kind": "product_list",
     "data": {
-      "title": "Picked for you",
-      "prompt": "Tap one and I'll tell you more.",
-      "selectLabel": "Tell me more",
+      "title": "Add to tomorrow's delivery",
+      "prompt": "Arrives with your milk, before 7 am. Paid from your wallet.",
+      "selectLabel": "Add to tomorrow",
       "items": [
         {
-          "id": "trail-shoes",
-          "title": "Trail running shoes",
-          "subtitle": "Sizes 5 to 11",
-          "price": "₹5,499",
+          "id": "paneer",
+          "title": "Fresh paneer, 200 g",
+          "subtitle": "Made the day before delivery",
+          "price": "₹90",
           "facts": [
-            "Cushioned sole",
-            "Water resistant"
+            "Malai paneer"
           ]
         },
         {
-          "id": "bedsheet-king",
-          "title": "Cotton bedsheet set, king",
-          "subtitle": "300 thread count",
-          "price": "₹2,299",
+          "id": "coconut-water",
+          "title": "Tender coconut water, 1 L",
+          "subtitle": "Chilled",
+          "price": "₹110",
           "facts": [
-            "Two pillow covers"
+            "No added sugar"
           ]
         },
         {
-          "id": "lunch-box",
-          "title": "Insulated lunch box",
-          "subtitle": "Keeps food warm for 6 hours",
-          "price": "₹899",
+          "id": "brown-bread",
+          "title": "Brown bread",
+          "subtitle": "Baked overnight",
+          "price": "₹50",
           "facts": [
-            "Leak-proof"
+            "400 g loaf"
+          ]
+        },
+        {
+          "id": "bananas",
+          "title": "Bananas, 6",
+          "subtitle": "Ripe tomorrow",
+          "price": "₹48",
+          "facts": [
+            "Robusta"
           ]
         }
       ]
     },
-    "fallbackText": "I can suggest trail running shoes, a king-size cotton bedsheet set or an insulated lunch box. Which would you like to hear about?",
+    "fallbackText": "I can add fresh paneer, tender coconut water, brown bread or bananas to tomorrow's delivery. Which would you like?",
     "style": {
       "preset": "cards",
       "density": "comfortable",
@@ -47,32 +55,32 @@
     }
   },
   {
-    "name": "Return reason",
-    "slug": "return_reason",
-    "toolName": "show_return_reasons",
+    "name": "Pause for",
+    "slug": "pause_options",
+    "toolName": "show_pause_options",
     "kind": "quick_actions",
     "data": {
-      "prompt": "Why are you returning it?",
+      "prompt": "How long should I pause it?",
       "actions": [
         {
-          "id": "wrong_size",
-          "label": "Wrong size"
+          "id": "tomorrow",
+          "label": "Just tomorrow"
         },
         {
-          "id": "damaged",
-          "label": "Damaged or faulty"
+          "id": "three_days",
+          "label": "3 days"
         },
         {
-          "id": "not_as_described",
-          "label": "Not as described"
+          "id": "a_week",
+          "label": "A week"
         },
         {
-          "id": "changed_mind",
-          "label": "Changed my mind"
+          "id": "until_resumed",
+          "label": "Until I resume"
         }
       ]
     },
-    "fallbackText": "Why are you returning it: wrong size, damaged or faulty, not as described, or you changed your mind?",
+    "fallbackText": "How long should I pause it: just tomorrow, three days, a week, or until you resume it?",
     "style": {
       "preset": "compact",
       "button": "outline",
@@ -80,9 +88,42 @@
     }
   },
   {
-    "name": "Delivery call times",
-    "slug": "delivery_call_times",
-    "toolName": "show_delivery_call_times",
+    "name": "What went wrong",
+    "slug": "issue_reasons",
+    "toolName": "show_issue_reasons",
+    "kind": "quick_actions",
+    "data": {
+      "prompt": "What went wrong?",
+      "actions": [
+        {
+          "id": "sour",
+          "label": "Sour or spoilt"
+        },
+        {
+          "id": "leaking",
+          "label": "Leaking packet"
+        },
+        {
+          "id": "wrong_item",
+          "label": "Wrong item"
+        },
+        {
+          "id": "not_delivered",
+          "label": "Not delivered"
+        }
+      ]
+    },
+    "fallbackText": "What went wrong: was it sour or spoilt, a leaking packet, the wrong item, or did it not come at all?",
+    "style": {
+      "preset": "compact",
+      "button": "outline",
+      "surface": "card"
+    }
+  },
+  {
+    "name": "Call times",
+    "slug": "call_times",
+    "toolName": "show_call_times",
     "kind": "calendar_slots",
     "data": {
       "title": "When should Tara call you?",
@@ -100,7 +141,7 @@
           "id": "tomorrow",
           "label": "Tomorrow",
           "slots": [
-            "9:00 AM",
+            "8:30 AM",
             "12:30 PM",
             "6:00 PM",
             "7:30 PM"
@@ -110,7 +151,7 @@
           "id": "day_after",
           "label": "Day after tomorrow",
           "slots": [
-            "9:00 AM",
+            "8:30 AM",
             "12:30 PM",
             "6:00 PM"
           ]

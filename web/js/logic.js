@@ -109,7 +109,7 @@ const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
 /**
  * The row a name refers to (the pack's rule, case-insensitive, trimmed): a row
  * whose id equals it; else whose title equals it; else the ONE row whose title
- * or any field value contains it — so "7730" and "GD-55120" work. Two or more
+ * or any field value contains it — so "7730" and "paneer" work. Two or more
  * is ambiguous; the agent is asked which.
  */
 export function findRow(rows, query) {

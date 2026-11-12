@@ -3,7 +3,7 @@
     "tool_name": "open_screen",
     "name": "open_screen",
     "kind": "navigation",
-    "description": "Take the shopper to a screen in the app: home, chat, orders, calls (their booked delivery calls), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+    "description": "Take the customer to a screen in the app: home, chat, deliveries (their subscriptions, tomorrow's basket, recent deliveries and wallet), calls (calls booked with you), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -13,7 +13,7 @@
           "enum": [
             "home",
             "chat",
-            "orders",
+            "deliveries",
             "calls",
             "memory",
             "profile"
@@ -29,13 +29,13 @@
     "tool_name": "open_item",
     "name": "open_item",
     "kind": "navigation",
-    "description": "Open one of the shopper's orders so they can see its delivery details. Name the order by its product or its order number.",
+    "description": "Open one of the customer's items so they can see its details: a subscription, a one-time add-on, a recent delivery or the wallet. Name it by its product, by the delivery (\"today's delivery\") or by \"wallet\".",
     "parameters": {
       "type": "object",
       "properties": {
         "item": {
           "type": "string",
-          "description": "The product or the order number, e.g. \"Running shoes, size 7\" or \"GD-55120\"."
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
         }
       },
       "required": [
@@ -44,16 +44,16 @@
     }
   },
   {
-    "tool_name": "request_return",
-    "name": "request_return",
+    "tool_name": "skip_tomorrow",
+    "name": "skip_tomorrow",
     "kind": "action",
-    "description": "Start a return for a delivered order, when the shopper asks to return it and it is still within its return date. Confirm which order first.",
+    "description": "Skip only tomorrow's delivery of a subscription, when the customer asks. The subscription carries on after that. Changes for tomorrow close at 11 pm. Confirm which item first.",
     "parameters": {
       "type": "object",
       "properties": {
         "item": {
           "type": "string",
-          "description": "The product or the order number, e.g. \"Yoga mat, 6 mm\" or \"GD-54702\"."
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
         }
       },
       "required": [
@@ -62,16 +62,88 @@
     }
   },
   {
-    "tool_name": "cancel_order",
-    "name": "cancel_order",
+    "tool_name": "pause_subscription",
+    "name": "pause_subscription",
     "kind": "action",
-    "description": "Cancel an order that has not been delivered yet, when the shopper asks to cancel it. Confirm which order first.",
+    "description": "Pause a subscription until the customer resumes it, for example while they travel. Confirm which item first, and tell them it restarts the day after they resume.",
     "parameters": {
       "type": "object",
       "properties": {
         "item": {
           "type": "string",
-          "description": "The product or the order number, e.g. \"Wireless earbuds\" or \"GD-55302\"."
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "resume_subscription",
+    "name": "resume_subscription",
+    "kind": "action",
+    "description": "Restart a paused or skipped subscription from its next delivery day, when the customer asks.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "add_to_basket",
+    "name": "add_to_basket",
+    "kind": "action",
+    "description": "Add a one-time add-on to tomorrow's delivery. Confirm the item and its price first; it is paid from the wallet. Only before 11 pm.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "remove_from_basket",
+    "name": "remove_from_basket",
+    "kind": "action",
+    "description": "Take a one-time add-on out of tomorrow's delivery, when the customer asks.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      },
+      "required": [
+        "item"
+      ]
+    }
+  },
+  {
+    "tool_name": "report_issue",
+    "name": "report_issue",
+    "kind": "action",
+    "description": "Record a problem with a delivery: a product that was sour, spoilt, leaking or wrong, or a delivery that did not come. Ask what went wrong first.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
         }
       },
       "required": [

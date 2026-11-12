@@ -103,9 +103,9 @@ fun HomeScreen(model: AppModel) {
     }
 }
 
-/** "Show the agent's face": over the voice bar while a call in it has one, and on the SDK's call screen. */
+/** "Show the agent's face": over the voice bar while a call in it has one, and on the SDK's call screen. Also on the storefront's Home. */
 @Composable
-private fun FaceSwitch(model: AppModel) {
+internal fun FaceSwitch(model: AppModel) {
     val face by Graine.avatar.state.collectAsState()
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(Modifier.weight(1f)) {

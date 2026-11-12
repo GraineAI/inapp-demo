@@ -68,7 +68,7 @@ test("the README's examples find their rows in the real packs", () => {
   const banking = realPacks.find((p) => p.id === "banking-support");
   const retail = realPacks.find((p) => p.id === "retail-shopping");
   if (banking) assert.equal(L.findRow(L.rowsFor(banking, "CUST-10041"), "7730").row.id, "credit-7730");
-  if (retail) assert.equal(L.findRow(L.rowsFor(retail, "SHP-20031"), "GD-55120").row.id, "gd-55120");
+  if (retail) assert.equal(L.findRow(L.rowsFor(retail, "SHP-20031"), "paneer").row.id, "paneer-ananya");
 });
 
 test("open_screen answers in the pack's words", () => {

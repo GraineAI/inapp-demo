@@ -64,8 +64,8 @@ void main() {
     expect(again.effect, isNull);
 
     final retail = load('retail-shopping');
-    final refused = runPackAction(retail, retail.action('request_return')!, {'item': 'GD-55120'}, retail.rowsFor('SHP-20031'), const {});
-    expect(refused.answer.message, 'Return is not available for Running shoes, size 7.');
+    final refused = runPackAction(retail, retail.action('skip_tomorrow')!, {'item': "today's delivery"}, retail.rowsFor('SHP-20031'), const {});
+    expect(refused.answer.message, "Skip tomorrow is not available for Today's delivery.");
   });
 
   test('hides the button for the status a row already has', () {

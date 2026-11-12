@@ -636,6 +636,14 @@ class AppModel(
 
     // ── items ───────────────────────────────────────────────────────────────
 
+    /** Show one row on the list screen, open — the storefront's wallet chip; the agent's open_item does the same. */
+    fun openItem(row: UseCasePack.Row) {
+        if (user == null) return
+        open(DemoScreen.ITEMS)
+        expandedRowId = row.id
+        describeScreen()
+    }
+
     fun toggleExpanded(row: UseCasePack.Row) {
         expandedRowId = if (expandedRowId == row.id) null else row.id
     }
@@ -972,7 +980,7 @@ class AppModel(
             DemoScreen.HOME -> listOf(
                 DemoField("memory", "Memory", if (memoryOn) "on" else "off", "filled"),
                 DemoField("next_call", "Next call", nextCall?.call?.at?.let { DemoFormat.iso(it.toEpochMilliseconds()) } ?: "none", "filled"),
-            )
+            ) + storefrontFields()
             DemoScreen.ITEMS -> items?.let { s -> s.rows.map { DemoField(it.id, it.title, s.valueOf(it), "filled") } } ?: emptyList()
             DemoScreen.CALLS -> listOf(DemoField("upcoming", "Upcoming calls", upcomingCalls.size.toString(), "filled"))
             DemoScreen.MEMORY -> listOf(
@@ -982,6 +990,15 @@ class AppModel(
             DemoScreen.SIGN_IN, DemoScreen.CHAT, DemoScreen.PROFILE, DemoScreen.HELP, DemoScreen.CALL_LOG -> emptyList()
         }
         return DemoScreenContext(screen.contextName(pack), screen.title(pack), fields)
+    }
+
+    /**
+     * A storefront's Home shows the user's rows (tomorrow's basket, the add-ons, the wallet), so the agent reads them
+     * there too, exactly as on the list screen. Nothing for a pack without a storefront.
+     */
+    private fun storefrontFields(): List<DemoField> {
+        if (pack?.store == null) return emptyList()
+        return items?.let { s -> s.rows.map { DemoField(it.id, it.title, s.valueOf(it), "filled") } } ?: emptyList()
     }
 
     // ── private ─────────────────────────────────────────────────────────────

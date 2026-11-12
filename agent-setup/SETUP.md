@@ -6,7 +6,7 @@ One folder per use case — pick the one closest to your business; the steps are
 |---|---|---|
 | `health-coach/` (default) | Asha, care coach | `patient_id` |
 | `banking-support/` | Kabir, account assistant | `customer_id` |
-| `retail-shopping/` | Tara, shopping assistant | `shopper_id` |
+| `retail-shopping/` | Tara, store assistant | `shopper_id` |
 
 Each folder has `prompt.md` (the agent's instructions), `actions.json` (what the agent may do in the app),
 `components.json` (the cards it can show) and `settings.md` (every setting and its value) for the **main**

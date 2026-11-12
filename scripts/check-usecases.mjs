@@ -136,6 +136,46 @@ function crossCheck(pack, file) {
   for (const u of pack.users) {
     if (!pack.items.rows.some((r) => !r.userIds || r.userIds.includes(u.id))) errors.push(`user ${u.id} has no rows`);
   }
+  errors.push(...crossCheckStore(pack, byName));
+  return errors;
+}
+
+/**
+ * The storefront, where a pack has one (`store`): what its schema cannot say. Each role names a set_status action the
+ * pack declares; every row says which part of the storefront it is; an add-on names a category that exists; each user
+ * sees at most one wallet; and the rows offer their part's actions (an add-on can be added and removed, a subscription
+ * skipped, paused and resumed, a delivery reported), or a storefront button would be refused.
+ */
+function crossCheckStore(pack, byName) {
+  const store = pack.store;
+  const rowsWithStoreFields = pack.items.rows.filter((r) => r.kind || r.icon || r.price || r.category);
+  if (!store) return rowsWithStoreFields.length ? ["rows carry storefront fields (kind, icon, price, category) but the pack has no store"] : [];
+  const errors = [];
+  for (const [role, name] of Object.entries(store.roles)) {
+    const a = byName.get(name);
+    if (!a) errors.push(`store.roles.${role}: action "${name}" is not declared`);
+    else if (a.effect !== "set_status") errors.push(`store.roles.${role}: "${name}" is ${a.effect}; roles name set_status actions`);
+  }
+  const categories = new Set((store.categories ?? []).map((c) => c.id));
+  if (categories.size !== (store.categories ?? []).length) errors.push("store.categories: two share an id");
+  const needs = {
+    subscription: [store.roles.skip, store.roles.pause, store.roles.resume],
+    addon: [store.roles.add, store.roles.remove],
+    delivery: [store.roles.report],
+    wallet: [],
+  };
+  for (const r of pack.items.rows) {
+    if (!r.kind) { errors.push(`row ${r.id}: a storefront row needs a kind`); continue; }
+    const part = { subscription: "a subscription", addon: "an add-on", delivery: "a delivery", wallet: "a wallet" }[r.kind];
+    for (const name of needs[r.kind]) if (!r.actions.includes(name)) errors.push(`row ${r.id}: ${part} row must offer "${name}"`);
+    if (r.category && !categories.has(r.category)) errors.push(`row ${r.id}: category "${r.category}" is not in store.categories`);
+    if (r.kind === "addon" && !r.price) errors.push(`row ${r.id}: an add-on needs a price`);
+  }
+  for (const u of pack.users) {
+    const wallets = pack.items.rows.filter((r) => r.kind === "wallet" && (!r.userIds || r.userIds.includes(u.id)));
+    if (wallets.length > 1) errors.push(`user ${u.id} sees ${wallets.length} wallets; at most one`);
+  }
+  if (store.areaTrait && !pack.users.every((u) => store.areaTrait in u.traits)) errors.push(`store.areaTrait "${store.areaTrait}": every user needs that trait`);
   return errors;
 }
 

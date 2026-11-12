@@ -4,195 +4,956 @@
   "id": "retail-shopping",
   "appTitle": "Graine Store",
   "agentName": "Tara",
-  "agentRole": "shopping assistant",
+  "agentRole": "store assistant",
   "agents": {
-    "main": { "name": "Tara", "role": "shopping assistant", "starters": ["Where is my order?", "Return an item", "Book a delivery call", "What do you remember about me?"] },
+    "main": {
+      "name": "Tara",
+      "role": "store assistant",
+      "starters": [
+        "What's coming tomorrow?",
+        "Skip tomorrow's milk",
+        "Add something to tomorrow",
+        "What do you remember about me?"
+      ]
+    },
     "help": {
-      "name": "Returns desk",
-      "role": "returns desk",
-      "callName": "Graine Store · Returns",
-      "placeReason": "returns_question",
-      "bookLabel": "Book a call with returns",
-      "reasons": ["Return or exchange", "Refund status", "Damaged item"],
-      "starters": ["Start a return", "Where is my refund?", "My item arrived damaged", "Book a call with returns"]
+      "name": "Freshness desk",
+      "role": "freshness desk",
+      "callName": "Graine Store · Freshness",
+      "placeReason": "freshness_question",
+      "bookLabel": "Book a call with the freshness desk",
+      "reasons": [
+        "A product wasn't fresh",
+        "A delivery didn't come",
+        "A refund to my wallet"
+      ],
+      "starters": [
+        "Today's milk was sour",
+        "My delivery didn't come",
+        "Where is my refund?",
+        "Book a call with the freshness desk"
+      ]
     }
   },
-  "tagline": "A shopping assistant who tracks orders, starts returns, and calls with delivery updates when you ask.",
-  "accent": "#B45309",
+  "tagline": "Milk and daily essentials at your door before 7 am, with an assistant for your subscriptions, tomorrow's basket and wallet.",
+  "accent": "#15803D",
   "identifierField": "shopper_id",
-  "identifierLabel": "Shopper ID",
-  "userNoun": "shopper",
+  "identifierLabel": "Customer ID",
+  "userNoun": "customer",
   "users": [
-    { "id": "SHP-20031", "name": "Ananya Gupta", "traits": { "membership": "Plus member", "city": "Delhi" } },
-    { "id": "SHP-20032", "name": "Vikram Singh", "traits": { "membership": "Standard", "city": "Jaipur" } },
-    { "id": "SHP-20033", "name": "Kavya Reddy", "traits": { "membership": "Plus member", "city": "Chennai" } }
+    {
+      "id": "SHP-20031",
+      "name": "Ananya Gupta",
+      "traits": {
+        "plan": "daily milk plan",
+        "city": "Delhi",
+        "area": "Green Park",
+        "delivery_slot": "6–7 am",
+        "wallet_balance": "₹240"
+      }
+    },
+    {
+      "id": "SHP-20032",
+      "name": "Vikram Singh",
+      "traits": {
+        "plan": "alternate-day plan",
+        "city": "Jaipur",
+        "area": "Malviya Nagar",
+        "delivery_slot": "5:30–6:30 am",
+        "wallet_balance": "₹85"
+      }
+    },
+    {
+      "id": "SHP-20033",
+      "name": "Kavya Reddy",
+      "traits": {
+        "plan": "daily milk plan, paused for a trip",
+        "city": "Bengaluru",
+        "area": "Indiranagar",
+        "delivery_slot": "6:30–7:30 am",
+        "wallet_balance": "₹1,120"
+      }
+    }
   ],
-  "variables": { "callee_name": "name" },
+  "variables": {
+    "callee_name": "name"
+  },
   "home": {
-    "title": "Your orders",
+    "title": "Tomorrow, before 7 am",
     "cards": [
-      { "id": "orders", "title": "Orders", "body": "Track a delivery, cancel or start a return.", "target": "items" },
-      { "id": "calls", "title": "Delivery calls", "body": "Tara calls you at the time you book.", "target": "calls" },
-      { "id": "memory", "title": "What Tara remembers", "body": "See it, switch it off, or erase it.", "target": "memory" }
+      {
+        "id": "basket",
+        "title": "Tomorrow's basket",
+        "body": "See what's coming, skip a day or add something. Changes for tomorrow close at 11 pm.",
+        "target": "items"
+      },
+      {
+        "id": "chat",
+        "title": "Ask Tara",
+        "body": "Pause for a trip, add an item, check your wallet or report a problem.",
+        "target": "chat"
+      },
+      {
+        "id": "calls",
+        "title": "Calls from Tara",
+        "body": "Book a time and Tara calls you to plan the week's deliveries.",
+        "target": "calls"
+      },
+      {
+        "id": "memory",
+        "title": "What Tara remembers",
+        "body": "Where to leave the milk, what you like. See it, switch it off, or erase it.",
+        "target": "memory"
+      }
     ]
   },
   "items": {
-    "title": "Orders",
-    "screenName": "orders",
-    "itemNoun": "order",
-    "emptyText": "No orders yet.",
+    "title": "Deliveries",
+    "screenName": "deliveries",
+    "itemNoun": "item",
+    "emptyText": "Nothing is scheduled for you.",
     "rows": [
       {
-        "id": "gd-55120",
-        "title": "Running shoes, size 7",
-        "subtitle": "Order GD-55120 · ₹4,299",
-        "status": "Out for delivery",
+        "id": "milk-ananya",
+        "title": "Cow milk, 1 L",
+        "subtitle": "Every day · ₹68",
+        "status": "Active",
         "fields": [
-          { "name": "order_number", "label": "Order", "value": "GD-55120" },
-          { "name": "delivery", "label": "Delivery", "value": "Today, 3–7 pm" }
+          {
+            "name": "plan",
+            "label": "Plan",
+            "value": "Every day"
+          },
+          {
+            "name": "next",
+            "label": "Next delivery",
+            "value": "Tomorrow, 6–7 am"
+          },
+          {
+            "name": "quantity",
+            "label": "Quantity",
+            "value": "1 packet"
+          }
+        ],
+        "actions": [
+          "skip_tomorrow",
+          "pause_subscription",
+          "resume_subscription"
+        ],
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "subscription",
+        "icon": "🥛",
+        "price": "₹68",
+        "statusTone": "positive"
+      },
+      {
+        "id": "curd-ananya",
+        "title": "Fresh curd, 400 g",
+        "subtitle": "Every other day · ₹45",
+        "status": "Active",
+        "fields": [
+          {
+            "name": "plan",
+            "label": "Plan",
+            "value": "Every other day"
+          },
+          {
+            "name": "next",
+            "label": "Next delivery",
+            "value": "Day after tomorrow, 6–7 am"
+          }
+        ],
+        "actions": [
+          "skip_tomorrow",
+          "pause_subscription",
+          "resume_subscription"
+        ],
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "subscription",
+        "icon": "🥣",
+        "price": "₹45",
+        "statusTone": "positive"
+      },
+      {
+        "id": "bread-ananya",
+        "title": "Brown bread",
+        "subtitle": "Tomorrow only · ₹50",
+        "status": "In tomorrow's basket",
+        "fields": [
+          {
+            "name": "delivery",
+            "label": "Delivery",
+            "value": "Tomorrow, 6–7 am"
+          },
+          {
+            "name": "paid",
+            "label": "Paid from",
+            "value": "Wallet"
+          }
+        ],
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "addon",
+        "icon": "🍞",
+        "price": "₹50",
+        "category": "bakery",
+        "statusTone": "positive"
+      },
+      {
+        "id": "paneer-ananya",
+        "title": "Fresh paneer, 200 g",
+        "subtitle": "One-time add-on · ₹90",
+        "status": "Not in basket",
+        "fields": [
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Made the day before delivery"
+          }
+        ],
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "addon",
+        "icon": "🧀",
+        "price": "₹90",
+        "category": "dairy"
+      },
+      {
+        "id": "coconut-ananya",
+        "title": "Tender coconut water, 1 L",
+        "subtitle": "One-time add-on · ₹110",
+        "status": "Not in basket",
+        "fields": [
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Chilled, delivered with the milk"
+          }
+        ],
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "addon",
+        "icon": "🥥",
+        "price": "₹110",
+        "category": "drinks"
+      },
+      {
+        "id": "bananas-ananya",
+        "title": "Bananas, 6",
+        "subtitle": "One-time add-on · ₹48",
+        "status": "Not in basket",
+        "fields": [
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Ripe tomorrow"
+          }
+        ],
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "addon",
+        "icon": "🍌",
+        "price": "₹48",
+        "category": "fruits"
+      },
+      {
+        "id": "today-ananya",
+        "title": "Today's delivery",
+        "subtitle": "Delivered 6:42 am · milk and curd",
+        "status": "Delivered",
+        "fields": [
+          {
+            "name": "delivered",
+            "label": "Delivered",
+            "value": "Today, 6:42 am"
+          },
+          {
+            "name": "items",
+            "label": "Items",
+            "value": "Cow milk 1 L, Fresh curd 400 g"
+          },
+          {
+            "name": "left",
+            "label": "Left",
+            "value": "In the bag on the door handle"
+          }
+        ],
+        "actions": [
+          "report_issue"
+        ],
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "delivery",
+        "icon": "🚚",
+        "statusTone": "positive"
+      },
+      {
+        "id": "wallet-ananya",
+        "title": "Wallet",
+        "subtitle": "Balance ₹240",
+        "status": "About 3 days left",
+        "fields": [
+          {
+            "name": "balance",
+            "label": "Balance",
+            "value": "₹240"
+          },
+          {
+            "name": "covers",
+            "label": "Covers",
+            "value": "About 3 days of deliveries"
+          },
+          {
+            "name": "last_topup",
+            "label": "Last top-up",
+            "value": "₹500, last week"
+          }
         ],
         "actions": [],
-        "userIds": ["SHP-20031"]
+        "userIds": [
+          "SHP-20031"
+        ],
+        "kind": "wallet",
+        "icon": "👛",
+        "price": "₹240",
+        "statusTone": "neutral"
       },
       {
-        "id": "gd-54871",
-        "title": "Cotton bedsheet set, queen",
-        "subtitle": "Order GD-54871 · ₹1,849",
+        "id": "milk-vikram",
+        "title": "Toned milk, 500 ml × 2",
+        "subtitle": "Every other day · ₹56",
+        "status": "Active",
+        "fields": [
+          {
+            "name": "plan",
+            "label": "Plan",
+            "value": "Every other day"
+          },
+          {
+            "name": "next",
+            "label": "Next delivery",
+            "value": "Tomorrow, 5:30–6:30 am"
+          }
+        ],
+        "actions": [
+          "skip_tomorrow",
+          "pause_subscription",
+          "resume_subscription"
+        ],
+        "userIds": [
+          "SHP-20032"
+        ],
+        "kind": "subscription",
+        "icon": "🥛",
+        "price": "₹56",
+        "statusTone": "positive"
+      },
+      {
+        "id": "eggs-vikram",
+        "title": "Brown eggs, 6",
+        "subtitle": "Every Sunday · ₹72",
+        "status": "Paused",
+        "fields": [
+          {
+            "name": "plan",
+            "label": "Plan",
+            "value": "Every Sunday"
+          },
+          {
+            "name": "paused",
+            "label": "Paused",
+            "value": "Since two weeks ago"
+          }
+        ],
+        "actions": [
+          "skip_tomorrow",
+          "pause_subscription",
+          "resume_subscription"
+        ],
+        "userIds": [
+          "SHP-20032"
+        ],
+        "kind": "subscription",
+        "icon": "🥚",
+        "price": "₹72",
+        "statusTone": "warning"
+      },
+      {
+        "id": "coconut-vikram",
+        "title": "Tender coconut water, 1 L",
+        "subtitle": "One-time add-on · ₹110",
+        "status": "Not in basket",
+        "fields": [
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Chilled, delivered with the milk"
+          }
+        ],
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20032"
+        ],
+        "kind": "addon",
+        "icon": "🥥",
+        "price": "₹110",
+        "category": "drinks"
+      },
+      {
+        "id": "paneer-vikram",
+        "title": "Fresh paneer, 200 g",
+        "subtitle": "One-time add-on · ₹90",
+        "status": "Not in basket",
+        "fields": [
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Made the day before delivery"
+          }
+        ],
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20032"
+        ],
+        "kind": "addon",
+        "icon": "🧀",
+        "price": "₹90",
+        "category": "dairy"
+      },
+      {
+        "id": "bread-vikram",
+        "title": "Brown bread",
+        "subtitle": "One-time add-on · ₹50",
+        "status": "Not in basket",
+        "fields": [
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Baked overnight"
+          }
+        ],
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20032"
+        ],
+        "kind": "addon",
+        "icon": "🍞",
+        "price": "₹50",
+        "category": "bakery"
+      },
+      {
+        "id": "yesterday-vikram",
+        "title": "Yesterday's delivery",
+        "subtitle": "Not delivered",
+        "status": "Missed",
+        "fields": [
+          {
+            "name": "due",
+            "label": "Due",
+            "value": "Yesterday, 5:30–6:30 am"
+          },
+          {
+            "name": "items",
+            "label": "Items",
+            "value": "Toned milk 500 ml × 2"
+          },
+          {
+            "name": "charged",
+            "label": "Charged",
+            "value": "₹56 from the wallet"
+          }
+        ],
+        "actions": [
+          "report_issue"
+        ],
+        "userIds": [
+          "SHP-20032"
+        ],
+        "kind": "delivery",
+        "icon": "🚚",
+        "statusTone": "negative"
+      },
+      {
+        "id": "wallet-vikram",
+        "title": "Wallet",
+        "subtitle": "Balance ₹85 · low",
+        "status": "Low balance",
+        "fields": [
+          {
+            "name": "balance",
+            "label": "Balance",
+            "value": "₹85"
+          },
+          {
+            "name": "covers",
+            "label": "Covers",
+            "value": "Tomorrow's delivery only"
+          },
+          {
+            "name": "top_up_by",
+            "label": "Top up by",
+            "value": "11 pm tonight to keep deliveries running"
+          }
+        ],
+        "actions": [],
+        "userIds": [
+          "SHP-20032"
+        ],
+        "kind": "wallet",
+        "icon": "👛",
+        "price": "₹85",
+        "statusTone": "warning"
+      },
+      {
+        "id": "milk-kavya",
+        "title": "A2 cow milk, 1 L",
+        "subtitle": "Every day · ₹90",
+        "status": "Paused",
+        "fields": [
+          {
+            "name": "plan",
+            "label": "Plan",
+            "value": "Every day"
+          },
+          {
+            "name": "paused",
+            "label": "Paused",
+            "value": "For a trip, until resumed"
+          },
+          {
+            "name": "restart",
+            "label": "Restarts",
+            "value": "The day after you resume"
+          }
+        ],
+        "actions": [
+          "skip_tomorrow",
+          "pause_subscription",
+          "resume_subscription"
+        ],
+        "userIds": [
+          "SHP-20033"
+        ],
+        "kind": "subscription",
+        "icon": "🥛",
+        "price": "₹90",
+        "statusTone": "warning"
+      },
+      {
+        "id": "yogurt-kavya",
+        "title": "Greek yogurt, 100 g × 4",
+        "subtitle": "Every Saturday · ₹160",
+        "status": "Active",
+        "fields": [
+          {
+            "name": "plan",
+            "label": "Plan",
+            "value": "Every Saturday"
+          },
+          {
+            "name": "next",
+            "label": "Next delivery",
+            "value": "Saturday, 6:30–7:30 am"
+          }
+        ],
+        "actions": [
+          "skip_tomorrow",
+          "pause_subscription",
+          "resume_subscription"
+        ],
+        "userIds": [
+          "SHP-20033"
+        ],
+        "kind": "subscription",
+        "icon": "🥣",
+        "price": "₹160",
+        "statusTone": "positive"
+      },
+      {
+        "id": "bananas-kavya",
+        "title": "Bananas, 6",
+        "subtitle": "Every Monday · ₹48",
+        "status": "Active",
+        "fields": [
+          {
+            "name": "plan",
+            "label": "Plan",
+            "value": "Every Monday"
+          },
+          {
+            "name": "next",
+            "label": "Next delivery",
+            "value": "Monday, 6:30–7:30 am"
+          }
+        ],
+        "actions": [
+          "skip_tomorrow",
+          "pause_subscription",
+          "resume_subscription"
+        ],
+        "userIds": [
+          "SHP-20033"
+        ],
+        "kind": "subscription",
+        "icon": "🍌",
+        "price": "₹48",
+        "statusTone": "positive"
+      },
+      {
+        "id": "last-kavya",
+        "title": "Last delivery",
+        "subtitle": "Delivered before the trip",
         "status": "Delivered",
         "fields": [
-          { "name": "order_number", "label": "Order", "value": "GD-54871" },
-          { "name": "delivered", "label": "Delivered", "value": "2 October" },
-          { "name": "return_by", "label": "Return by", "value": "16 October" }
+          {
+            "name": "items",
+            "label": "Items",
+            "value": "A2 cow milk 1 L, Greek yogurt 100 g × 4"
+          },
+          {
+            "name": "left",
+            "label": "Left",
+            "value": "With the building security desk"
+          }
         ],
-        "actions": ["request_return"],
-        "userIds": ["SHP-20031"]
+        "actions": [
+          "report_issue"
+        ],
+        "userIds": [
+          "SHP-20033"
+        ],
+        "kind": "delivery",
+        "icon": "🚚",
+        "statusTone": "positive"
       },
       {
-        "id": "gd-55302",
-        "title": "Wireless earbuds",
-        "subtitle": "Order GD-55302 · ₹2,499",
-        "status": "Shipped",
+        "id": "wallet-kavya",
+        "title": "Wallet",
+        "subtitle": "Balance ₹1,120",
+        "status": "Auto top-up on",
         "fields": [
-          { "name": "order_number", "label": "Order", "value": "GD-55302" },
-          { "name": "delivery", "label": "Delivery", "value": "Thursday, 10 am–2 pm" }
+          {
+            "name": "balance",
+            "label": "Balance",
+            "value": "₹1,120"
+          },
+          {
+            "name": "auto_topup",
+            "label": "Auto top-up",
+            "value": "₹500 when it falls below ₹200"
+          }
         ],
-        "actions": ["cancel_order"],
-        "userIds": ["SHP-20032"]
+        "actions": [],
+        "userIds": [
+          "SHP-20033"
+        ],
+        "kind": "wallet",
+        "icon": "👛",
+        "price": "₹1,120",
+        "statusTone": "positive"
       },
       {
-        "id": "gd-54990",
-        "title": "Steel water bottles, pack of 2",
-        "subtitle": "Order GD-54990 · ₹899",
-        "status": "Delivered",
+        "id": "paneer-kavya",
+        "title": "Fresh paneer, 200 g",
+        "subtitle": "One-time add-on · ₹90",
+        "status": "Not in basket",
         "fields": [
-          { "name": "order_number", "label": "Order", "value": "GD-54990" },
-          { "name": "delivered", "label": "Delivered", "value": "6 October" },
-          { "name": "return_by", "label": "Return by", "value": "20 October" }
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Made the day before delivery"
+          }
         ],
-        "actions": ["request_return"],
-        "userIds": ["SHP-20032"]
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
+        ],
+        "userIds": [
+          "SHP-20033"
+        ],
+        "kind": "addon",
+        "icon": "🧀",
+        "price": "₹90",
+        "category": "dairy"
       },
       {
-        "id": "gd-55417",
-        "title": "Ceramic dinner set, 18 pieces",
-        "subtitle": "Order GD-55417 · ₹3,650",
-        "status": "Packed",
+        "id": "coconut-kavya",
+        "title": "Tender coconut water, 1 L",
+        "subtitle": "One-time add-on · ₹110",
+        "status": "Not in basket",
         "fields": [
-          { "name": "order_number", "label": "Order", "value": "GD-55417" },
-          { "name": "delivery", "label": "Delivery", "value": "Saturday, 9 am–1 pm" }
+          {
+            "name": "note",
+            "label": "Note",
+            "value": "Chilled, delivered with the milk"
+          }
         ],
-        "actions": ["cancel_order"],
-        "userIds": ["SHP-20033"]
-      },
-      {
-        "id": "gd-54702",
-        "title": "Yoga mat, 6 mm",
-        "subtitle": "Order GD-54702 · ₹1,199",
-        "status": "Delivered",
-        "fields": [
-          { "name": "order_number", "label": "Order", "value": "GD-54702" },
-          { "name": "delivered", "label": "Delivered", "value": "30 September" },
-          { "name": "return_by", "label": "Return by", "value": "14 October" }
+        "actions": [
+          "add_to_basket",
+          "remove_from_basket"
         ],
-        "actions": ["request_return"],
-        "userIds": ["SHP-20033"]
+        "userIds": [
+          "SHP-20033"
+        ],
+        "kind": "addon",
+        "icon": "🥥",
+        "price": "₹110",
+        "category": "drinks"
       }
     ]
+  },
+  "store": {
+    "layout": "storefront",
+    "areaTrait": "area",
+    "basketTitle": "Tomorrow, before 7 am",
+    "basketNote": "Changes for tomorrow close at 11 pm",
+    "subscriptionsTitle": "My subscriptions",
+    "addOnsTitle": "Add to tomorrow",
+    "deliveriesTitle": "Recent deliveries",
+    "categories": [
+      {
+        "id": "dairy",
+        "label": "Dairy"
+      },
+      {
+        "id": "bakery",
+        "label": "Bakery"
+      },
+      {
+        "id": "fruits",
+        "label": "Fruits"
+      },
+      {
+        "id": "drinks",
+        "label": "Drinks"
+      }
+    ],
+    "banner": {
+      "title": "Going away?",
+      "body": "Pause your milk in one tap, or just tell Tara when you're back.",
+      "target": "items"
+    },
+    "walletTitle": "Wallet",
+    "topUps": [
+      "₹200",
+      "₹500",
+      "₹1,000"
+    ],
+    "topUpNotice": "Payments aren't part of this demo. Ask Tara what your balance covers.",
+    "roles": {
+      "add": "add_to_basket",
+      "remove": "remove_from_basket",
+      "skip": "skip_tomorrow",
+      "pause": "pause_subscription",
+      "resume": "resume_subscription",
+      "report": "report_issue"
+    }
   },
   "actions": [
     {
       "name": "open_screen",
       "effect": "open_screen",
       "label": "Open",
-      "description": "Take the shopper to a screen in the app: home, chat, orders, calls (their booked delivery calls), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
+      "description": "Take the customer to a screen in the app: home, chat, deliveries (their subscriptions, tomorrow's basket, recent deliveries and wallet), calls (calls booked with you), memory (what you remember about them) or profile. Use it instead of describing where to tap.",
       "args": [
         {
           "name": "screen",
           "type": "string",
           "required": true,
           "description": "The screen to open.",
-          "enum": ["home", "chat", "orders", "calls", "memory", "profile"]
+          "enum": [
+            "home",
+            "chat",
+            "deliveries",
+            "calls",
+            "memory",
+            "profile"
+          ]
         }
       ]
     },
     {
       "name": "open_item",
       "effect": "open_item",
-      "label": "Track",
-      "description": "Open one of the shopper's orders so they can see its delivery details. Name the order by its product or its order number.",
+      "label": "Show",
+      "description": "Open one of the customer's items so they can see its details: a subscription, a one-time add-on, a recent delivery or the wallet. Name it by its product, by the delivery (\"today's delivery\") or by \"wallet\".",
       "args": [
-        { "name": "item", "type": "string", "required": true, "description": "The product or the order number, e.g. \"Running shoes, size 7\" or \"GD-55120\"." }
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
       ]
     },
     {
-      "name": "request_return",
+      "name": "skip_tomorrow",
       "effect": "set_status",
-      "label": "Return",
-      "status": "Return requested",
-      "description": "Start a return for a delivered order, when the shopper asks to return it and it is still within its return date. Confirm which order first.",
+      "label": "Skip tomorrow",
+      "status": "Skipped tomorrow",
+      "description": "Skip only tomorrow's delivery of a subscription, when the customer asks. The subscription carries on after that. Changes for tomorrow close at 11 pm. Confirm which item first.",
       "args": [
-        { "name": "item", "type": "string", "required": true, "description": "The product or the order number, e.g. \"Yoga mat, 6 mm\" or \"GD-54702\"." }
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
       ]
     },
     {
-      "name": "cancel_order",
+      "name": "pause_subscription",
       "effect": "set_status",
-      "label": "Cancel order",
-      "status": "Cancelled",
-      "description": "Cancel an order that has not been delivered yet, when the shopper asks to cancel it. Confirm which order first.",
+      "label": "Pause",
+      "status": "Paused",
+      "description": "Pause a subscription until the customer resumes it, for example while they travel. Confirm which item first, and tell them it restarts the day after they resume.",
       "args": [
-        { "name": "item", "type": "string", "required": true, "description": "The product or the order number, e.g. \"Wireless earbuds\" or \"GD-55302\"." }
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      ]
+    },
+    {
+      "name": "resume_subscription",
+      "effect": "set_status",
+      "label": "Resume",
+      "status": "Active",
+      "description": "Restart a paused or skipped subscription from its next delivery day, when the customer asks.",
+      "args": [
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      ]
+    },
+    {
+      "name": "add_to_basket",
+      "effect": "set_status",
+      "label": "Add to tomorrow",
+      "status": "In tomorrow's basket",
+      "description": "Add a one-time add-on to tomorrow's delivery. Confirm the item and its price first; it is paid from the wallet. Only before 11 pm.",
+      "args": [
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      ]
+    },
+    {
+      "name": "remove_from_basket",
+      "effect": "set_status",
+      "label": "Remove",
+      "status": "Removed",
+      "description": "Take a one-time add-on out of tomorrow's delivery, when the customer asks.",
+      "args": [
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
+      ]
+    },
+    {
+      "name": "report_issue",
+      "effect": "set_status",
+      "label": "Report a problem",
+      "status": "Problem reported",
+      "description": "Record a problem with a delivery: a product that was sour, spoilt, leaking or wrong, or a delivery that did not come. Ask what went wrong first.",
+      "args": [
+        {
+          "name": "item",
+          "type": "string",
+          "required": true,
+          "description": "The product, e.g. \"Cow milk, 1 L\" or \"paneer\", or \"wallet\", or the delivery, e.g. \"today's delivery\"."
+        }
       ]
     }
   ],
   "call": {
     "callName": "Tara · Graine Store",
-    "title": "Delivery calls",
-    "bookLabel": "Book a delivery-update call",
-    "reasons": ["Delivery update", "Return pickup", "Help choosing a size"],
-    "quickTimes": [
-      { "label": "In 15 minutes", "inMinutes": 15 },
-      { "label": "Today 19:00", "day": "today", "time": "19:00" },
-      { "label": "Tomorrow 10:00", "day": "tomorrow", "time": "10:00" }
+    "title": "Calls from Tara",
+    "bookLabel": "Book a call with Tara",
+    "reasons": [
+      "Plan my week's deliveries",
+      "Change my delivery time",
+      "My wallet and top-ups"
     ],
-    "placeReason": "shopper_question"
+    "quickTimes": [
+      {
+        "label": "In 10 minutes",
+        "inMinutes": 10
+      },
+      {
+        "label": "Today 19:00",
+        "day": "today",
+        "time": "19:00"
+      },
+      {
+        "label": "Tomorrow 08:30",
+        "day": "tomorrow",
+        "time": "08:30"
+      }
+    ],
+    "placeReason": "store_question"
   },
   "memoryExamples": [
     {
-      "tell": "I wear size 7 in running shoes.",
-      "ask": "What size do I wear in running shoes?",
-      "expect": "Size 7."
+      "tell": "Please leave the milk in the bag on my door handle, and don't ring the bell.",
+      "ask": "Where should the milk be left?",
+      "expect": "In the bag on the door handle, without ringing the bell."
     },
     {
-      "tell": "Please leave my parcels with the building security desk.",
-      "ask": "Where should my parcels be left?",
-      "expect": "With the building security desk."
+      "tell": "On weekends we take toned milk instead of full cream.",
+      "ask": "Which milk do we take on weekends?",
+      "expect": "Toned milk on weekends."
     }
   ],
   "starters": [
-    "Where is my order?",
-    "Return an item",
-    "Book a delivery call",
+    "What's coming tomorrow?",
+    "Skip tomorrow's milk",
+    "Add something to tomorrow",
     "What do you remember about me?"
   ]
 }

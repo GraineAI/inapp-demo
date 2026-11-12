@@ -7,7 +7,7 @@ phone app. Plain HTML, CSS and JavaScript modules: no framework, no build step.
 
 Every domain word comes from a use-case pack in `../usecases/` — the same files the mobile apps use:
 **Graine Care** (care coach, the default), **Graine Bank** (account assistant) and **Graine Store**
-(shopping assistant). All people and data are fictional.
+(store assistant, a daily-essentials store). All people and data are fictional.
 
 ## Run it
 
@@ -55,7 +55,7 @@ The publishable key is public by design: it ships in the page and works only fro
 domains. Reload the page after changing `config.js`.
 
 **The help agent (optional).** Every pack has a second agent for its Help section — Billing &
-appointments help, the Card security desk, the Returns desk. Create it from `agent-setup/<pack>/` (its
+appointments help, the Card security desk, the Freshness desk. Create it from `agent-setup/<pack>/` (its
 own prompt and settings, the same **Who is the user?** field), add this site to its Allowed domains, and
 add it to `config.js`:
 

@@ -39,7 +39,37 @@ data class UseCasePack(
     val variables: Map<String, String> = DEFAULT_VARIABLES,
     /** The app's whole journey (onboarding, a first call, a plan, check-ins), for the Journey; null in a pack without one. */
     val journey: JourneyPack? = null,
+    /** Draw Home and the list screen as a storefront ([Store]); null for the generic cards and list. */
+    val store: Store? = null,
 ) {
+    /**
+     * A STOREFRONT: Home and the list screen drawn as a store's — its subscriptions, tomorrow's basket, one-time
+     * add-ons, deliveries and wallet — from the pack's rows, each marked with its [Row.kind]. Every word is the
+     * pack's; [roles] names the set_status action each storefront button runs, the same one the agent runs.
+     */
+    data class Store(
+        val layout: String,
+        /** The user trait that says where deliveries go ("area"), shown with the `city` trait. */
+        val areaTrait: String?,
+        val basketTitle: String,
+        val basketNote: String?,
+        val subscriptionsTitle: String?,
+        val addOnsTitle: String,
+        val deliveriesTitle: String?,
+        val categories: List<Category>,
+        val banner: Banner?,
+        val walletTitle: String?,
+        val topUps: List<String>,
+        val topUpNotice: String?,
+        val roles: Roles,
+    ) {
+        data class Category(val id: String, val label: String)
+        data class Banner(val title: String, val body: String, val target: String)
+
+        /** The set_status action each storefront button runs, by name. [resume]'s status is a delivering subscription's. */
+        data class Roles(val add: String, val remove: String, val skip: String, val pause: String, val resume: String, val report: String)
+    }
+
     /**
      * One of the pack's agents (`agents.main`, `agents.help`). The help desk also carries its own call settings:
      * the name its calls ring with, the reason on a call placed from Help, its booking button and reasons.
@@ -99,6 +129,16 @@ data class UseCasePack(
         val actions: List<String>,
         /** Shown only to these users. Null: to everyone. */
         val userIds: List<String>?,
+        /** Storefront packs: subscription, addon, delivery or wallet. */
+        val kind: String? = null,
+        /** Storefront packs: a short emoji for the row's tile. */
+        val icon: String? = null,
+        /** Storefront packs: a display amount, a product's price or a wallet's balance. */
+        val price: String? = null,
+        /** Storefront packs: an add-on's category id. */
+        val category: String? = null,
+        /** Storefront packs: the colour of the starting status chip (neutral, info, positive, warning, negative). */
+        val statusTone: String? = null,
     )
 
     data class Items(
@@ -229,6 +269,11 @@ data class UseCasePack(
                             fields = r.objects("fields").map { Field(it.str("name"), it.str("label"), it["value"] as? String ?: "") },
                             actions = r.strings("actions"),
                             userIds = if (r.containsKey("userIds")) r.strings("userIds") else null,
+                            kind = r.optStr("kind"),
+                            icon = r.optStr("icon"),
+                            price = r.optStr("price"),
+                            category = r.optStr("category"),
+                            statusTone = r.optStr("statusTone"),
                         )
                     },
                 ),
@@ -256,6 +301,36 @@ data class UseCasePack(
                 agents = o.obj("agents")?.let { a -> Agents(agentInfo(a.obj("main")), agentInfo(a.obj("help"))) },
                 // A journey that cannot be read leaves the pack as it is, without one (its test reads the shipped packs).
                 journey = o.obj("journey")?.let { runCatching { JourneyPack.parse(it) }.getOrNull() },
+                // A storefront that cannot be read, or one of a layout this build does not know, leaves the generic screens.
+                store = o.obj("store")?.let { runCatching { store(it) }.getOrNull() },
+            )
+        }
+
+        private fun store(o: JsonObject): Store? {
+            val layout = o.str("layout")
+            if (layout != "storefront") return null
+            val roles = o.req("roles")
+            return Store(
+                layout = layout,
+                areaTrait = o.optStr("areaTrait"),
+                basketTitle = o.str("basketTitle"),
+                basketNote = o.optStr("basketNote"),
+                subscriptionsTitle = o.optStr("subscriptionsTitle"),
+                addOnsTitle = o.str("addOnsTitle"),
+                deliveriesTitle = o.optStr("deliveriesTitle"),
+                categories = o.objects("categories").map { Store.Category(it.str("id"), it.str("label")) },
+                banner = o.obj("banner")?.let { Store.Banner(it.str("title"), it.str("body"), it.str("target")) },
+                walletTitle = o.optStr("walletTitle"),
+                topUps = o.strings("topUps"),
+                topUpNotice = o.optStr("topUpNotice"),
+                roles = Store.Roles(
+                    add = roles.str("add"),
+                    remove = roles.str("remove"),
+                    skip = roles.str("skip"),
+                    pause = roles.str("pause"),
+                    resume = roles.str("resume"),
+                    report = roles.str("report"),
+                ),
             )
         }
 

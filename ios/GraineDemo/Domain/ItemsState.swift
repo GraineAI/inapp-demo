@@ -35,7 +35,7 @@ struct ItemsState: Equatable {
      * The pack's rule for finding the row a name refers to (case-insensitive,
      * trimmed): a row whose id equals it; else whose title equals it; else the
      * ONE row whose title or any field value contains it ("7730",
-     * "GD-55120"). Two or more is ambiguous.
+     * "paneer"). Two or more is ambiguous.
      */
     func find(_ query: String?) -> RowMatch {
         let q = ItemsState.normalise(query ?? "")
