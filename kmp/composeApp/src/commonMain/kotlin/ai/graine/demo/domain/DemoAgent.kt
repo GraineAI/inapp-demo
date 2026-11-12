@@ -12,14 +12,14 @@ enum class DemoAgent(val key: String) {
     MAIN("main"),
     HELP("help");
 
-    /** The name the SDK knows it by (Graine.configure's name). */
-    val sdkName: String get() = if (this == MAIN) "default" else "help"
+    /** The name the SDK knows it by for the open pack (Graine.configure's name): the pack's own agent, else the app's (AgentNames). */
+    val sdkName: String get() = AgentNames.of(this)
 
     companion object {
         fun of(key: String?): DemoAgent? = entries.firstOrNull { it.key == key }
 
         /** The app's agent for the SDK's name of one (`agent` on a call's events); null for none, or one the app does not have. */
-        fun ofSdkName(name: String?): DemoAgent? = entries.firstOrNull { it.sdkName == name }
+        fun ofSdkName(name: String?): DemoAgent? = AgentNames.roleOf(name)
     }
 }
 

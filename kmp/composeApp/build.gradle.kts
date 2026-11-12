@@ -28,9 +28,11 @@ fun setting(key: String, env: String, default: String): String =
  * The shared use-case packs (the .json files in demo/usecases), bundled unchanged into the shared code as text, so
  * Android and iOS read the same files the same way. One copy for every platform: edit the packs there.
  */
+val packIds = listOf("health-coach", "banking-support", "retail-shopping")
+
 val generatePacks by tasks.registering {
     val packs = rootProject.file("../usecases")
-    val ids = listOf("health-coach", "banking-support", "retail-shopping")
+    val ids = packIds
     val out = layout.buildDirectory.dir("generated/usecases/kotlin")
     inputs.files(ids.map { packs.resolve("$it.json") }).withPathSensitivity(PathSensitivity.NAME_ONLY)
     outputs.dir(out)
@@ -70,6 +72,14 @@ android {
         buildConfigField("String", "GRAINE_CONSULTATION_PUBLISHABLE_KEY", "\"${setting("graine.consultationPublishableKey", "GRAINE_CONSULTATION_PUBLISHABLE_KEY", "")}\"")
         // Optional: the packs this build offers (pack ids, comma-separated; the first opens by default). Empty: every pack.
         buildConfigField("String", "GRAINE_PACKS", "\"${setting("graine.packs", "GRAINE_PACKS", "")}\"")
+        // Optional: a pack's own agents (graine.pack.<id>.publishableKey and .helpPublishableKey): while that pack is open,
+        // its screens talk to them instead of the keys above. Packed as "<id>=<main>,<help>;…" (AppConfig.packKeysWire).
+        val packKeys = packIds.joinToString(";") { id ->
+            val env = id.uppercase().replace('-', '_')
+            "$id=" + setting("graine.pack.$id.publishableKey", "GRAINE_${env}_PUBLISHABLE_KEY", "") + "," +
+                setting("graine.pack.$id.helpPublishableKey", "GRAINE_${env}_HELP_PUBLISHABLE_KEY", "")
+        }
+        buildConfigField("String", "GRAINE_PACK_KEYS", "\"$packKeys\"")
         buildConfigField("String", "GRAINE_BASE_URL", "\"${setting("graine.baseUrl", "GRAINE_BASE_URL", "https://www.graine.ai")}\"")
     }
     buildFeatures { buildConfig = true }

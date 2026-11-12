@@ -4,6 +4,7 @@ import ai.graine.demo.domain.ServerTokenSettings
 import ai.graine.demo.domain.ServerTokenStore
 import ai.graine.demo.domain.AgentCall
 import ai.graine.demo.domain.AgentProfile
+import ai.graine.demo.domain.AgentNames
 import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.CallLog
 import ai.graine.demo.domain.CallLogEntry
@@ -41,6 +42,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -183,6 +185,8 @@ class AppModel(
      * launch, so a button drawn before the agent's session arrived turns on by itself when it does.
      */
     var booking by mutableStateOf<Map<DemoAgent, GraineBookingState>>(emptyMap())
+    /** The open pack's agents' booking states, collected again when another pack opens (its agents may be others). Declared before init, which collects them. */
+    private var bookingJobs: List<Job> = emptyList()
         private set
     /** The SDK's booking sheet is on screen: a second tap opens no other. */
     var bookingOpen by mutableStateOf(false)
@@ -252,6 +256,8 @@ class AppModel(
     private var ownCallScreenNamed = false
 
     init {
+        // The open pack's agents — its own, else the app's (domain/AgentNames.kt) — before anything below names one.
+        AgentNames.open(pack?.id)
         graine.onSessionReady = { sessionArrived() }
         graine.onCallEvent = { record(it) }
         registerActions()
@@ -369,6 +375,11 @@ class AppModel(
     /** The agent's name as the app shows it. */
     fun nameOf(agent: DemoAgent): String = profile(agent)?.name ?: if (agent == DemoAgent.MAIN) agentName else "Help"
 
+    /** The Security card's agents: the open pack's — its main agent, its help desk and, with a Journey, its first call. */
+    fun onSecurityCard(sdkName: String): Boolean =
+        sdkName == DemoAgent.MAIN.sdkName || sdkName == DemoAgent.HELP.sdkName ||
+            (pack?.journey != null && sdkName == JourneyAgent.FIRST_CALL.sdkName)
+
     /** An agent's name on the Security card, by the name the SDK knows it by: the pack's words, else that name. */
     fun securityName(sdkName: String): String = DemoAgent.ofSdkName(sdkName)?.let { nameOf(it) }
         ?: (if (sdkName == JourneyAgent.FIRST_CALL.sdkName) pack?.journey?.agents?.firstCall?.name else null)
@@ -386,8 +397,12 @@ class AppModel(
         if (user != null) signOut()
         pack = next
         store.putString(UseCasePacks.CHOICE_KEY, next.id)
+        // From here on its screens talk to its agents: its own, else the app's (domain/AgentNames.kt).
+        AgentNames.open(next.id)
         graine.setCallName(next.call.callName)
         registerActions()
+        collectBooking()
+        agentMemoryEnabled = graine.agentMemoryEnabled
         journey?.close()
         journey = makeJourney()
         syncCallScreen()
@@ -702,7 +717,9 @@ class AppModel(
      * so the first frame is right; then every change, and the app's own booking screen follows.
      */
     private fun collectBooking() {
-        for (agent in graine.agents) {
+        bookingJobs.forEach { it.cancel() }
+        booking = emptyMap()
+        bookingJobs = graine.agents.map { agent ->
             val flow = graine.bookingState(agent)
             booking = booking + (agent to flow.value)
             collectors.launch {

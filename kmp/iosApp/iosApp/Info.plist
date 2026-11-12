@@ -30,6 +30,18 @@
 	<string>$(GRAINE_HELP_PUBLISHABLE_KEY)</string>
 	<key>GrainePacks</key>
 	<string>$(GRAINE_PACKS)</string>
+	<key>GraineKey.health-coach</key>
+	<string>$(GRAINE_HEALTH_COACH_PUBLISHABLE_KEY)</string>
+	<key>GraineHelpKey.health-coach</key>
+	<string>$(GRAINE_HEALTH_COACH_HELP_PUBLISHABLE_KEY)</string>
+	<key>GraineKey.banking-support</key>
+	<string>$(GRAINE_BANKING_SUPPORT_PUBLISHABLE_KEY)</string>
+	<key>GraineHelpKey.banking-support</key>
+	<string>$(GRAINE_BANKING_SUPPORT_HELP_PUBLISHABLE_KEY)</string>
+	<key>GraineKey.retail-shopping</key>
+	<string>$(GRAINE_RETAIL_SHOPPING_PUBLISHABLE_KEY)</string>
+	<key>GraineHelpKey.retail-shopping</key>
+	<string>$(GRAINE_RETAIL_SHOPPING_HELP_PUBLISHABLE_KEY)</string>
 	<key>GrainePublishableKey</key>
 	<string>$(GRAINE_PUBLISHABLE_KEY)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

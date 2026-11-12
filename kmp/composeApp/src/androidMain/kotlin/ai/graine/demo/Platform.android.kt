@@ -54,6 +54,8 @@ actual object Platform {
         BuildConfig.GRAINE_HELP_PUBLISHABLE_KEY,
         BuildConfig.GRAINE_CONSULTATION_PUBLISHABLE_KEY,
         BuildConfig.GRAINE_PACKS,
+        // Each pack's own agents (graine.pack.<id>.publishableKey / helpPublishableKey), as composeApp's build packs them.
+        packKeys = AppConfig.packKeysWire(BuildConfig.GRAINE_PACK_KEYS),
     )
 
     actual fun store(): KeyValueStore {

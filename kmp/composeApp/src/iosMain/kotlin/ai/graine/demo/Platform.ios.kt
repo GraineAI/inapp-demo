@@ -1,6 +1,7 @@
 package ai.graine.demo.platform
 
 import ai.graine.demo.domain.AppConfig
+import ai.graine.demo.domain.UseCasePacks
 import ai.graine.demo.journey.IosFiles
 import ai.graine.demo.journey.IosReminders
 import ai.graine.demo.journey.IosShare
@@ -44,6 +45,8 @@ actual object Platform {
         info("GraineHelpPublishableKey"),
         info("GraineConsultationPublishableKey"),
         info("GrainePacks"),
+        // Each pack's own agents (Info.plist GraineKey.<id> / GraineHelpKey.<id>, from GRAINE_<ID>_… in Config.xcconfig).
+        packKeys = UseCasePacks.bundled.associateWith { id -> info("GraineKey.$id") to info("GraineHelpKey.$id") },
     )
 
     actual fun store(): KeyValueStore = object : KeyValueStore {

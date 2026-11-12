@@ -100,7 +100,7 @@ fun SignInScreen(model: AppModel) {
             modifier = Modifier.fillMaxWidth().testTag("continue"),
         ) { Text("Continue") }
 
-        if (!model.config.hasKey) {
+        if (!model.config.keysFor(pack.id).hasKey) {
             WarningText("No publishable key is set. Add it to local.properties (Android) or Config.xcconfig (iOS) and build again.")
         }
     }

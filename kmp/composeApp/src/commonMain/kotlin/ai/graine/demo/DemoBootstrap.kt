@@ -1,5 +1,6 @@
 package ai.graine.demo
 
+import ai.graine.demo.domain.AgentNames
 import ai.graine.demo.domain.UseCasePacks
 import ai.graine.demo.graine.GraineService
 import ai.graine.demo.journey.GraineJourneySdk
@@ -23,10 +24,15 @@ object DemoBootstrap {
 
     fun start(): AppModel {
         model?.let { return it }
-        val config = Platform.config()
         val store = Platform.store()
-        val packs = UseCasePacks.offered(UseCasePacks.load(), config.packIds)
+        val settings = Platform.config()
+        val packs = UseCasePacks.offered(UseCasePacks.load(), settings.packIds)
+        // Only the offered packs' own agents are configured.
+        val config = settings.copy(packKeys = settings.packKeys.filterKeys { id -> packs.any { it.id == id } })
         val pack = UseCasePacks.chosen(packs, store.getString(UseCasePacks.CHOICE_KEY))
+        // Which agent each screen talks to: the open pack's own, else the app's (domain/AgentNames.kt).
+        AgentNames.configured(config.packKeys.keys)
+        AgentNames.open(pack?.id)
         val graine = GraineService.start(
             config = config,
             callName = pack?.call?.callName ?: "Graine Demo",

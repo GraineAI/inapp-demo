@@ -20,6 +20,15 @@ GRAINE_CONSULTATION_PUBLISHABLE_KEY =
 // Empty: every pack. The keys above serve every pack offered: name one when they are that pack's agents, e.g. retail-shopping.
 GRAINE_PACKS =
 
+// Optional: a pack's own agents. While that pack is open, its screens talk to these instead of the keys above, so each
+// pack can have its own agents in one build. A pack without them uses the keys above.
+GRAINE_HEALTH_COACH_PUBLISHABLE_KEY =
+GRAINE_HEALTH_COACH_HELP_PUBLISHABLE_KEY =
+GRAINE_BANKING_SUPPORT_PUBLISHABLE_KEY =
+GRAINE_BANKING_SUPPORT_HELP_PUBLISHABLE_KEY =
+GRAINE_RETAIL_SHOPPING_PUBLISHABLE_KEY =
+GRAINE_RETAIL_SHOPPING_HELP_PUBLISHABLE_KEY =
+
 // Keep the $() — "//" starts a comment in an xcconfig file. A Debug build may also use plain http to this Mac from
 // the simulator (http:/$()/127.0.0.1:<port>); a Release build is https only.
 GRAINE_BASE_URL = https:/$()/www.graine.ai

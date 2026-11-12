@@ -1,5 +1,6 @@
 package ai.graine.demo.graine
 
+import ai.graine.demo.domain.AgentNames
 import ai.graine.demo.domain.AppConfig
 import ai.graine.demo.domain.DemoActionResult
 import ai.graine.demo.domain.DemoAgent
@@ -191,15 +192,19 @@ private val NO_AGENTS: StateFlow<List<AgentSecurity>> = MutableStateFlow(emptyLi
  * launch (Application.onCreate on Android, the app's start on iOS): a push
  * that wakes a closed app can ring only once the SDK and its calls are set up.
  */
-class GraineService private constructor() : GraineClient {
+class GraineService private constructor(
+    /** Every agent configured at launch, by the name it was configured under: the app's, and each pack's own. */
+    private val configured: List<String>,
+) : GraineClient {
     private val registered = mutableListOf<() -> Unit>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     override var onSessionReady: (() -> Unit)? = null
     override var onCallEvent: ((CallEvent) -> Unit)? = null
 
     init {
-        for (agent in agents) {
-            val sdk = sdk(agent) ?: continue
+        // Every configured agent's session, not only the open pack's: another pack's agents are a pack choice away.
+        for (name in configured) {
+            val sdk = Graine.agent(name) ?: continue
             scope.launch { sdk.session.filterNotNull().collect { onSessionReady?.invoke() } }
         }
         // Each ring and outcome says which agent the call is with (`agent`: the name it was configured under).
@@ -286,7 +291,8 @@ class GraineService private constructor() : GraineClient {
 
     override suspend fun memories(): List<GraineMemory> = guarded(DemoAgent.MAIN) { it.memories() }
 
-    override val agentMemoryEnabled: Boolean? get() = Graine.session.value?.memoryEnabled
+    // The open pack's main agent's: each pack's agents may have their own memory settings.
+    override val agentMemoryEnabled: Boolean? get() = sdk(DemoAgent.MAIN)?.session?.value?.memoryEnabled
 
     // ── screen context and actions ──────────────────────────────────────────
 
@@ -455,24 +461,30 @@ class GraineService private constructor() : GraineClient {
                     tokenProvider = demoTokens(key, main),
                 ),
             )
-            GraineSecurity.start(
+            val configured = GraineSecurity.start(
                 agents = buildList {
                     add(agent(Graine.DEFAULT_AGENT, config.publishableKey, main = true))
-                    if (config.hasHelpKey) add(agent(DemoAgent.HELP.sdkName, config.helpPublishableKey))
+                    if (config.hasHelpKey) add(agent(AgentNames.HELP, config.helpPublishableKey))
                     // The Journey's first-call agent (a flow agent): its first call, booked or now, and its chat version.
                     if (config.hasConsultationKey) add(agent(JourneyAgent.FIRST_CALL.sdkName, config.consultationPublishableKey))
+                    // A pack with agents of its own: each under that pack's names; its screens use them while it is open.
+                    for ((id, keys) in config.packKeys) {
+                        add(agent(AgentNames.mainOf(id), keys.publishableKey, main = true))
+                        if (keys.hasHelpKey) add(agent(AgentNames.helpOf(id), keys.helpPublishableKey))
+                    }
                 },
                 // DEMO ONLY — your sign-in hands you the user's ID token (Firebase: user.getIdToken(false)). This demo has no
                 // sign-in, so Graine's demo sign-in server signs one for the person picked (domain/DemoSignIn.kt).
                 identityTokens = { userId ->
-                    DemoSignIn.fetch(config.baseUrl, config.publishableKey, userId) { url, json -> Platform.httpPost(url, json) }
+                    // Signed for the open pack's main agent: the user signs in to that pack, with its agents.
+                    DemoSignIn.fetch(config.baseUrl, config.keysFor(AgentNames.openPack).publishableKey, userId) { url, json -> Platform.httpPost(url, json) }
                 },
                 debugBuild = debugBuild,
                 log = { Platform.log(it) },
             )
             // iOS: receive the agents' calls as VoIP pushes (Android: the SDK's own messaging service rings them).
             Graine.calls.enableVoIPPushes()
-            return GraineService().also {
+            return GraineService(configured).also {
                 it.setCallName(callName)
                 instance = it
             }

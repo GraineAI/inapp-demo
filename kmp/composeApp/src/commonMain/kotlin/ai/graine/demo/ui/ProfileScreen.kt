@@ -176,7 +176,7 @@ private fun VariablesSection(model: AppModel, agent: String) {
 private fun SecuritySection(model: AppModel) {
     val statuses by model.graine.security.collectAsState()
     Section("Security") {
-        SecurityCard(statuses, signedIn = model.user != null, debugToken = model.graine.debugToken, nameOf = { model.securityName(it) })
+        SecurityCard(statuses.filter { model.onSecurityCard(it.name) }, signedIn = model.user != null, debugToken = model.graine.debugToken, nameOf = { model.securityName(it) })
         Text(
             "This demo proves its users with an ID token from Graine's demo sign-in server — a stand-in for your own " +
                 "sign-in, which signs only for the person who signed in. No secret is ever in the app.",

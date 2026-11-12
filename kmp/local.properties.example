@@ -10,6 +10,14 @@ graine.consultationPublishableKey=
 # Optional: the packs this build offers (ids from ../usecases, comma-separated; the first opens by default).
 # Empty: every pack. The keys above serve every pack offered: name one when they are that pack's agents, e.g. retail-shopping.
 graine.packs=
+# Optional: a pack's own agents. While that pack is open, its screens talk to these instead of the keys above, so each
+# pack can have its own agents in one build. A pack without them uses the keys above.
+# graine.pack.health-coach.publishableKey=
+# graine.pack.health-coach.helpPublishableKey=
+# graine.pack.banking-support.publishableKey=
+# graine.pack.banking-support.helpPublishableKey=
+# graine.pack.retail-shopping.publishableKey=
+# graine.pack.retail-shopping.helpPublishableKey=
 # Optional: another server (default https://www.graine.ai). A debug build may also use plain http to this
 # computer — http://10.0.2.2:<port> from the emulator (src/androidDebug); a release build is https only.
 graine.baseUrl=https://www.graine.ai
