@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/GraineAI/inapp-ios",
       "state" : {
-        "revision" : "77a73826cab45c2cc64a13855bd5664230efea1e",
-        "version" : "0.15.4"
+        "revision" : "7db1ff7f71bb2de096750adc1bc85a1c59be5f78",
+        "version" : "0.15.5"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/GraineAI/inapp-ios-rtc",
       "state" : {
-        "revision" : "f72428398a245ad3d11cac726e11a35eedf24e01",
-        "version" : "0.15.4"
+        "revision" : "27b7970087de62abec513ab6acf08dc7f34a0994",
+        "version" : "0.15.5"
       }
     },
     {
