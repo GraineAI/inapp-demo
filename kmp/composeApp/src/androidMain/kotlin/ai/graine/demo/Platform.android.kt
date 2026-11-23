@@ -56,6 +56,8 @@ actual object Platform {
         BuildConfig.GRAINE_PACKS,
         // Each pack's own agents (graine.pack.<id>.publishableKey / helpPublishableKey), as composeApp's build packs them.
         packKeys = AppConfig.packKeysWire(BuildConfig.GRAINE_PACK_KEYS),
+        // The server a pack's own agents are on, when not graine.baseUrl (graine.pack.<id>.baseUrl).
+        packBaseUrls = AppConfig.packBaseUrlsWire(BuildConfig.GRAINE_PACK_BASE_URLS),
     )
 
     actual fun store(): KeyValueStore {

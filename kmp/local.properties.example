@@ -18,6 +18,9 @@ graine.packs=
 # graine.pack.banking-support.helpPublishableKey=
 # graine.pack.retail-shopping.publishableKey=
 # graine.pack.retail-shopping.helpPublishableKey=
+# Optional: the server a pack's own agents are on, when it is not graine.baseUrl — your own Graine install, say.
+# Only a pack with its own keys above uses it.
+# graine.pack.banking-support.baseUrl=https://agents.example.com
 # Optional: another server (default https://www.graine.ai). A debug build may also use plain http to this
 # computer — http://10.0.2.2:<port> from the emulator (src/androidDebug); a release build is https only.
 graine.baseUrl=https://www.graine.ai

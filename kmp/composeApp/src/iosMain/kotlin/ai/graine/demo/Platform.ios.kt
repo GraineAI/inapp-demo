@@ -47,6 +47,8 @@ actual object Platform {
         info("GrainePacks"),
         // Each pack's own agents (Info.plist GraineKey.<id> / GraineHelpKey.<id>, from GRAINE_<ID>_… in Config.xcconfig).
         packKeys = UseCasePacks.bundled.associateWith { id -> info("GraineKey.$id") to info("GraineHelpKey.$id") },
+        // The server a pack's own agents are on, when not GraineBaseURL (Info.plist GraineBaseURL.<id>, from GRAINE_<ID>_BASE_URL).
+        packBaseUrls = UseCasePacks.bundled.associateWith { id -> info("GraineBaseURL.$id") },
     )
 
     actual fun store(): KeyValueStore = object : KeyValueStore {

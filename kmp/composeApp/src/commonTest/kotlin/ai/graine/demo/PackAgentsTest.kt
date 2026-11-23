@@ -97,6 +97,48 @@ class PackAgentsTest {
     }
 
     @Test
+    fun aPacksOwnAgentsCanBeOnAnotherServer() {
+        val config = AppConfig.of(
+            "https://www.graine.ai/", "pk_live_app",
+            packKeys = mapOf(
+                "banking-support" to ("pk_live_bank" to "pk_live_bhelp"),
+                "retail-shopping" to ("pk_live_store" to null),
+                "health-coach" to (null to null),
+            ),
+            packBaseUrls = mapOf(
+                "banking-support" to " https://agents.example.com/ ",
+                "retail-shopping" to "",
+                "health-coach" to "https://lonely.example.com",
+            ),
+        )
+        assertEquals("https://www.graine.ai", config.baseUrl, "the app's server, as the SDK takes it")
+        assertEquals("https://agents.example.com", config.baseUrlFor("banking-support"), "the pack's own install, trimmed")
+        assertEquals(PackKeys("pk_live_bank", "pk_live_bhelp", "https://agents.example.com"), config.keysFor("banking-support"))
+        assertEquals("https://www.graine.ai", config.baseUrlFor("retail-shopping"), "its own agents, no server of their own: the app's")
+        assertEquals("https://www.graine.ai", config.baseUrlFor("health-coach"), "a server without keys of its own changes nothing")
+        assertEquals("https://www.graine.ai", config.baseUrlFor(null))
+        assertEquals("agents.example.com", config.otherServerHost("banking-support"), "the sign-in screen names it")
+        assertNull(config.otherServerHost("retail-shopping"))
+        assertNull(config.otherServerHost("health-coach"))
+        assertNull(config.otherServerHost(null))
+    }
+
+    @Test
+    fun androidsPackedServersReadBackAsTheSettingsGaveThem() {
+        // What composeApp's build writes into BuildConfig.GRAINE_PACK_BASE_URLS, for every bundled pack.
+        val config = AppConfig.of(
+            null, "pk_live_app",
+            packKeys = AppConfig.packKeysWire("health-coach=,;banking-support=pk_live_bank,;retail-shopping=pk_live_store,"),
+            packBaseUrls = AppConfig.packBaseUrlsWire("health-coach=;retail-shopping=;banking-support=https://agents.example.com"),
+        )
+        assertEquals("https://agents.example.com", config.baseUrlFor("banking-support"))
+        assertEquals(AppConfig.DEFAULT_BASE_URL, config.baseUrlFor("retail-shopping"))
+        assertEquals(AppConfig.DEFAULT_BASE_URL, config.baseUrlFor("health-coach"))
+        assertEquals(emptyMap<String, String?>(), AppConfig.packBaseUrlsWire(""))
+        assertEquals(emptyMap<String, String?>(), AppConfig.packBaseUrlsWire(null))
+    }
+
+    @Test
     fun choosingAPackSwitchesEveryScreenToItsAgents() = runTest {
         val config = AppConfig.of("https://www.graine.ai", "pk_test_app", packKeys = mapOf("retail-shopping" to ("pk_test_store" to "pk_test_shelp")))
         AgentNames.configured(config.packKeys.keys)

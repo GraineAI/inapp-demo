@@ -442,23 +442,24 @@ class GraineService private constructor(
             // DEMO ONLY — server tokens from a stand-in for your server (Profile → Server token (demo), domain/ServerToken.kt).
             // Off by default: no agent gets a tokenProvider, and no token is ever sent.
             val tokens = ServerTokenStore.load(Platform.store())
-            fun demoTokens(key: String, main: Boolean): (suspend () -> String?)? =
+            fun demoTokens(key: String, main: Boolean, server: String): (suspend () -> String?)? =
                 if (!main && !tokens.mode.everyAgent) null
                 else DemoTokens.provider(
-                    tokens, config.baseUrl, key, user = { GraineSecurity.userId },
+                    tokens, server, key, user = { GraineSecurity.userId },
                     get = { Platform.httpGet(it) }, post = { url, json -> Platform.httpPost(url, json) },
                 )
-            // Each agent: its own publishable key — and, when server tokens are on, its own tokenProvider. A chat session
-            // closes this long after its screen closes (the SDK's default, set here so it is plain to see).
-            fun agent(name: String, key: String, main: Boolean = false) = GraineSecurity.Agent(
+            // Each agent: its own publishable key, on the server it lives on — the app's, or a pack's own install
+            // (AppConfig.baseUrlFor) — and, when server tokens are on, its own tokenProvider. A chat session closes this
+            // long after its screen closes (the SDK's default, set here so it is plain to see).
+            fun agent(name: String, key: String, main: Boolean = false, server: String = config.baseUrl) = GraineSecurity.Agent(
                 name,
                 GraineConfig(
-                    baseUrl = config.baseUrl,
+                    baseUrl = server,
                     publishableKey = key,
                     appVersion = appVersion,
                     debug = debug,
                     chatCloseDelaySeconds = CHAT_CLOSE_DELAY_SECONDS,
-                    tokenProvider = demoTokens(key, main),
+                    tokenProvider = demoTokens(key, main, server),
                 ),
             )
             val configured = GraineSecurity.start(
@@ -467,17 +468,20 @@ class GraineService private constructor(
                     if (config.hasHelpKey) add(agent(AgentNames.HELP, config.helpPublishableKey))
                     // The Journey's first-call agent (a flow agent): its first call, booked or now, and its chat version.
                     if (config.hasConsultationKey) add(agent(JourneyAgent.FIRST_CALL.sdkName, config.consultationPublishableKey))
-                    // A pack with agents of its own: each under that pack's names; its screens use them while it is open.
+                    // A pack with agents of its own: each under that pack's names, on that pack's server; its screens use
+                    // them while it is open.
                     for ((id, keys) in config.packKeys) {
-                        add(agent(AgentNames.mainOf(id), keys.publishableKey, main = true))
-                        if (keys.hasHelpKey) add(agent(AgentNames.helpOf(id), keys.helpPublishableKey))
+                        val server = config.baseUrlFor(id)
+                        add(agent(AgentNames.mainOf(id), keys.publishableKey, main = true, server = server))
+                        if (keys.hasHelpKey) add(agent(AgentNames.helpOf(id), keys.helpPublishableKey, server = server))
                     }
                 },
                 // DEMO ONLY — your sign-in hands you the user's ID token (Firebase: user.getIdToken(false)). This demo has no
                 // sign-in, so Graine's demo sign-in server signs one for the person picked (domain/DemoSignIn.kt).
                 identityTokens = { userId ->
-                    // Signed for the open pack's main agent: the user signs in to that pack, with its agents.
-                    DemoSignIn.fetch(config.baseUrl, config.keysFor(AgentNames.openPack).publishableKey, userId) { url, json -> Platform.httpPost(url, json) }
+                    // Signed for the open pack's main agent, by its server: the user signs in to that pack, with its agents.
+                    val pack = AgentNames.openPack
+                    DemoSignIn.fetch(config.baseUrlFor(pack), config.keysFor(pack).publishableKey, userId) { url, json -> Platform.httpPost(url, json) }
                 },
                 debugBuild = debugBuild,
                 log = { Platform.log(it) },

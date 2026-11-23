@@ -36,6 +36,16 @@ data class AppConfig(
     /** The keys [packId]'s screens use: its own agents', else the app's. */
     fun keysFor(packId: String?): PackKeys = packKeys[packId] ?: PackKeys(publishableKey, helpPublishableKey)
 
+    /**
+     * The Graine server [packId]'s agents are on: its own agents' install when they live on another one
+     * (graine.pack.<id>.baseUrl; on iOS GRAINE_<ID>_BASE_URL), else the app's [baseUrl].
+     */
+    fun baseUrlFor(packId: String?): String = packKeys[packId]?.baseUrl?.takeIf { it.isNotEmpty() } ?: baseUrl
+
+    /** The host of [packId]'s server when it is not the app's — the sign-in screen names it beside the pack — else null. */
+    fun otherServerHost(packId: String?): String? =
+        baseUrlFor(packId).takeIf { it != baseUrl }?.let { it.substringAfter("://").substringBefore('/').substringBefore('?') }
+
     /** Where [packId]'s help desk key is set, in the words the Help screen uses. */
     fun helpKeySetting(packId: String?): String =
         if (packId != null && packId in packKeys) {
@@ -54,23 +64,41 @@ data class AppConfig(
             consultationPublishableKey: String? = null,
             packs: String? = null,
             packKeys: Map<String, Pair<String?, String?>> = emptyMap(),
+            packBaseUrls: Map<String, String?> = emptyMap(),
         ) = AppConfig(
-            baseUrl = baseUrl?.trim()?.takeIf { it.isNotEmpty() } ?: DEFAULT_BASE_URL,
+            baseUrl = serverOf(baseUrl) ?: DEFAULT_BASE_URL,
             publishableKey = publishableKey?.trim() ?: "",
             helpPublishableKey = helpPublishableKey?.trim() ?: "",
             consultationPublishableKey = consultationPublishableKey?.trim() ?: "",
             packIds = packIdsOf(packs),
-            packKeys = packKeysOf(packKeys),
+            packKeys = packKeysOf(packKeys, packBaseUrls),
         )
+
+        /** A server setting as the SDK takes it: trimmed, no trailing slash; null when blank. */
+        fun serverOf(raw: String?): String? = raw?.trim()?.trimEnd('/')?.takeIf { it.isNotEmpty() }
 
         /** The setting's pack ids: trimmed, blanks dropped, each once ("a, b,a" → [a, b]). */
         fun packIdsOf(raw: String?): List<String> =
             raw.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
-        /** Each pack's (main, help) keys as the settings give them: a pack keeps its own only when its main key is set. */
-        fun packKeysOf(raw: Map<String, Pair<String?, String?>>): Map<String, PackKeys> = raw.mapNotNull { (id, keys) ->
+        /**
+         * Each pack's (main, help) keys as the settings give them, with the server they are on when it is not the
+         * app's ([baseUrls]): a pack keeps its own only when its main key is set — a server alone changes nothing,
+         * since the app's keys belong to the app's server.
+         */
+        fun packKeysOf(
+            raw: Map<String, Pair<String?, String?>>,
+            baseUrls: Map<String, String?> = emptyMap(),
+        ): Map<String, PackKeys> = raw.mapNotNull { (id, keys) ->
             val main = keys.first?.trim().orEmpty()
-            if (id.isBlank() || !main.startsWith("pk_")) null else id.trim() to PackKeys(main, keys.second?.trim().orEmpty())
+            if (id.isBlank() || !main.startsWith("pk_")) null
+            else id.trim() to PackKeys(main, keys.second?.trim().orEmpty(), serverOf(baseUrls[id]).orEmpty())
+        }.toMap()
+
+        /** Android's BuildConfig.GRAINE_PACK_BASE_URLS, as composeApp's build writes it: "<id>=<url>;…" (blank: the app's). */
+        fun packBaseUrlsWire(raw: String?): Map<String, String?> = raw.orEmpty().split(';').mapNotNull { entry ->
+            val id = entry.substringBefore('=', "").trim()
+            if (id.isEmpty()) null else id to entry.substringAfter('=')
         }.toMap()
 
         /** Android's BuildConfig.GRAINE_PACK_KEYS, as composeApp's build writes it: "<id>=<main>,<help>;…". */
@@ -84,8 +112,11 @@ data class AppConfig(
     }
 }
 
-/** One pack's own agents: its main agent's publishable key and, optionally, its help desk's. */
-data class PackKeys(val publishableKey: String, val helpPublishableKey: String = "") {
+/**
+ * One pack's own agents: its main agent's publishable key and, optionally, its help desk's — and [baseUrl], the Graine
+ * server both are on when it is not the app's (your own install, say); empty: the app's.
+ */
+data class PackKeys(val publishableKey: String, val helpPublishableKey: String = "", val baseUrl: String = "") {
     val hasKey: Boolean get() = publishableKey.startsWith("pk_")
     val hasHelpKey: Boolean get() = helpPublishableKey.startsWith("pk_")
 }

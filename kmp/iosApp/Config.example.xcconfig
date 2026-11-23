@@ -29,6 +29,12 @@ GRAINE_BANKING_SUPPORT_HELP_PUBLISHABLE_KEY =
 GRAINE_RETAIL_SHOPPING_PUBLISHABLE_KEY =
 GRAINE_RETAIL_SHOPPING_HELP_PUBLISHABLE_KEY =
 
+// Optional: the server a pack's own agents are on, when it is not GRAINE_BASE_URL — your own Graine install, say
+// (https:/$()/agents.example.com). Only a pack with its own keys above uses it; empty: GRAINE_BASE_URL.
+GRAINE_HEALTH_COACH_BASE_URL =
+GRAINE_BANKING_SUPPORT_BASE_URL =
+GRAINE_RETAIL_SHOPPING_BASE_URL =
+
 // Keep the $() — "//" starts a comment in an xcconfig file. A Debug build may also use plain http to this Mac from
 // the simulator (http:/$()/127.0.0.1:<port>); a Release build is https only.
 GRAINE_BASE_URL = https:/$()/www.graine.ai

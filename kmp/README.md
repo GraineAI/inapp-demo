@@ -28,7 +28,9 @@ and voice bar as composables).
    `graine.pack.<id>.publishableKey` and `graine.pack.<id>.helpPublishableKey` (iOS: `GRAINE_<ID>_PUBLISHABLE_KEY`
    and `GRAINE_<ID>_HELP_PUBLISHABLE_KEY`, e.g. `GRAINE_RETAIL_SHOPPING_PUBLISHABLE_KEY`) — and its screens then talk
    to those while it is open, so one build demos every pack with its own agents. `graine.packs` (pack ids,
-   comma-separated) limits a build to the packs it has agents for.
+   comma-separated) limits a build to the packs it has agents for. A pack's own agents can be on another Graine
+   server than the app's — your own install — with `graine.pack.<id>.baseUrl` (iOS: `GRAINE_<ID>_BASE_URL`);
+   the sign-in screen names that server beside the pack, and Profile shows the open pack's.
 2. iOS: copy `iosApp/Config.example.xcconfig` to `iosApp/Config.xcconfig` (git-ignored) and set your team,
    bundle id and the same keys.
 3. Recreate the agent from `../agent-setup/<pack>/` so its identity field, memory, actions and call

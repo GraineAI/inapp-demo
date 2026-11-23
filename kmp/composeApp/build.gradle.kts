@@ -80,6 +80,12 @@ android {
                 setting("graine.pack.$id.helpPublishableKey", "GRAINE_${env}_HELP_PUBLISHABLE_KEY", "")
         }
         buildConfigField("String", "GRAINE_PACK_KEYS", "\"$packKeys\"")
+        // Optional: the server a pack's own agents are on, when it is not graine.baseUrl (graine.pack.<id>.baseUrl — your
+        // own Graine install, say). Packed as "<id>=<url>;…" (AppConfig.packBaseUrlsWire); empty: graine.baseUrl.
+        val packBaseUrls = packIds.joinToString(";") { id ->
+            "$id=" + setting("graine.pack.$id.baseUrl", "GRAINE_${id.uppercase().replace('-', '_')}_BASE_URL", "")
+        }
+        buildConfigField("String", "GRAINE_PACK_BASE_URLS", "\"$packBaseUrls\"")
         buildConfigField("String", "GRAINE_BASE_URL", "\"${setting("graine.baseUrl", "GRAINE_BASE_URL", "https://www.graine.ai")}\"")
     }
     buildFeatures { buildConfig = true }

@@ -80,7 +80,7 @@ fun ProfileScreen(model: AppModel) {
 
         Section("This device") {
             Field("Install ID", model.graine.installId, monospace = true)
-            Field("Server", model.config.baseUrl)
+            Field("Server", model.config.baseUrlFor(model.pack?.id))
             Text(
                 "The install ID identifies this installation of the app. It is made on this device and is not linked to your phone number.",
                 style = MaterialTheme.typography.bodySmall,

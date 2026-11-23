@@ -50,7 +50,8 @@ fun SignInScreen(model: AppModel) {
                     FilterChip(
                         selected = p.id == pack.id,
                         onClick = { model.choosePack(p.id) },
-                        label = { Text(p.appTitle) },
+                        // A pack whose agents are on another server says which.
+                        label = { Text(model.config.otherServerHost(p.id)?.let { "${p.appTitle} · $it" } ?: p.appTitle) },
                         modifier = Modifier.testTag("pack_${p.id}"),
                     )
                 }
